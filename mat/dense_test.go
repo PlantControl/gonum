@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/stat/combin"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/stat/combin"
 )
 
 func TestNewDense(t *testing.T) {

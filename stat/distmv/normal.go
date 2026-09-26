@@ -8,10 +8,10 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat"
-	"gonum.org/v1/gonum/stat/distuv"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/stat/distuv"
 )
 
 // Normal is a multivariate normal distribution (also known as the multivariate

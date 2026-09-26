@@ -9,7 +9,7 @@ import (
 	"log"
 	"strings"
 
-	"gonum.org/v1/gonum/graph/formats/rdf"
+	"plantcontrol.org/v1/gonum/graph/formats/rdf"
 )
 
 func ExampleURDNA2015() {

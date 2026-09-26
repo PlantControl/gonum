@@ -26,8 +26,8 @@ be a complete runnable example at https://play.golang.org/.
 ### What version of Go and Gonum are you using?
 <!--
 Paste the output of `go version` and if you are installing Gonum from source, paste
-the output of `(cd $(go env GOPATH)/src/gonum.org/v1/gonum && git rev-parse HEAD)`.
-If you are using modules, also paste the output of `grep gonum.org/v1/gonum go.sum`,
+the output of `(cd $(go env GOPATH)/src/plantcontrol.org/v1/gonum && git rev-parse HEAD)`.
+If you are using modules, also paste the output of `grep plantcontrol.org/v1/gonum go.sum`,
 executed in the root of your dependent module.
 -->
 

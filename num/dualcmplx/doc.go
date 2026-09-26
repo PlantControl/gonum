@@ -6,7 +6,7 @@
 // type and functions.
 //
 // See https://arxiv.org/abs/1601.01754v1 for details.
-package dualcmplx // imports "gonum.org/v1/gonum/num/dualcmplx"
+package dualcmplx // imports "plantcontrol.org/v1/gonum/num/dualcmplx"
 
 // TODO(kortschak): Handle special cases properly.
 //  - Pow

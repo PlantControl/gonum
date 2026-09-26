@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 func TestLogisticParameters(t *testing.T) {

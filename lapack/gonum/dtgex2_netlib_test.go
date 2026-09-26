@@ -11,7 +11,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack/gonum/internal/netlib"
+	"plantcontrol.org/v1/gonum/lapack/gonum/internal/netlib"
 )
 
 func TestDtgex2NetlibDifferential(t *testing.T) {

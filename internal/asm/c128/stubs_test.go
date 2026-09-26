@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gonum.org/v1/gonum/cmplxs/cscalar"
-	. "gonum.org/v1/gonum/internal/asm/c128"
+	"plantcontrol.org/v1/gonum/cmplxs/cscalar"
+	. "plantcontrol.org/v1/gonum/internal/asm/c128"
 )
 
 func TestAdd(t *testing.T) {

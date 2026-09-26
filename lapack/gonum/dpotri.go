@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dpotri computes the inverse of a real symmetric positive definite matrix A
 // using its Cholesky factorization.

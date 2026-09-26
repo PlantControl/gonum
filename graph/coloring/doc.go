@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package coloring provides graph coloring functions.
-package coloring // import "gonum.org/v1/gonum/graph/coloring"
+package coloring // import "plantcontrol.org/v1/gonum/graph/coloring"

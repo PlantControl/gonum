@@ -5,5 +5,5 @@
 // Package graph defines graph interfaces.
 //
 // Routines to test contract compliance by user implemented graph types
-// are available in gonum.org/v1/gonum/graph/testgraph.
-package graph // import "gonum.org/v1/gonum/graph"
+// are available in plantcontrol.org/v1/gonum/graph/testgraph.
+package graph // import "plantcontrol.org/v1/gonum/graph"

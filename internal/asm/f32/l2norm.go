@@ -4,7 +4,7 @@
 
 package f32
 
-import "gonum.org/v1/gonum/internal/math32"
+import "plantcontrol.org/v1/gonum/internal/math32"
 
 // L2NormUnitary is the level 2 norm of x.
 func L2NormUnitary(x []float32) (sum float32) {

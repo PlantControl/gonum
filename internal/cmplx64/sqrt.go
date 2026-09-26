@@ -8,7 +8,7 @@
 
 package cmplx64
 
-import math "gonum.org/v1/gonum/internal/math32"
+import math "plantcontrol.org/v1/gonum/internal/math32"
 
 // The original C code, the long comment, and the constants
 // below are from http://netlib.sandia.gov/cephes/c9x-complex/clog.c.

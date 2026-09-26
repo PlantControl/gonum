@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas/blas64"
+import "plantcontrol.org/v1/gonum/blas/blas64"
 
 // Dlapll returns the smallest singular value of the n×2 matrix A = [ x y ].
 // The function first computes the QR factorization of A = Q*R, and then computes

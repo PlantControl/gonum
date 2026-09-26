@@ -7,7 +7,7 @@ package distmat
 import (
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 // UniformPermutation is a uniform distribution over the n!

@@ -4,7 +4,7 @@
 
 package stat_test
 
-import "gonum.org/v1/gonum/mat"
+import "plantcontrol.org/v1/gonum/mat"
 
 // ASA Car Exposition Data of Ramos and Donoho (1983)
 // http://lib.stat.cmu.edu/datasets/cars.desc

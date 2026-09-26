@@ -7,7 +7,7 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas/cblas128"
+	"plantcontrol.org/v1/gonum/blas/cblas128"
 )
 
 // Zlarfg generates a complex elementary reflector H of order n such that

@@ -11,8 +11,8 @@ import (
 	"reflect"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/spatial/r2"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/spatial/r2"
 )
 
 type particle2 struct {

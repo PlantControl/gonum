@@ -9,7 +9,7 @@ import (
 	"log"
 	"math"
 
-	"gonum.org/v1/gonum/spatial/vptree"
+	"plantcontrol.org/v1/gonum/spatial/vptree"
 )
 
 func Example_accessiblePublicTransport() {

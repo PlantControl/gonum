@@ -4,7 +4,7 @@
 
 package r3
 
-import "gonum.org/v1/gonum/mat"
+import "plantcontrol.org/v1/gonum/mat"
 
 // Mat represents a 3×3 matrix. Useful for rotation matrices and such.
 // The zero value is usable as the 3×3 zero matrix.

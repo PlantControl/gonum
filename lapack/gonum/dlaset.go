@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dlaset sets the off-diagonal elements of A to alpha, and the diagonal
 // elements to beta. If uplo == blas.Upper, only the elements in the upper

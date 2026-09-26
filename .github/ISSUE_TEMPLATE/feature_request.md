@@ -21,7 +21,7 @@ of the problem, prefixed by the primary affected package.
 ### What version of Go and Gonum are you using?
 <!--
 Paste the output of `go version` and if you are installing Gonum from source, paste
-the output of `(cd $(go env GOPATH)/src/gonum.org/v1/gonum && git rev-parse HEAD)`.
+the output of `(cd $(go env GOPATH)/src/plantcontrol.org/v1/gonum && git rev-parse HEAD)`.
 -->
 
 

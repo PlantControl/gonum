@@ -8,7 +8,7 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/mathext"
+	"plantcontrol.org/v1/gonum/mathext"
 )
 
 const logPi = 1.1447298858494001741 // http://oeis.org/A053510

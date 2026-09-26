@@ -7,8 +7,8 @@ package gonum
 import (
 	"math/cmplx"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/cblas128"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/cblas128"
 )
 
 // Zgetrf computes the LU decomposition of an m×n complex matrix A using partial

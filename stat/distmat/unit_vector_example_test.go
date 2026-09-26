@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat/distmat"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat/distmat"
 )
 
 // ExampleUnitVector uses the UnitVector distribution to take

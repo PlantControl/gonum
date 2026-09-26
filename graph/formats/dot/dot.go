@@ -17,9 +17,9 @@ import (
 	"io"
 	"os"
 
-	"gonum.org/v1/gonum/graph/formats/dot/ast"
-	"gonum.org/v1/gonum/graph/formats/dot/internal/lexer"
-	"gonum.org/v1/gonum/graph/formats/dot/internal/parser"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/ast"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/internal/lexer"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/internal/parser"
 )
 
 // ParseFile parses the given Graphviz DOT file into an AST.

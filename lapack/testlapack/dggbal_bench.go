@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func DggbalBenchmark(b *testing.B, impl Dggbaler) {

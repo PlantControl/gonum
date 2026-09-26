@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"testing"
 
-	"gonum.org/v1/gonum/mathext/internal/amos/amoslib"
+	"plantcontrol.org/v1/gonum/mathext/internal/amos/amoslib"
 )
 
 // BUG(kortschak): Some tests here comparing the direct Go translation

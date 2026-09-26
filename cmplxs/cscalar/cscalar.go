@@ -8,7 +8,7 @@ import (
 	"math"
 	"math/cmplx"
 
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 // EqualWithinAbs returns true when a and b have an absolute difference

@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package scalar provides a set of helper routines for dealing with float64 values.
-package scalar // import "gonum.org/v1/gonum/floats/scalar"
+package scalar // import "plantcontrol.org/v1/gonum/floats/scalar"

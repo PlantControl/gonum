@@ -9,10 +9,10 @@ import (
 	"os/exec"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/encoding"
-	"gonum.org/v1/gonum/graph/multi"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/encoding"
+	"plantcontrol.org/v1/gonum/graph/multi"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 // intset is an integer set.

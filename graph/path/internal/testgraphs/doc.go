@@ -4,4 +4,4 @@
 
 // Package testgraphs provides a number of graphs used for testing
 // routines in the path and path/dynamic packages.
-package testgraphs // import "gonum.org/v1/gonum/graph/path/internal/testgraphs"
+package testgraphs // import "plantcontrol.org/v1/gonum/graph/path/internal/testgraphs"

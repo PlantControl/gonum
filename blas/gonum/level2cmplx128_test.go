@@ -7,7 +7,7 @@ package gonum
 import (
 	"testing"
 
-	"gonum.org/v1/gonum/blas/testblas"
+	"plantcontrol.org/v1/gonum/blas/testblas"
 )
 
 func TestZgbmv(t *testing.T) {

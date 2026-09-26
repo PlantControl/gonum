@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package lp implements routines to solve linear programming problems.
-package lp // import "gonum.org/v1/gonum/optimize/convex/lp"
+package lp // import "plantcontrol.org/v1/gonum/optimize/convex/lp"

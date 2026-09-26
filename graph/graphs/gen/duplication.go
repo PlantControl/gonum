@@ -9,8 +9,8 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 // UndirectedMutator is an undirected graph builder that can remove edges.

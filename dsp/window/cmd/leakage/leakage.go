@@ -51,13 +51,13 @@ import (
 	"strconv"
 	"strings"
 
-	"gonum.org/v1/gonum/dsp/fourier"
-	"gonum.org/v1/gonum/dsp/window"
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
+	"plantcontrol.org/v1/gonum/dsp/fourier"
+	"plantcontrol.org/v1/gonum/dsp/window"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/stat"
 )
 
 var windows = map[string]*builtin{

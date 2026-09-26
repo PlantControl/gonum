@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/spatial/r1"
+	"plantcontrol.org/v1/gonum/spatial/r1"
 )
 
 func TestUniformEntropy(t *testing.T) {

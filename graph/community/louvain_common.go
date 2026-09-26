@@ -9,8 +9,8 @@ import (
 	"math/rand/v2"
 	"slices"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
 )
 
 // Q returns the modularity Q score of the graph g subdivided into the

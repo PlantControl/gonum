@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 const defaultGradientAbsTol = 1e-12

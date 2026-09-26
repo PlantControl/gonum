@@ -68,8 +68,8 @@ If it is large, such as suggesting a new repository, sub-repository, or interfac
 
 ### Your First Code Contribution
 
-If you are a new contributor, thank you! Before your first merge, you will need to be added to the [CONTRIBUTORS](https://github.com/jamestjsp/gonum/blob/main/CONTRIBUTORS) and [AUTHORS](https://github.com/jamestjsp/gonum/blob/main/AUTHORS) file; after your contribution has been accepted you will be asked to open a pull request adding yourself to them.
-All Gonum code follows the BSD license in the [license document](https://github.com/jamestjsp/gonum/blob/main/LICENSE).
+If you are a new contributor, thank you! Before your first merge, you will need to be added to the [CONTRIBUTORS](https://github.com/PlantControl/gonum/blob/main/CONTRIBUTORS) and [AUTHORS](https://github.com/PlantControl/gonum/blob/main/AUTHORS) file; after your contribution has been accepted you will be asked to open a pull request adding yourself to them.
+All Gonum code follows the BSD license in the [license document](https://github.com/PlantControl/gonum/blob/main/LICENSE).
 We prefer that code contributions do not come with additional licensing.
 For exceptions, added code must also follow a BSD license.
 

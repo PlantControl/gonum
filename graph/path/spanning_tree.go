@@ -10,8 +10,8 @@ import (
 	"math"
 	"slices"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 // WeightedBuilder is a type that can add nodes and weighted edges.

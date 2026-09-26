@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package gen provides random graph generation functions.
-package gen // import "gonum.org/v1/gonum/graph/graphs/gen"
+package gen // import "plantcontrol.org/v1/gonum/graph/graphs/gen"

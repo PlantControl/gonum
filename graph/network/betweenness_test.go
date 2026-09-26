@@ -11,9 +11,9 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/graph/path"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/graph/path"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 var betweennessTests = []struct {

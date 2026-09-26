@@ -10,7 +10,7 @@ import (
 	"sort"
 	"testing"
 
-	"gonum.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/stat"
 )
 
 func TestAlphaStable(t *testing.T) {

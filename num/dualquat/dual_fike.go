@@ -31,7 +31,7 @@ package dualquat
 import (
 	"math"
 
-	"gonum.org/v1/gonum/num/quat"
+	"plantcontrol.org/v1/gonum/num/quat"
 )
 
 // PowReal returns d**p, the base-d exponential of p.
