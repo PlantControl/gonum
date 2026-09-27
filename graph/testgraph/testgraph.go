@@ -4,7 +4,7 @@
 
 // Package testgraph provides a set of testing helper functions
 // that test Gonum graph interface implementations.
-package testgraph // import "gonum.org/v1/gonum/graph/testgraph"
+package testgraph // import "plantcontrol.org/v1/gonum/graph/testgraph"
 
 import (
 	"cmp"
@@ -14,11 +14,11 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
-	"gonum.org/v1/gonum/internal/order"
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 // BUG(kortschak): Edge equality is tested in part with reflect.DeepEqual and

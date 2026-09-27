@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dlarfx applies an elementary reflector H to a real m×n matrix C, from either
 // the left or the right, with loop unrolling when the reflector has order less

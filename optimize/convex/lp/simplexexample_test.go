@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"log"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/optimize/convex/lp"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/optimize/convex/lp"
 )
 
 func ExampleSimplex() {

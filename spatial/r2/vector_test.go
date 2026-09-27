@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 func TestAdd(t *testing.T) {

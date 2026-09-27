@@ -10,7 +10,7 @@ package iterator
 import (
 	"reflect"
 
-	"gonum.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph"
 )
 
 // Nodes implements the graph.Nodes interfaces.

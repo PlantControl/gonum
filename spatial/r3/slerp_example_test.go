@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/num/quat"
-	"gonum.org/v1/gonum/spatial/r3"
+	"plantcontrol.org/v1/gonum/num/quat"
+	"plantcontrol.org/v1/gonum/spatial/r3"
 )
 
 // slerp returns the spherical interpolation between q0 and q1

@@ -5,9 +5,9 @@
 package mat
 
 import (
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
-	"gonum.org/v1/gonum/lapack/lapack64"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack/lapack64"
 )
 
 const badRcond = "mat: invalid rcond value"

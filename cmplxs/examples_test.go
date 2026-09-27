@@ -7,7 +7,7 @@ package cmplxs_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/cmplxs"
+	"plantcontrol.org/v1/gonum/cmplxs"
 )
 
 // Set of examples for all the functions

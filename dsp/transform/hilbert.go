@@ -5,7 +5,7 @@
 package transform
 
 import (
-	"gonum.org/v1/gonum/dsp/fourier"
+	"plantcontrol.org/v1/gonum/dsp/fourier"
 )
 
 // Hilbert implements an approximate Hilbert transform that allows calculation

@@ -11,7 +11,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/floats"
 )
 
 func TestROC(t *testing.T) {

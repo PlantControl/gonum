@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 var andTests = []struct {

@@ -9,9 +9,9 @@ import (
 	"log"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph/community"
-	"gonum.org/v1/gonum/graph/simple"
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/graph/community"
+	"plantcontrol.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 func ExampleProfile_simple() {

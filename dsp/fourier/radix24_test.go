@@ -14,7 +14,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"gonum.org/v1/gonum/cmplxs"
+	"plantcontrol.org/v1/gonum/cmplxs"
 )
 
 func TestCoefficients(t *testing.T) {

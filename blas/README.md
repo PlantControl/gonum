@@ -1,14 +1,14 @@
 # Gonum BLAS
 
-[![go.dev reference](https://pkg.go.dev/badge/gonum.org/v1/gonum/blas)](https://pkg.go.dev/gonum.org/v1/gonum/blas)
-[![GoDoc](https://godocs.io/gonum.org/v1/gonum/blas?status.svg)](https://godocs.io/gonum.org/v1/gonum/blas)
+[![go.dev reference](https://pkg.go.dev/badge/plantcontrol.org/v1/gonum/blas)](https://pkg.go.dev/plantcontrol.org/v1/gonum/blas)
+[![GoDoc](https://godocs.io/plantcontrol.org/v1/gonum/blas?status.svg)](https://godocs.io/plantcontrol.org/v1/gonum/blas)
 
 A collection of packages to provide BLAS functionality for the [Go programming
 language](http://golang.org)
 
 ## Installation
 ```sh
-  go get gonum.org/v1/gonum/blas/...
+  go get plantcontrol.org/v1/gonum/blas/...
 ```
 
 ## Packages
@@ -33,7 +33,7 @@ package main
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 )
 
 func main() {

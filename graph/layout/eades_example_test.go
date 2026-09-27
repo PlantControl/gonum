@@ -10,13 +10,13 @@ import (
 	"log"
 	"math"
 
-	"gonum.org/v1/gonum/graph/layout"
-	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/font"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
 	"gonum.org/v1/plot/vg/draw"
+	"plantcontrol.org/v1/gonum/graph/layout"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 func ExampleEadesR2() {

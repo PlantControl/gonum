@@ -8,8 +8,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 func TestUnitVector(t *testing.T) {

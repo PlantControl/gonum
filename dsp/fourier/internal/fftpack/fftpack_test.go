@@ -14,9 +14,9 @@ import (
 	"reflect"
 	"testing"
 
-	"gonum.org/v1/gonum/cmplxs"
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/cmplxs"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 func TestRfft(t *testing.T) {

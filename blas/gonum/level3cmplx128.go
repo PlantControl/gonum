@@ -7,8 +7,8 @@ package gonum
 import (
 	"math/cmplx"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/internal/asm/c128"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/internal/asm/c128"
 )
 
 var _ blas.Complex128Level3 = Implementation{}

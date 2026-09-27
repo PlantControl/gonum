@@ -8,9 +8,9 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 // PageRank returns the PageRank weights for nodes of the directed graph g

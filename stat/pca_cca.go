@@ -8,8 +8,8 @@ import (
 	"errors"
 	"math"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 // PC is a type for computing and extracting the principal components of a

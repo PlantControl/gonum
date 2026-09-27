@@ -7,7 +7,7 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 )
 
 // Dlagv2 computes the generalized Schur factorization of a real 2×2 matrix

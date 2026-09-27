@@ -8,8 +8,8 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/floats"
 )
 
 type Dsymmer interface {

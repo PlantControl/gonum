@@ -1,7 +1,7 @@
 Gonum LAPACK
 ======
-[![go.dev reference](https://pkg.go.dev/badge/gonum.org/v1/gonum/lapack)](https://pkg.go.dev/gonum.org/v1/gonum/lapack)
-[![GoDoc](https://godocs.io/gonum.org/v1/gonum/lapack?status.svg)](https://godocs.io/gonum.org/v1/gonum/lapack)
+[![go.dev reference](https://pkg.go.dev/badge/plantcontrol.org/v1/gonum/lapack)](https://pkg.go.dev/plantcontrol.org/v1/gonum/lapack)
+[![GoDoc](https://godocs.io/plantcontrol.org/v1/gonum/lapack?status.svg)](https://godocs.io/plantcontrol.org/v1/gonum/lapack)
 
 A collection of packages to provide LAPACK functionality for the Go programming
 language (http://golang.org). This provides a partial implementation in native go
@@ -10,7 +10,7 @@ and a wrapper using cgo to a c-based implementation.
 ## Installation
 
 ```
-  go get gonum.org/v1/gonum/lapack/...
+  go get plantcontrol.org/v1/gonum/lapack/...
 ```
 
 ## Packages

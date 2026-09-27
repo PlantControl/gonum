@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package layout defines functions for performing graph layout.
-package layout // import "gonum.org/v1/gonum/graph/layout"
+package layout // import "plantcontrol.org/v1/gonum/graph/layout"

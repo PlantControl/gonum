@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package testlapack implements a set of testing routines for Lapack functions.
-package testlapack // import "gonum.org/v1/gonum/lapack/testlapack"
+package testlapack // import "plantcontrol.org/v1/gonum/lapack/testlapack"

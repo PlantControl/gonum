@@ -8,8 +8,8 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/mathext"
-	"gonum.org/v1/gonum/stat/combin"
+	"plantcontrol.org/v1/gonum/mathext"
+	"plantcontrol.org/v1/gonum/stat/combin"
 )
 
 // Binomial implements the binomial distribution, a discrete probability distribution

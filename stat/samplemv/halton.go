@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat/distmv"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat/distmv"
 )
 
 // Halton is a type for sampling using the Halton sequence from

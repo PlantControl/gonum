@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas/blas64"
+import "plantcontrol.org/v1/gonum/blas/blas64"
 
 // dptts2 solves a tridiagonal system of the form
 //

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gonum.org/v1/gonum/graph/formats/rdf"
+	"plantcontrol.org/v1/gonum/graph/formats/rdf"
 )
 
 func ExampleLean() {

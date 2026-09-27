@@ -10,7 +10,7 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph"
 )
 
 // Interval is an interval of resolutions with a common score.

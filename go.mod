@@ -1,4 +1,4 @@
-module gonum.org/v1/gonum
+module plantcontrol.org/v1/gonum
 
 go 1.24.0
 

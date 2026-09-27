@@ -9,9 +9,9 @@ import (
 	"math/rand/v2"
 	"sort"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat/distmv"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat/distmv"
 )
 
 var _ Method = (*CmaEsChol)(nil)

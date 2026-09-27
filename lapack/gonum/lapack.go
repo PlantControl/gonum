@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/lapack"
+import "plantcontrol.org/v1/gonum/lapack"
 
 // Implementation is the native Go implementation of LAPACK routines. It
 // is built on top of calls to the return of blas64.Implementation(), so while

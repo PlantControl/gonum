@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package community provides graph community detection functions.
-package community // import "gonum.org/v1/gonum/graph/community"
+package community // import "plantcontrol.org/v1/gonum/graph/community"

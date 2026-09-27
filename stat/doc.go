@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package stat provides generalized statistical functions.
-package stat // import "gonum.org/v1/gonum/stat"
+package stat // import "plantcontrol.org/v1/gonum/stat"

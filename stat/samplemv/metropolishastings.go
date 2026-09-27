@@ -8,8 +8,8 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat/distmv"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat/distmv"
 )
 
 var _ Sampler = MetropolisHastingser{}

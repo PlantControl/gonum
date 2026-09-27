@@ -5,7 +5,7 @@
 // Package sigmajs implements marshaling and unmarshaling of Sigma.js JSON documents.
 //
 // See http://sigmajs.org/ for Sigma.js documentation.
-package sigmajs // import "gonum.org/v1/gonum/graph/formats/sigmajs"
+package sigmajs // import "plantcontrol.org/v1/gonum/graph/formats/sigmajs"
 
 import (
 	"encoding/json"

@@ -7,7 +7,7 @@ package simple
 import (
 	"math"
 
-	"gonum.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph"
 )
 
 // Node is a simple graph node.

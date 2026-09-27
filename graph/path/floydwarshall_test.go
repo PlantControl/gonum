@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/path/internal/testgraphs"
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/path/internal/testgraphs"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 func TestFloydWarshall(t *testing.T) {

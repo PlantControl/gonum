@@ -8,8 +8,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 func TestProfileUndirected(t *testing.T) {

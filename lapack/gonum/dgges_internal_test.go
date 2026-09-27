@@ -7,9 +7,9 @@ package gonum
 import (
 	"testing"
 
-	"gonum.org/v1/gonum/blas/blas64"
-	blasgonum "gonum.org/v1/gonum/blas/gonum"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	blasgonum "plantcontrol.org/v1/gonum/blas/gonum"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func TestRecheckDggesSelectionAfterFailure(t *testing.T) {

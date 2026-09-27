@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack/lapack64"
+	"plantcontrol.org/v1/gonum/lapack/lapack64"
 )
 
 func TestNewTridiag(t *testing.T) {

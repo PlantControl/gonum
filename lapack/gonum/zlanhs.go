@@ -8,7 +8,7 @@ import (
 	"math"
 	"math/cmplx"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Zlanhs returns the value of the one norm, the Frobenius norm, the infinity

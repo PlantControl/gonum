@@ -18,7 +18,7 @@ import (
 	"strings"
 	"unicode"
 
-	"gonum.org/v1/gonum/graph/formats/dot/internal/token"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/internal/token"
 )
 
 type ErrorSymbol interface {

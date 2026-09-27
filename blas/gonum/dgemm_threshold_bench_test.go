@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 // J10 calibration benches: square M=N=K at {64,128,256,512,1024}.

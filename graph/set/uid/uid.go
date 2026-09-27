@@ -8,7 +8,7 @@ package uid
 import (
 	"math"
 
-	"gonum.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
 )
 
 // Max is the maximum ID value.

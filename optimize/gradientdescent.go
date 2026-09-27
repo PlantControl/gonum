@@ -4,7 +4,7 @@
 
 package optimize
 
-import "gonum.org/v1/gonum/floats"
+import "plantcontrol.org/v1/gonum/floats"
 
 var (
 	_ Method          = (*GradientDescent)(nil)

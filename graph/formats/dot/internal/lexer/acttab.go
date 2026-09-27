@@ -15,7 +15,7 @@ package lexer
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/graph/formats/dot/internal/token"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/internal/token"
 )
 
 type ActionTable [NumStates]ActionRow

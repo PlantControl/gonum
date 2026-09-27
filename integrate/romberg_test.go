@@ -8,8 +8,8 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/integrate/testquad"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/integrate/testquad"
 )
 
 func TestRomberg(t *testing.T) {

@@ -7,7 +7,7 @@ package dual_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/num/dual"
+	"plantcontrol.org/v1/gonum/num/dual"
 )
 
 func ExampleNumber_fike() {

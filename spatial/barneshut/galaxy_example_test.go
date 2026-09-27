@@ -8,8 +8,8 @@ import (
 	"log"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/spatial/barneshut"
-	"gonum.org/v1/gonum/spatial/r2"
+	"plantcontrol.org/v1/gonum/spatial/barneshut"
+	"plantcontrol.org/v1/gonum/spatial/r2"
 )
 
 type mass struct {

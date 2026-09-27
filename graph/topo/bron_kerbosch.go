@@ -7,8 +7,8 @@ package topo
 import (
 	"slices"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
 )
 
 // DegeneracyOrdering returns the degeneracy ordering and the k-cores of

@@ -1,60 +1,30 @@
-# Gonum
+# PlantControl Gonum
 
-[![Build status](https://github.com/jamestjsp/gonum/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jamestjsp/gonum/actions/workflows/ci.yml)
-[![codecov.io](https://codecov.io/gh/jamestjsp/gonum/branch/main/graph/badge.svg)](https://codecov.io/gh/jamestjsp/gonum)
-[![go.dev reference](https://pkg.go.dev/badge/gonum.org/v1/gonum)](https://pkg.go.dev/gonum.org/v1/gonum)
-[![GoDoc](https://godocs.io/gonum.org/v1/gonum?status.svg)](https://godocs.io/gonum.org/v1/gonum)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gonum/gonum)](https://goreportcard.com/report/github.com/gonum/gonum)
-[![stability-unstable](https://img.shields.io/badge/stability-unstable-yellow.svg)](https://github.com/emersion/stability-badges#unstable)
+[![CI](https://github.com/PlantControl/gonum/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PlantControl/gonum/actions/workflows/ci.yml)
+[![go.dev reference](https://pkg.go.dev/badge/plantcontrol.org/v1/gonum)](https://pkg.go.dev/plantcontrol.org/v1/gonum)
 
-## Installation
+A fork of [Gonum](https://www.gonum.org), maintained by PlantControl for control-systems work.
 
-The core packages of the Gonum suite are written in pure Go with some assembly.
-Installation is done using `go get`.
-```
-go get -u gonum.org/v1/gonum/...
+**All code written after the fork is AI-generated.** We do not accept human-written code. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```sh
+go get plantcontrol.org/v1/gonum@latest
 ```
 
-## Supported Go versions
+## Focus
 
-Gonum supports and tests using the gc compiler on the [two most recent Go releases](https://github.com/jamestjsp/gonum/blob/main/.github/workflows/ci.yml#L14-L15) on Linux (386, amd64 and arm64), macOS and Windows (both on amd64).
+- BLAS (`blas/...`) and LAPACK (`lapack/...`) are the core. New LAPACK routines are added when we need them.
+- Branch [`codex/arm64-simd-blas`](https://github.com/PlantControl/gonum/tree/codex/arm64-simd-blas) holds the SIMD kernels, which outperform upstream Gonum. Most development happens there. It will replace `main` once Go SIMD reaches general availability.
+- The other packages are kept in sync but are not actively developed.
 
-Note that floating point behavior may differ between compiler versions and between architectures due to differences in floating point operation implementations.
+## Provenance
 
-## Release schedule
-
-The Gonum modules are released on a six-month release schedule, aligned with the Go releases.
-_i.e.:_ when `Go-1.x` is released, `Gonum-v0.n.0` is released around the same time.
-Six months after, `Go-1.x+1` is released, and `Gonum-v0.n+1.0` as well.
-
-The release schedule, based on the current Go release schedule is thus:
-
-- `Gonum-v0.n.0`: February
-- `Gonum-v0.n+1.0`: August
+Forked from `gonum/gonum` at [`fc402bc4`](https://github.com/gonum/gonum/commit/fc402bc4) (after `v0.17.0`, 2025-12-29). Code up to that point was written by humans and belongs to [The Gonum Authors](AUTHORS) and [contributors](CONTRIBUTORS). For that code, use [gonum.org](https://www.gonum.org) and [github.com/gonum/gonum](https://github.com/gonum/gonum).
 
 ## Build tags
 
-The Gonum packages use a variety of build tags to set non-standard build conditions.
-Building Gonum applications will work without knowing how to use these tags, but they can be used during testing and to control the use of assembly and CGO code.
-
-The current list of non-internal tags is as follows:
-
-- safe — do not use assembly or unsafe
-- bounds — use bounds checks even in internal calls
-- noasm — do not use assembly implementations
-- tomita — use [Tomita, Tanaka, Takahashi pivot choice](https://doi.org/10.1016%2Fj.tcs.2006.06.015) for maximal clique calculation, otherwise use random pivot (only in [topo package](https://pkg.go.dev/gonum.org/v1/gonum/graph/topo))
-
-
-## Issues [![TODOs](https://badgen.net/https/api.tickgit.com/badgen/github.com/gonum/gonum)](https://www.tickgit.com/browse?repo=github.com/gonum/gonum)
-
-If you find any bugs, feel free to file an issue on the github issue tracker. Discussions on API changes, added features, code review, or similar requests are preferred on the gonum-dev Google Group.
-
-https://groups.google.com/forum/#!forum/gonum-dev
+`safe` (no assembly or unsafe), `noasm` (no assembly), `bounds` (extra bounds checks).
 
 ## License
 
-Original code is licensed under the Gonum License found in the LICENSE file. Portions of the code are subject to the additional licenses found in THIRD_PARTY_LICENSES. All third party code is licensed either under a BSD or MIT license.
-
-Code in graph/formats/dot is dual licensed [Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/) and Gonum License, and users are free to choose the license which suits their needs for this code.
-
-The W3C test suites in graph/formats/rdf are distributed under both the [W3C Test Suite License](http://www.w3.org/Consortium/Legal/2008/04-testsuite-license) and the [W3C 3-clause BSD License](http://www.w3.org/Consortium/Legal/2008/03-bsd-license).
+BSD 3-clause; see [LICENSE](LICENSE) and [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES). `graph/formats/dot` is also released under CC0. The W3C test suites in `graph/formats/rdf` are also covered by the W3C licenses.

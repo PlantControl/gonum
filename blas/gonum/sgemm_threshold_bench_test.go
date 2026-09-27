@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 // BenchmarkSgemmCrossover measures the serial/parallel crossover boundary of

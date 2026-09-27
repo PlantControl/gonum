@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package mds provides multidimensional scaling functions.
-package mds // import "gonum.org/v1/gonum/stat/mds"
+package mds // import "plantcontrol.org/v1/gonum/stat/mds"
