@@ -29,6 +29,11 @@ package gonum
 // Dtgexc is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
 	q []float64, ldq int, z []float64, ldz int, ifst, ilst int, work []float64, lwork int) (ifstOut, ilstOut int, ok bool) {
+	return impl.dtgexc(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, ifst, ilst, work, lwork, nil)
+}
+
+func (impl Implementation) dtgexc(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
+	q []float64, ldq int, z []float64, ldz int, ifst, ilst int, work []float64, lwork int, scratch *dtgex2Scratch) (ifstOut, ilstOut int, ok bool) {
 	minWork := 1
 	if n > 1 {
 		minWork = 4*n + 16
@@ -103,6 +108,9 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 		}
 	}
 
+	if scratch == nil {
+		scratch = new(dtgex2Scratch)
+	}
 	here := ifst
 
 	if ilst > ifst {
@@ -112,7 +120,7 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 				if here+nbf < n-1 && a[(here+nbf+1)*lda+here+nbf] != 0 {
 					nbl = 2
 				}
-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, nbf, nbl, work, lwork) {
+				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, nbf, nbl, work, lwork, scratch) {
 					return ifst, here, false
 				}
 				here += nbl
@@ -126,11 +134,11 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 			if here+3 < n && a[(here+3)*lda+here+2] != 0 {
 				nbl = 2
 			}
-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here+1, 1, nbl, work, lwork) {
+			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here+1, 1, nbl, work, lwork, scratch) {
 				return ifst, here, false
 			}
 			if nbl == 1 {
-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
+				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
 					return ifst, here, false
 				}
 				here++
@@ -140,17 +148,17 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 				nbl = 1
 			}
 			if nbl == 2 {
-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 2, work, lwork) {
+				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 2, work, lwork, scratch) {
 					return ifst, here, false
 				}
 				here += 2
 				continue
 			}
-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
+			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
 				return ifst, here, false
 			}
 			here++
-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
+			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
 				return ifst, here, false
 			}
 			here++
@@ -162,7 +170,7 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 				if here >= 2 && a[(here-1)*lda+here-2] != 0 {
 					nbl = 2
 				}
-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, nbf, work, lwork) {
+				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, nbf, work, lwork, scratch) {
 					return ifst, here, false
 				}
 				here -= nbl
@@ -176,11 +184,11 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 			if here >= 2 && a[(here-1)*lda+here-2] != 0 {
 				nbl = 2
 			}
-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, 1, work, lwork) {
+			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, 1, work, lwork, scratch) {
 				return ifst, here, false
 			}
 			if nbl == 1 {
-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
+				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
 					return ifst, here, false
 				}
 				here--
@@ -190,17 +198,17 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
 				nbl = 1
 			}
 			if nbl == 2 {
-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-1, 2, 1, work, lwork) {
+				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-1, 2, 1, work, lwork, scratch) {
 					return ifst, here, false
 				}
 				here -= 2
 				continue
 			}
-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
+			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
 				return ifst, here, false
 			}
 			here--
-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
+			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
 				return ifst, here, false
 			}
 			here--

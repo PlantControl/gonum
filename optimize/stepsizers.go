@@ -7,8 +7,8 @@ package optimize
 import (
 	"math"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 const (

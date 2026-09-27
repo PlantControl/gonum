@@ -12,8 +12,8 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/gonum/internal/netlib"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/gonum/internal/netlib"
 )
 
 func TestDsyrkZeroBetaNetlib(t *testing.T) { testSyrkZeroBeta(t, netlib.Implementation{}.Dsyrk) }

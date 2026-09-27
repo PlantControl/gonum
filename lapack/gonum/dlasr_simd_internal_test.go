@@ -12,8 +12,8 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func TestDlasrLeftVariableSIMDBoundaries(t *testing.T) {

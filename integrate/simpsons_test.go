@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/integrate/testquad"
+	"plantcontrol.org/v1/gonum/integrate/testquad"
 )
 
 func TestSimpsons(t *testing.T) {

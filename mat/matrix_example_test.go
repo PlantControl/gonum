@@ -7,7 +7,7 @@ package mat_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 func ExampleCol() {

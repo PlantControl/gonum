@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/spatial/kdtree"
+	"plantcontrol.org/v1/gonum/spatial/kdtree"
 )
 
 func ExampleTree() {

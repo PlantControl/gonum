@@ -7,7 +7,7 @@ package f32_test
 import (
 	"testing"
 
-	. "gonum.org/v1/gonum/internal/asm/f32"
+	. "plantcontrol.org/v1/gonum/internal/asm/f32"
 )
 
 var tests = []struct {

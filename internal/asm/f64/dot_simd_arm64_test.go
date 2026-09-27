@@ -13,7 +13,7 @@ import (
 	"slices"
 	"testing"
 
-	. "gonum.org/v1/gonum/internal/asm/f64"
+	. "plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 func TestDotUnitarySIMDEdgeLengths(t *testing.T) {

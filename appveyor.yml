@@ -14,7 +14,7 @@ environment:
 
 branches:
   only:
-    - master
+    - main
 
 build_script:
   - go version

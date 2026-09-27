@@ -6,7 +6,7 @@
 
 package f32
 
-import "gonum.org/v1/gonum/internal/math32"
+import "plantcontrol.org/v1/gonum/internal/math32"
 
 // SasumUnitary returns the sum of the absolute values of x.
 func SasumUnitary(x []float32) (sum float32) {

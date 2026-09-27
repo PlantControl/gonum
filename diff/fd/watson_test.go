@@ -4,7 +4,7 @@
 
 package fd
 
-import "gonum.org/v1/gonum/mat"
+import "plantcontrol.org/v1/gonum/mat"
 
 // Watson implements the Watson's function.
 // Dimension of the problem should be 2 <= dim <= 31. For dim == 9, the problem

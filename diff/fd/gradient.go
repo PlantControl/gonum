@@ -4,7 +4,7 @@
 
 package fd
 
-import "gonum.org/v1/gonum/floats"
+import "plantcontrol.org/v1/gonum/floats"
 
 // Gradient estimates the gradient of the multivariate function f at the
 // location x. If dst is not nil, the result will be stored in-place into dst

@@ -4,7 +4,7 @@
 
 package mat_test
 
-import "gonum.org/v1/gonum/mat"
+import "plantcontrol.org/v1/gonum/mat"
 
 // FAO is a dataset extracted from Food and Agriculture Organization of the
 // United Nations "FAO Statistical Pocketbook: World Food and Agriculture 2015".

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log"
 
-	"gonum.org/v1/gonum/graph/coloring"
-	"gonum.org/v1/gonum/graph/graphs/gen"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/graph/coloring"
+	"plantcontrol.org/v1/gonum/graph/graphs/gen"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 // A hard sudoku problem graded at a level of difficulty, "not fun".

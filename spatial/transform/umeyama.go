@@ -7,8 +7,8 @@ package transform
 import (
 	"math"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat"
 )
 
 // Umeyama finds the similarity transformation between two sets of points

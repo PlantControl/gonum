@@ -7,8 +7,8 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dtgsen reorders the generalized real Schur decomposition of a real matrix
@@ -188,6 +188,7 @@ func (impl Implementation) Dtgsen(ijob int, wantq, wantz bool, selected []bool, 
 	// Reorder blocks to collect selected eigenvalues at top-left.
 	// Use a bubble-sort like approach with Dtgexc.
 	{
+		var scratch *dtgex2Scratch
 		ks := 0 // Target position (where to move selected eigenvalues)
 		pair := false
 
@@ -213,8 +214,11 @@ func (impl Implementation) Dtgsen(ijob int, wantq, wantz bool, selected []bool, 
 			if isSelected {
 				// Move this block to position ks.
 				if k != ks {
-					_, _, swapOk := impl.Dtgexc(wantq, wantz, n, a, lda, b, ldb,
-						q, ldq, z, ldz, k, ks, work, lwork)
+					if scratch == nil {
+						scratch = new(dtgex2Scratch)
+					}
+					_, _, swapOk := impl.dtgexc(wantq, wantz, n, a, lda, b, ldb,
+						q, ldq, z, ldz, k, ks, work, lwork, scratch)
 					if !swapOk {
 						ok = false
 						// Continue to extract eigenvalues even if reordering failed.

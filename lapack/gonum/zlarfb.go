@@ -7,9 +7,9 @@ package gonum
 import (
 	"math/cmplx"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/cblas128"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/cblas128"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Zlarfb applies a complex block reflector H or its conjugate transpose H^H to

@@ -7,7 +7,7 @@ package mat
 import (
 	"errors"
 
-	"gonum.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 )
 
 // HOGSVD is a type for creating and using the Higher Order Generalized Singular Value

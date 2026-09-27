@@ -8,9 +8,9 @@ import (
 	"math"
 	"sort"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/optimize/convex/lp"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/optimize/convex/lp"
 )
 
 // CumulantKind specifies the behavior for calculating the empirical CDF or Quantile

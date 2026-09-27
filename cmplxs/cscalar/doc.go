@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package cscalar provides a set of helper routines for dealing with complex128 values.
-package cscalar // import "gonum.org/v1/gonum/cmplxs/cscalar"
+package cscalar // import "plantcontrol.org/v1/gonum/cmplxs/cscalar"

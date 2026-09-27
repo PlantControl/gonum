@@ -2,7 +2,7 @@ name: Codecov
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
     types:
       - closed
 
@@ -28,7 +28,7 @@ jobs:
         TAGS: ${{ matrix.tags }}
     defaults:
         run:
-            working-directory: ${{ env.GOPATH }}/src/gonum.org/v1/gonum
+            working-directory: ${{ env.GOPATH }}/src/plantcontrol.org/v1/gonum
 
     steps:
     - name: Install Go
@@ -39,7 +39,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        path: ${{ env.GOPATH }}/src/gonum.org/v1/gonum
+        path: ${{ env.GOPATH }}/src/plantcontrol.org/v1/gonum
 
     - name: Cache-Go
       uses: actions/cache@v4
@@ -69,4 +69,4 @@ jobs:
       with:
         override_pr: ${{ github.event.pull_request.number }}
         override_commit: ${{ github.event.pull_request.merge_commit_sha }}
-        override_branch: "refs/heads/master"
+        override_branch: "refs/heads/main"

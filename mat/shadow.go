@@ -4,7 +4,7 @@
 
 package mat
 
-import "gonum.org/v1/gonum/blas/blas64"
+import "plantcontrol.org/v1/gonum/blas/blas64"
 
 // checkOverlap returns false if the receiver does not overlap data elements
 // referenced by the parameter and panics otherwise.

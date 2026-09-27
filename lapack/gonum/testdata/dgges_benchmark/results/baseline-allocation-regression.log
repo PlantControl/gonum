@@ -1,0 +1,5 @@
+=== RUN   TestDggesReorderingAllocations
+    dgges_internal_test.go:60: n=20: 220 allocations; reordering must reuse scratch
+    dgges_internal_test.go:60: n=100: 5100 allocations; reordering must reuse scratch
+--- FAIL: TestDggesReorderingAllocations (0.00s)
+FAIL

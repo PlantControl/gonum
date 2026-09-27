@@ -9,8 +9,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 type Dggbaler interface {
@@ -212,7 +212,7 @@ func testDggbalSpecial(t *testing.T, impl Dggbaler) {
 	lscale = make([]float64, 3)
 	rscale = make([]float64, 3)
 
-	ilo, ihi = impl.Dggbal(lapack.Permute, 3, a.Data, a.Stride, b.Data, b.Stride, lscale, rscale, work)
+	ilo, _ = impl.Dggbal(lapack.Permute, 3, a.Data, a.Stride, b.Data, b.Stride, lscale, rscale, work)
 
 	if ilo != 1 {
 		t.Errorf("Special case 2: ilo=%d, want 1", ilo)
@@ -241,7 +241,7 @@ func testDggbalSpecial(t *testing.T, impl Dggbaler) {
 	rscale = make([]float64, 2)
 	work = make([]float64, 12)
 
-	ilo, ihi = impl.Dggbal(lapack.Scale, 2, a.Data, a.Stride, b.Data, b.Stride, lscale, rscale, work)
+	impl.Dggbal(lapack.Scale, 2, a.Data, a.Stride, b.Data, b.Stride, lscale, rscale, work)
 	if lscale[0] == 1 && lscale[1] == 1 && rscale[0] == 1 && rscale[1] == 1 {
 		t.Error("badly scaled pair was left unscaled")
 	}

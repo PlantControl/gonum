@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/internal/order"
 	"gonum.org/v1/plot/cmpimg"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/iterator"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 // orderedGraph wraps a graph.Graph ensuring consistent ordering of nodes

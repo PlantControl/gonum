@@ -14,7 +14,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 // These fixtures call the real BLAS methods. A temporary Go build overlay may

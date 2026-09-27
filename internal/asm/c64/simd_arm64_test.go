@@ -10,7 +10,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/cmplxs/cscalar"
+	"plantcontrol.org/v1/gonum/cmplxs/cscalar"
 )
 
 func TestSIMDUnitaryOverlap(t *testing.T) {

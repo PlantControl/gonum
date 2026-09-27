@@ -9,8 +9,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/floats"
 )
 
 // TestDgemvParallel exercises the row-block parallel Dgemv path against the

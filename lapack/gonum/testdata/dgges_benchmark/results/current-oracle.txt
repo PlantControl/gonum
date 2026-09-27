@@ -1,0 +1,1359 @@
+=== RUN   TestDggesNetlibControlPencils
+    dgges_netlib_cases_test.go:191: LAPACK runtime 3.12.0
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.98e-15 B=1.11e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.61e-15 B=1.33e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.33e-15 B=1.26e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.44e-15 B=1.67e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=2e-15 B=1.67e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.51e-15 B=1.67e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.78e-15 B=1.78e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.89e-15 B=1.67e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.33e-16 B=2.22e-16
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.89e-16 B=2.29e-16
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.11e-15 B=2.78e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.44e-15 B=1.78e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.55e-15 B=1.83e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.05e-15 B=3e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.05e-15 B=1.05e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.55e-15 B=1.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2e-15 B=1.22e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2e-15 B=2.28e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.11e-15 B=3.55e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.33e-15 B=2.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.72e-15 B=3.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.55e-15 B=2.66e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.94e-15 B=2.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.44e-15 B=2.22e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.55e-15 B=3e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.59e-15 B=2.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.44e-15 B=1.22e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.33e-15 B=1.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.04e-14 B=4.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.55e-15 B=3e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.07e-14 B=5.11e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.55e-15 B=3.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.11e-15 B=3.11e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.28e-15 B=3.5e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=9.44e-15 B=4.55e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5e-15 B=4.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=5.5e-15 B=4.22e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.66e-15 B=3e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=6.3e-15 B=4.33e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.85e-15 B=2.89e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=5.02e-15 B=3e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.27e-15 B=3.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=6.02e-15 B=3.44e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.13e-15 B=2.89e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.67e-15 B=2e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.44e-15 B=2.66e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.03e-14 B=5.88e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.66e-15 B=8.77e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.01e-14 B=5.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.33e-15 B=8.66e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=4.11e-15 B=3.44e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.55e-15 B=3.14e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.27e-14 B=8.44e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.18e-14 B=7.33e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=8.56e-15 B=4e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=8.04e-15 B=3.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=9.59e-15 B=3.33e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.38e-15 B=4.22e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=8.63e-15 B=3.89e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.51e-15 B=5.33e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=9.49e-15 B=4.33e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.04e-14 B=5.77e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.33e-15 B=2.89e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.22e-15 B=3.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.59e-14 B=9.88e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.64e-14 B=9.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.6e-14 B=9.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.65e-14 B=9.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.8e-15 B=3.75e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=4.11e-15 B=3.76e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.46e-14 B=2e-14
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.18e-14 B=1.48e-14
+--- PASS: TestDggesNetlibControlPencils (7.23s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=false (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=true (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=false (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=true (0.07s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=false (0.04s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=true (0.04s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=true (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=true (0.07s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=false (0.07s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=true (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=false (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=true (0.15s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=false (0.46s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=true (0.56s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=false (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=true (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=false (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=true (0.15s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=false (0.46s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=true (0.52s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=false (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=true (0.03s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=false (0.35s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=true (0.36s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=true (0.08s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=false (0.08s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=true (0.13s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=false (0.44s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=true (0.50s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=true (0.12s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=false (0.08s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=true (0.17s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=false (0.44s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=true (0.54s)
+=== RUN   TestPencilResidualScaleInvariant
+--- PASS: TestPencilResidualScaleInvariant (0.00s)
+=== RUN   TestDggesNetlibSelectionAtInfinity
+--- PASS: TestDggesNetlibSelectionAtInfinity (0.00s)
+=== RUN   TestDggesNetlibDifferential
+=== RUN   TestDggesNetlibDifferential/real-2x2
+=== RUN   TestDggesNetlibDifferential/complex-nondiagonal-b
+=== RUN   TestDggesNetlibDifferential/singular-b
+=== RUN   TestDggesNetlibDifferential/tiny
+=== RUN   TestDggesNetlibDifferential/huge
+--- PASS: TestDggesNetlibDifferential (0.01s)
+    --- PASS: TestDggesNetlibDifferential/real-2x2 (0.00s)
+    --- PASS: TestDggesNetlibDifferential/complex-nondiagonal-b (0.00s)
+    --- PASS: TestDggesNetlibDifferential/singular-b (0.00s)
+    --- PASS: TestDggesNetlibDifferential/tiny (0.00s)
+    --- PASS: TestDggesNetlibDifferential/huge (0.00s)
+=== RUN   TestDggesNetlibOptions
+=== RUN   TestDggesNetlibOptions/NoneNone/Sort=false/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/NoneNone/Sort=false/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/NoneNone/Sort=true/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/NoneNone/Sort=true/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/VectorsNone/Sort=false/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/VectorsNone/Sort=false/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/VectorsNone/Sort=true/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/VectorsNone/Sort=true/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/NoneVectors/Sort=false/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/NoneVectors/Sort=false/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/NoneVectors/Sort=true/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/NoneVectors/Sort=true/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/VectorsVectors/Sort=false/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/VectorsVectors/Sort=false/MinimumWork=true
+=== RUN   TestDggesNetlibOptions/VectorsVectors/Sort=true/MinimumWork=false
+=== RUN   TestDggesNetlibOptions/VectorsVectors/Sort=true/MinimumWork=true
+--- PASS: TestDggesNetlibOptions (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneNone/Sort=false/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneNone/Sort=false/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneNone/Sort=true/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneNone/Sort=true/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsNone/Sort=false/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsNone/Sort=false/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsNone/Sort=true/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsNone/Sort=true/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneVectors/Sort=false/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneVectors/Sort=false/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneVectors/Sort=true/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/NoneVectors/Sort=true/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsVectors/Sort=false/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsVectors/Sort=false/MinimumWork=true (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsVectors/Sort=true/MinimumWork=false (0.00s)
+    --- PASS: TestDggesNetlibOptions/VectorsVectors/Sort=true/MinimumWork=true (0.00s)
+=== RUN   TestDggesNetlibSeparatedGlobalScales
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e-300/B=1e-300
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e-300/B=1e0
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e0/B=1e-300
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e300/B=1e0
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e0/B=1e300
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e300/B=1e300
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e-200/B=1e200
+=== RUN   TestDggesNetlibSeparatedGlobalScales/A=1e200/B=1e-200
+--- PASS: TestDggesNetlibSeparatedGlobalScales (0.04s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e-300/B=1e-300 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e-300/B=1e0 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e0/B=1e-300 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e300/B=1e0 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e0/B=1e300 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e300/B=1e300 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e-200/B=1e200 (0.00s)
+    --- PASS: TestDggesNetlibSeparatedGlobalScales/A=1e200/B=1e-200 (0.00s)
+=== RUN   TestDggesNetlibTwoByTwoShiftFallback
+--- PASS: TestDggesNetlibTwoByTwoShiftFallback (0.00s)
+=== RUN   TestDggesNetlibNearlyDefective
+--- PASS: TestDggesNetlibNearlyDefective (0.00s)
+=== RUN   TestDggesNetlibNonlocalScaleDeflation
+--- PASS: TestDggesNetlibNonlocalScaleDeflation (0.00s)
+=== RUN   TestDggesNetlibSelectorAlphaScale
+--- PASS: TestDggesNetlibSelectorAlphaScale (0.00s)
+=== RUN   TestDhgeqzWorkspaceQueryRequiresOutput
+--- PASS: TestDhgeqzWorkspaceQueryRequiresOutput (0.00s)
+=== RUN   TestDhgeqzNetlibDifferential
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=2/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=3/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=4/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=5/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=6/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=7/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=8/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=9/case=39
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=0
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=1
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=2
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=3
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=4
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=5
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=6
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=7
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=8
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=9
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=10
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=11
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=12
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=13
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=14
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=15
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=16
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=17
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=18
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=19
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=20
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=21
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=22
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=23
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=24
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=25
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=26
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=27
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=28
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=29
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=30
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=31
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=32
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=33
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=34
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=35
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=36
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=37
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=38
+=== RUN   TestDhgeqzNetlibDifferential/n=10/case=39
+--- PASS: TestDhgeqzNetlibDifferential (0.02s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=2/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=3/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=4/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=5/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=6/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=7/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=8/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=9/case=39 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=0 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=1 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=2 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=3 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=4 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=5 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=6 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=7 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=8 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=9 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=10 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=11 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=12 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=13 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=14 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=15 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=16 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=17 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=18 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=19 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=20 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=21 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=22 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=23 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=24 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=25 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=26 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=27 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=28 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=29 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=30 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=31 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=32 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=33 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=34 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=35 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=36 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=37 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=38 (0.00s)
+    --- PASS: TestDhgeqzNetlibDifferential/n=10/case=39 (0.00s)
+=== RUN   TestDhgeqzNetlibFailureLeavesLeadingEigenvalues
+--- PASS: TestDhgeqzNetlibFailureLeavesLeadingEigenvalues (0.00s)
+=== RUN   TestDhgeqzNetlibComplexRepresentation
+=== RUN   TestDhgeqzNetlibComplexRepresentation/NonDiagonalT
+=== RUN   TestDhgeqzNetlibComplexRepresentation/SeparatedDiagonals
+--- PASS: TestDhgeqzNetlibComplexRepresentation (0.00s)
+    --- PASS: TestDhgeqzNetlibComplexRepresentation/NonDiagonalT (0.00s)
+    --- PASS: TestDhgeqzNetlibComplexRepresentation/SeparatedDiagonals (0.00s)
+=== RUN   TestDhgeqzNetlibActiveSubrange
+--- PASS: TestDhgeqzNetlibActiveSubrange (0.00s)
+=== RUN   TestDhgeqzNetlibAccumulationOptions
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=N/Z=N
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=N/Z=I
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=N/Z=V
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=I/Z=N
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=I/Z=I
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=I/Z=V
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=V/Z=N
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=V/Z=I
+=== RUN   TestDhgeqzNetlibAccumulationOptions/Q=V/Z=V
+--- PASS: TestDhgeqzNetlibAccumulationOptions (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=N/Z=N (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=N/Z=I (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=N/Z=V (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=I/Z=N (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=I/Z=I (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=I/Z=V (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=V/Z=N (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=V/Z=I (0.00s)
+    --- PASS: TestDhgeqzNetlibAccumulationOptions/Q=V/Z=V (0.00s)
+=== RUN   TestDtgex2WorkspaceQueryRequiresOutput
+--- PASS: TestDtgex2WorkspaceQueryRequiresOutput (0.00s)
+=== RUN   TestDtgex2ScratchReuse
+=== RUN   TestDtgex2ScratchReuse/2x2
+=== RUN   TestDtgex2ScratchReuse/1x2
+=== RUN   TestDtgex2ScratchReuse/2x1
+=== RUN   TestDtgex2ScratchReuse/1x1
+=== RUN   TestDtgex2ScratchReuse/2x2#01
+--- PASS: TestDtgex2ScratchReuse (0.00s)
+    --- PASS: TestDtgex2ScratchReuse/2x2 (0.00s)
+    --- PASS: TestDtgex2ScratchReuse/1x2 (0.00s)
+    --- PASS: TestDtgex2ScratchReuse/2x1 (0.00s)
+    --- PASS: TestDtgex2ScratchReuse/1x1 (0.00s)
+    --- PASS: TestDtgex2ScratchReuse/2x2#01 (0.00s)
+=== RUN   TestDtgex2NetlibDifferential
+=== RUN   TestDtgex2NetlibDifferential/1x1
+=== RUN   TestDtgex2NetlibDifferential/1x2
+=== RUN   TestDtgex2NetlibDifferential/2x1
+=== RUN   TestDtgex2NetlibDifferential/2x2
+--- PASS: TestDtgex2NetlibDifferential (0.00s)
+    --- PASS: TestDtgex2NetlibDifferential/1x1 (0.00s)
+    --- PASS: TestDtgex2NetlibDifferential/1x2 (0.00s)
+    --- PASS: TestDtgex2NetlibDifferential/2x1 (0.00s)
+    --- PASS: TestDtgex2NetlibDifferential/2x2 (0.00s)
+=== RUN   TestDtgex2NetlibRejectedSwap
+--- PASS: TestDtgex2NetlibRejectedSwap (0.00s)
+=== RUN   TestDtgex2NetlibSeparatedScales
+--- PASS: TestDtgex2NetlibSeparatedScales (0.05s)
+=== RUN   TestDtgex2NetlibEmbeddedBlocks
+=== RUN   TestDtgex2NetlibEmbeddedBlocks/1x1
+=== RUN   TestDtgex2NetlibEmbeddedBlocks/1x2
+=== RUN   TestDtgex2NetlibEmbeddedBlocks/2x1
+=== RUN   TestDtgex2NetlibEmbeddedBlocks/2x2
+--- PASS: TestDtgex2NetlibEmbeddedBlocks (0.00s)
+    --- PASS: TestDtgex2NetlibEmbeddedBlocks/1x1 (0.00s)
+    --- PASS: TestDtgex2NetlibEmbeddedBlocks/1x2 (0.00s)
+    --- PASS: TestDtgex2NetlibEmbeddedBlocks/2x1 (0.00s)
+    --- PASS: TestDtgex2NetlibEmbeddedBlocks/2x2 (0.00s)
+=== RUN   TestDtgexcNetlibSplitBlock
+=== RUN   TestDtgexcNetlibSplitBlock/Down
+=== RUN   TestDtgexcNetlibSplitBlock/Up
+--- PASS: TestDtgexcNetlibSplitBlock (0.00s)
+    --- PASS: TestDtgexcNetlibSplitBlock/Down (0.00s)
+    --- PASS: TestDtgexcNetlibSplitBlock/Up (0.00s)
+=== RUN   TestDtgsenWorkspaceQueryRequiresOutputs
+=== RUN   TestDtgsenWorkspaceQueryRequiresOutputs/Float
+=== RUN   TestDtgsenWorkspaceQueryRequiresOutputs/Integer
+--- PASS: TestDtgsenWorkspaceQueryRequiresOutputs (0.00s)
+    --- PASS: TestDtgsenWorkspaceQueryRequiresOutputs/Float (0.00s)
+    --- PASS: TestDtgsenWorkspaceQueryRequiresOutputs/Integer (0.00s)
+=== RUN   TestDtgsenNetlibWorkspaceQueries
+=== RUN   TestDtgsenNetlibWorkspaceQueries/EmptyReorder
+=== RUN   TestDtgsenNetlibWorkspaceQueries/EmptyCondition
+=== RUN   TestDtgsenNetlibWorkspaceQueries/FloatOnly
+=== RUN   TestDtgsenNetlibWorkspaceQueries/IntegerOnly
+--- PASS: TestDtgsenNetlibWorkspaceQueries (0.00s)
+    --- PASS: TestDtgsenNetlibWorkspaceQueries/EmptyReorder (0.00s)
+    --- PASS: TestDtgsenNetlibWorkspaceQueries/EmptyCondition (0.00s)
+    --- PASS: TestDtgsenNetlibWorkspaceQueries/FloatOnly (0.00s)
+    --- PASS: TestDtgsenNetlibWorkspaceQueries/IntegerOnly (0.00s)
+=== RUN   TestDtgsenNetlibSingularConditionEstimate
+--- PASS: TestDtgsenNetlibSingularConditionEstimate (0.00s)
+=== RUN   TestDtgsenNetlibDifferential
+=== RUN   TestDtgsenNetlibDifferential/ijob=0/Q=false/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=0/Q=false/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=0/Q=true/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=0/Q=true/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=1/Q=false/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=1/Q=false/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=1/Q=true/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=1/Q=true/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=2/Q=false/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=2/Q=false/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=2/Q=true/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=2/Q=true/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=3/Q=false/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=3/Q=false/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=3/Q=true/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=3/Q=true/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=4/Q=false/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=4/Q=false/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=4/Q=true/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=4/Q=true/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=5/Q=false/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=5/Q=false/Z=true
+=== RUN   TestDtgsenNetlibDifferential/ijob=5/Q=true/Z=false
+=== RUN   TestDtgsenNetlibDifferential/ijob=5/Q=true/Z=true
+--- PASS: TestDtgsenNetlibDifferential (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=0/Q=false/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=0/Q=false/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=0/Q=true/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=0/Q=true/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=1/Q=false/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=1/Q=false/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=1/Q=true/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=1/Q=true/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=2/Q=false/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=2/Q=false/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=2/Q=true/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=2/Q=true/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=3/Q=false/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=3/Q=false/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=3/Q=true/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=3/Q=true/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=4/Q=false/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=4/Q=false/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=4/Q=true/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=4/Q=true/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=5/Q=false/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=5/Q=false/Z=true (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=5/Q=true/Z=false (0.00s)
+    --- PASS: TestDtgsenNetlibDifferential/ijob=5/Q=true/Z=true (0.00s)
+=== RUN   TestDtgsenNetlibConditionBeforeNormalization
+--- PASS: TestDtgsenNetlibConditionBeforeNormalization (0.00s)
+=== RUN   TestDtgsenNetlibFrobeniusEstimate
+--- PASS: TestDtgsenNetlibFrobeniusEstimate (0.00s)
+=== RUN   TestDtgsenNetlibReverseDifKernel
+--- PASS: TestDtgsenNetlibReverseDifKernel (0.00s)
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks/Trans=N/IJob=0
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks/Trans=N/IJob=1
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks/Trans=N/IJob=2
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks/Trans=T/IJob=-3
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks/Trans=T/IJob=0
+=== RUN   TestDtgsy2NetlibSuccessiveBlocks/Trans=T/IJob=7
+--- PASS: TestDtgsy2NetlibSuccessiveBlocks (0.00s)
+    --- PASS: TestDtgsy2NetlibSuccessiveBlocks/Trans=N/IJob=0 (0.00s)
+    --- PASS: TestDtgsy2NetlibSuccessiveBlocks/Trans=N/IJob=1 (0.00s)
+    --- PASS: TestDtgsy2NetlibSuccessiveBlocks/Trans=N/IJob=2 (0.00s)
+    --- PASS: TestDtgsy2NetlibSuccessiveBlocks/Trans=T/IJob=-3 (0.00s)
+    --- PASS: TestDtgsy2NetlibSuccessiveBlocks/Trans=T/IJob=0 (0.00s)
+    --- PASS: TestDtgsy2NetlibSuccessiveBlocks/Trans=T/IJob=7 (0.00s)
+=== RUN   TestDtgsylNetlibBlockDifferential
+=== RUN   TestDtgsylNetlibBlockDifferential/1x2/ijob=3
+=== RUN   TestDtgsylNetlibBlockDifferential/1x2/ijob=4
+=== RUN   TestDtgsylNetlibBlockDifferential/2x1/ijob=3
+=== RUN   TestDtgsylNetlibBlockDifferential/2x1/ijob=4
+=== RUN   TestDtgsylNetlibBlockDifferential/2x2/ijob=3
+=== RUN   TestDtgsylNetlibBlockDifferential/2x2/ijob=4
+=== RUN   TestDtgsylNetlibBlockDifferential/3x2-multiblock/ijob=3
+=== RUN   TestDtgsylNetlibBlockDifferential/3x2-multiblock/ijob=4
+--- PASS: TestDtgsylNetlibBlockDifferential (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/1x2/ijob=3 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/1x2/ijob=4 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/2x1/ijob=3 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/2x1/ijob=4 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/2x2/ijob=3 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/2x2/ijob=4 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/3x2-multiblock/ijob=3 (0.00s)
+    --- PASS: TestDtgsylNetlibBlockDifferential/3x2-multiblock/ijob=4 (0.00s)
+=== RUN   TestDtgsylNetlibSolveAndEstimate
+=== RUN   TestDtgsylNetlibSolveAndEstimate/Trans=N/IJob=0
+=== RUN   TestDtgsylNetlibSolveAndEstimate/Trans=N/IJob=1
+=== RUN   TestDtgsylNetlibSolveAndEstimate/Trans=N/IJob=2
+=== RUN   TestDtgsylNetlibSolveAndEstimate/Trans=T/IJob=-3
+=== RUN   TestDtgsylNetlibSolveAndEstimate/Trans=T/IJob=0
+=== RUN   TestDtgsylNetlibSolveAndEstimate/Trans=T/IJob=7
+--- PASS: TestDtgsylNetlibSolveAndEstimate (0.00s)
+    --- PASS: TestDtgsylNetlibSolveAndEstimate/Trans=N/IJob=0 (0.00s)
+    --- PASS: TestDtgsylNetlibSolveAndEstimate/Trans=N/IJob=1 (0.00s)
+    --- PASS: TestDtgsylNetlibSolveAndEstimate/Trans=N/IJob=2 (0.00s)
+    --- PASS: TestDtgsylNetlibSolveAndEstimate/Trans=T/IJob=-3 (0.00s)
+    --- PASS: TestDtgsylNetlibSolveAndEstimate/Trans=T/IJob=0 (0.00s)
+    --- PASS: TestDtgsylNetlibSolveAndEstimate/Trans=T/IJob=7 (0.00s)
+=== RUN   TestDhgeqz
+=== PAUSE TestDhgeqz
+=== RUN   TestDgges
+=== PAUSE TestDgges
+=== RUN   TestDtgsy2
+=== PAUSE TestDtgsy2
+=== RUN   TestDtgsyl
+=== PAUSE TestDtgsyl
+=== RUN   TestDtgex2
+=== PAUSE TestDtgex2
+=== RUN   TestDtgexc
+=== PAUSE TestDtgexc
+=== RUN   TestDtgsen
+=== PAUSE TestDtgsen
+=== CONT  TestDhgeqz
+=== CONT  TestDtgex2
+=== CONT  TestDtgsen
+=== CONT  TestDtgsy2
+=== CONT  TestDgges
+=== CONT  TestDtgsyl
+=== CONT  TestDtgexc
+--- PASS: TestDtgex2 (0.00s)
+=== RUN   TestDtgexc/QueryValidatesIFST
+=== RUN   TestDtgexc/QueryValidatesILST
+=== RUN   TestDtgexc/SingleElementQuickReturn
+--- PASS: TestDtgexc (0.00s)
+    --- PASS: TestDtgexc/QueryValidatesIFST (0.00s)
+    --- PASS: TestDtgexc/QueryValidatesILST (0.00s)
+    --- PASS: TestDtgexc/SingleElementQuickReturn (0.00s)
+--- PASS: TestDtgsy2 (0.00s)
+=== RUN   TestDtgsen/Float
+=== RUN   TestDtgsen/Integer
+--- PASS: TestDtgsen (0.01s)
+    --- PASS: TestDtgsen/Float (0.00s)
+    --- PASS: TestDtgsen/Integer (0.00s)
+--- PASS: TestDhgeqz (0.02s)
+=== RUN   TestDtgsyl/MissingQueryOutput
+--- PASS: TestDtgsyl (0.02s)
+    --- PASS: TestDtgsyl/MissingQueryOutput (0.00s)
+--- PASS: TestDgges (0.04s)
+PASS
+ok  	gonum.org/v1/gonum/lapack/gonum	7.763s

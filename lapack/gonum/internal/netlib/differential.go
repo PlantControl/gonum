@@ -12,10 +12,23 @@ package netlib
 #include <lapacke.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 static lapack_logical select_negative(const double *ar, const double *ai, const double *beta) {
 	(void)ai;
 	return *beta != 0 && *ar < 0;
+}
+
+static lapack_logical select_unit_circle(const double *ar, const double *ai, const double *beta) {
+ return hypot(*ar, *ai) < fabs(*beta);
+}
+
+static lapack_int run_dgges_work(char jobvsl, char jobvsr, lapack_int selection, lapack_int n,
+ double *a, double *b, lapack_int *sdim, double *ar, double *ai,
+ double *beta, double *vsl, double *vsr, double *work, lapack_int lwork, lapack_logical *bwork) {
+ return LAPACKE_dgges_work(LAPACK_COL_MAJOR, jobvsl, jobvsr, selection ? 'S' : 'N',
+  selection == 2 ? select_unit_circle : select_negative,
+  n, a, n, b, n, sdim, ar, ai, beta, vsl, n, vsr, n, work, lwork, bwork);
 }
 
 static lapack_logical select_large_alpha(const double *ar, const double *ai, const double *beta) {
@@ -204,7 +217,7 @@ import "C"
 import (
 	"unsafe"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func Dgges(n int, a, b []float64, dosort bool, ar, ai, beta, vsl, vsr []float64) (sdim, info int) {
@@ -362,4 +375,60 @@ func boolInt(v bool) int {
 		return 1
 	}
 	return 0
+}
+
+// Version returns the linked LAPACK runtime version, rather than its dylib name.
+func Version() (major, minor, patch int) {
+	var a, b, c C.lapack_int
+	C.LAPACKE_ilaver(&a, &b, &c)
+	return int(a), int(b), int(c)
+}
+
+// DggesWorkspace owns preallocated scratch for column-major DGGES calls.
+// Selection is 0 (none), 1 (negative real part), or 2 (inside the unit circle).
+// Each instance is used by a single caller at a time. n must be positive.
+type DggesWorkspace struct {
+	n           int
+	left, right byte
+	selection   int
+	work        []float64
+	bwork       []C.lapack_logical
+	sdim        []C.lapack_int
+}
+
+func NewDggesWorkspace(n int, left, right byte, selection int) *DggesWorkspace {
+	if n < 1 || selection < 0 || selection > 2 {
+		panic("netlib: invalid DGGES workspace configuration")
+	}
+	w := &DggesWorkspace{n: n, left: left, right: right, selection: selection,
+		work: make([]float64, 1), bwork: make([]C.lapack_logical, n), sdim: make([]C.lapack_int, 1)}
+	// LAPACK does not reference matrix data during a workspace query.
+	dummy := make([]float64, 1)
+	_, info := w.run(dummy, dummy, dummy, dummy, dummy, dummy, dummy, -1)
+	if info != 0 {
+		panic("netlib: DGGES workspace query failed")
+	}
+	w.work = make([]float64, int(w.work[0]))
+	return w
+}
+
+// Run overwrites column-major matrices A and B. All slices must contain at
+// least n entries, or n*n for A, B and requested vector matrices. Unrequested
+// vector matrices may contain a single dummy element.
+func (w *DggesWorkspace) Run(a, b, ar, ai, beta, q, z []float64) (sdim, info int) {
+	n := w.n
+	if len(a) < n*n || len(b) < n*n || len(ar) < n || len(ai) < n || len(beta) < n || len(q) < 1 || len(z) < 1 || w.left == 'V' && len(q) < n*n || w.right == 'V' && len(z) < n*n {
+		panic("netlib: short DGGES input")
+	}
+
+	return w.run(a, b, ar, ai, beta, q, z, len(w.work))
+}
+
+func (w *DggesWorkspace) run(a, b, ar, ai, beta, q, z []float64, lwork int) (sdim, info int) {
+	result := C.run_dgges_work(C.char(w.left), C.char(w.right), C.lapack_int(w.selection), C.lapack_int(w.n),
+		(*C.double)(unsafe.Pointer(&a[0])), (*C.double)(unsafe.Pointer(&b[0])), &w.sdim[0],
+		(*C.double)(unsafe.Pointer(&ar[0])), (*C.double)(unsafe.Pointer(&ai[0])), (*C.double)(unsafe.Pointer(&beta[0])),
+		(*C.double)(unsafe.Pointer(&q[0])), (*C.double)(unsafe.Pointer(&z[0])),
+		(*C.double)(unsafe.Pointer(&w.work[0])), C.lapack_int(lwork), &w.bwork[0])
+	return int(w.sdim[0]), int(result)
 }

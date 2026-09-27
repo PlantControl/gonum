@@ -4,7 +4,7 @@
 
 package set
 
-import "gonum.org/v1/gonum/graph"
+import "plantcontrol.org/v1/gonum/graph"
 
 type Int interface{ ~int | ~int64 }
 

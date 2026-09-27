@@ -5,10 +5,10 @@
 package simple
 
 import (
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/internal/order"
-	"gonum.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/iterator"
+	"plantcontrol.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/mat"
 )
 
 var (

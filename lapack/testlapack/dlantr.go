@@ -10,9 +10,9 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 type Dlantrer interface {

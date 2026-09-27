@@ -9,7 +9,7 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/internal/math32"
+	"plantcontrol.org/v1/gonum/internal/math32"
 )
 
 type Implementation struct{}

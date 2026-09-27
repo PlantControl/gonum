@@ -9,10 +9,10 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/graphs/gen"
-	"gonum.org/v1/gonum/graph/multi"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/graphs/gen"
+	"plantcontrol.org/v1/gonum/graph/multi"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 var (

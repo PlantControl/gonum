@@ -7,7 +7,7 @@ package f32
 import (
 	"math"
 
-	"gonum.org/v1/gonum/internal/math32"
+	"plantcontrol.org/v1/gonum/internal/math32"
 )
 
 // L2NormUnitary is the level 2 norm of x.

@@ -11,7 +11,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 // These cases execute the real transposed Dgemv method. A matched temporary

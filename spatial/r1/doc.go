@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package r1 provides 1D vectors and intervals and operations on them.
-package r1 // import "gonum.org/v1/gonum/spatial/r1"
+package r1 // import "plantcontrol.org/v1/gonum/spatial/r1"

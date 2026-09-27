@@ -4,7 +4,7 @@
 
 package mathext
 
-import "gonum.org/v1/gonum/mathext/internal/cephes"
+import "plantcontrol.org/v1/gonum/mathext/internal/cephes"
 
 // Zeta computes the Riemann zeta function of two arguments.
 //

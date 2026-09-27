@@ -7,7 +7,7 @@
 // Dual quaternions provide a system for rigid transformation with interpolation
 // and blending in ℝ³. See https://www.cs.utah.edu/~ladislav/kavan06dual/kavan06dual.pdf and
 // https://en.wikipedia.org/wiki/Dual_quaternion for more details.
-package dualquat // imports "gonum.org/v1/gonum/num/dualquat"
+package dualquat // imports "plantcontrol.org/v1/gonum/num/dualquat"
 
 // TODO(kortschak): Handle special cases properly.
 //  - Pow

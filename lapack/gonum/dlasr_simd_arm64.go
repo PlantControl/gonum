@@ -9,8 +9,8 @@ package gonum
 import (
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/asm/f64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func dlasrLeftVariableSIMD(direct lapack.Direct, m, n int, c, s, a []float64, lda int) bool {

@@ -31,7 +31,7 @@ import "C"
 import (
 	"unsafe"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 func syrkLayout(ul blas.Uplo, trans blas.Transpose) (byte, byte) {

@@ -1,139 +1,139 @@
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 239694083 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 346329750 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 238125069 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 348850792 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 239466278 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 348658188 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 232448194 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 354317354 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 233068681 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 357316292 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 250903042 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 360031979 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 240829625 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 355073604 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 239485875 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 348748438 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 240034917 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 349071104 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=vectors/n=256         	       3	 241865694 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Gonum/mode=unit/n=256            	       2	 344734854 ns/op	 6029312 B/op	   36864 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143539864 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 192392847 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143368979 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 194014028 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143223500 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 193335708 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143824864 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 192615389 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143067084 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 194249500 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143539031 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 192066556 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143286354 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 191933570 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143401875 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 193381611 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143382479 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 192217000 ns/op	       0 B/op	       0 allocs/op
 PASS
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=vectors/n=256         	       4	 143274260 ns/op	       0 B/op	       0 allocs/op
 BenchmarkDggesNetlibControl/implementation=Netlib/mode=unit/n=256            	       3	 194775667 ns/op	       0 B/op	       0 allocs/op

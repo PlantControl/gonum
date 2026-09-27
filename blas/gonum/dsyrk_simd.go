@@ -9,7 +9,7 @@ package gonum
 import (
 	"simd"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 func dsyrkBlocked(ul blas.Uplo, n, k int, alpha float64, a []float64, lda int, beta float64, c []float64, ldc int) bool {

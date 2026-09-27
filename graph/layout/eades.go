@@ -8,9 +8,9 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/spatial/barneshut"
-	"gonum.org/v1/gonum/spatial/r2"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/spatial/barneshut"
+	"plantcontrol.org/v1/gonum/spatial/r2"
 )
 
 // EadesR2 implements the graph layout algorithm essentially as

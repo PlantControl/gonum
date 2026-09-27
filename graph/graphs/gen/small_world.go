@@ -10,8 +10,8 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/stat/sampleuv"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/stat/sampleuv"
 )
 
 // NavigableSmallWorld constructs an N-dimensional grid with guaranteed local connectivity

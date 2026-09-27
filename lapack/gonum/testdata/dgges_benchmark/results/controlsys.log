@@ -1,0 +1,70 @@
+=== RUN   TestGeneralizedPoles_Standard
+--- PASS: TestGeneralizedPoles_Standard (0.00s)
+=== RUN   TestGeneralizedPoles_InfiniteFiltered
+--- PASS: TestGeneralizedPoles_InfiniteFiltered (0.00s)
+=== RUN   TestDescriptorSystem_Poles
+--- PASS: TestDescriptorSystem_Poles (0.00s)
+=== RUN   TestDescriptorSystem_Copy
+--- PASS: TestDescriptorSystem_Copy (0.00s)
+=== RUN   TestDescriptorSystem_NonDescriptor
+--- PASS: TestDescriptorSystem_NonDescriptor (0.00s)
+=== RUN   TestDescriptorSystem_UnsupportedOperationsRejectExplicitly
+=== RUN   TestDescriptorSystem_UnsupportedOperationsRejectExplicitly/TransferFunction
+=== RUN   TestDescriptorSystem_UnsupportedOperationsRejectExplicitly/Simulate
+=== RUN   TestDescriptorSystem_UnsupportedOperationsRejectExplicitly/Inv
+--- PASS: TestDescriptorSystem_UnsupportedOperationsRejectExplicitly (0.00s)
+    --- PASS: TestDescriptorSystem_UnsupportedOperationsRejectExplicitly/TransferFunction (0.00s)
+    --- PASS: TestDescriptorSystem_UnsupportedOperationsRejectExplicitly/Simulate (0.00s)
+    --- PASS: TestDescriptorSystem_UnsupportedOperationsRejectExplicitly/Inv (0.00s)
+=== RUN   TestDescriptorSystem_FrequencyResponseUsesDescriptorPencil
+--- PASS: TestDescriptorSystem_FrequencyResponseUsesDescriptorPencil (0.00s)
+=== RUN   TestDescriptorSystem_FrequencyResponsePivotsNonSymmetricPencil
+--- PASS: TestDescriptorSystem_FrequencyResponsePivotsNonSymmetricPencil (0.00s)
+=== RUN   TestDescriptorSystem_IdentityDescriptorUsesStandardOperations
+=== RUN   TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/TransferFunction
+=== RUN   TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/FreqResponse
+=== RUN   TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/EvalFr
+=== RUN   TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/Simulate
+=== RUN   TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/Inv
+--- PASS: TestDescriptorSystem_IdentityDescriptorUsesStandardOperations (0.00s)
+    --- PASS: TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/TransferFunction (0.00s)
+    --- PASS: TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/FreqResponse (0.00s)
+    --- PASS: TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/EvalFr (0.00s)
+    --- PASS: TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/Simulate (0.00s)
+    --- PASS: TestDescriptorSystem_IdentityDescriptorUsesStandardOperations/Inv (0.00s)
+=== RUN   TestDare_RejectsNegativeDefiniteQ
+--- PASS: TestDare_RejectsNegativeDefiniteQ (0.00s)
+=== RUN   TestDare_GeneralizedWithCrossTerm
+--- PASS: TestDare_GeneralizedWithCrossTerm (0.00s)
+=== RUN   TestDare_IllConditionedA
+--- PASS: TestDare_IllConditionedA (0.00s)
+=== RUN   TestDare_SingularA_SciPyOracle
+--- PASS: TestDare_SingularA_SciPyOracle (0.00s)
+=== RUN   TestDare_IllConditionedNonSymmetricA_SciPyOracle
+--- PASS: TestDare_IllConditionedNonSymmetricA_SciPyOracle (0.00s)
+=== RUN   TestDare_LargeSystem_5x5
+--- PASS: TestDare_LargeSystem_5x5 (0.00s)
+=== RUN   TestDare_1x1
+--- PASS: TestDare_1x1 (0.00s)
+=== RUN   TestDare_DoubleIntegrator
+--- PASS: TestDare_DoubleIntegrator (0.00s)
+=== RUN   TestDare_NonSymmetricA
+--- PASS: TestDare_NonSymmetricA (0.00s)
+=== RUN   TestDare_CrossTerm
+--- PASS: TestDare_CrossTerm (0.00s)
+=== RUN   TestDare_MIMO
+--- PASS: TestDare_MIMO (0.00s)
+=== RUN   TestDare_RSingular
+--- PASS: TestDare_RSingular (0.00s)
+=== RUN   TestDare_Empty
+--- PASS: TestDare_Empty (0.00s)
+=== RUN   TestDare_Reference_Discrete
+--- PASS: TestDare_Reference_Discrete (0.00s)
+=== RUN   TestDare_GainK
+--- PASS: TestDare_GainK (0.00s)
+=== RUN   TestCare_Dare_Consistency
+--- PASS: TestCare_Dare_Consistency (0.00s)
+=== RUN   TestDescriptorConstructionAccessAndExplicitConversion
+--- PASS: TestDescriptorConstructionAccessAndExplicitConversion (0.00s)
+PASS
+ok  	github.com/jamestjsp/controlsys	0.303s

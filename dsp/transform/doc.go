@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package transform provides important transforms on signals used in digital signal processing.
-package transform // import "gonum.org/v1/gonum/dsp/transform"
+package transform // import "plantcontrol.org/v1/gonum/dsp/transform"

@@ -10,7 +10,7 @@ import (
 	"math/cmplx"
 	"testing"
 
-	. "gonum.org/v1/gonum/internal/asm/c128"
+	. "plantcontrol.org/v1/gonum/internal/asm/c128"
 )
 
 // nanwith copied from floats package

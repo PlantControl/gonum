@@ -11,7 +11,7 @@ import (
 	"math/rand/v2"
 	"sort"
 
-	"gonum.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/stat"
 )
 
 // Comparable is the element interface for values stored in a vp-tree.

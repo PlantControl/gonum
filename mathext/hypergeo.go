@@ -7,7 +7,7 @@ package mathext
 import (
 	"math"
 
-	"gonum.org/v1/gonum/mathext/internal/cephes"
+	"plantcontrol.org/v1/gonum/mathext/internal/cephes"
 )
 
 // The hypergeometric relations used here are from:

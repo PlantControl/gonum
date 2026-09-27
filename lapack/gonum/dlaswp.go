@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas/blas64"
+import "plantcontrol.org/v1/gonum/blas/blas64"
 
 // Dlaswp swaps the rows k1 to k2 of a rectangular matrix A according to the
 // indices in ipiv so that row k is swapped with ipiv[k].

@@ -11,7 +11,7 @@ package cmplx64
 import (
 	"testing"
 
-	math "gonum.org/v1/gonum/internal/math32"
+	math "plantcontrol.org/v1/gonum/internal/math32"
 )
 
 // The higher-precision values in vc26 were used to derive the

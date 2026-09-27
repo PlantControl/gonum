@@ -7,7 +7,7 @@ package testlapack
 import (
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 func Dtgsy2ScratchBenchmark(b *testing.B, impl Dtgsy2er) {

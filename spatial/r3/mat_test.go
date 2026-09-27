@@ -9,8 +9,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/num/quat"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/num/quat"
 )
 
 func TestMatAdd(t *testing.T) {

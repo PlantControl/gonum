@@ -4,7 +4,7 @@
 
 package blas64
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // GeneralCols represents a matrix using the conventional column-major storage scheme.
 type GeneralCols General

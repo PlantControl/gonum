@@ -9,7 +9,7 @@ package c64
 import (
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/asm/f32"
+	"plantcontrol.org/v1/gonum/internal/asm/f32"
 )
 
 // AsumUnitary returns the sum of the absolute real and imaginary components.

@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package spatial provides spatial statistical functions.
-package spatial // import "gonum.org/v1/gonum/stat/spatial"
+package spatial // import "plantcontrol.org/v1/gonum/stat/spatial"

@@ -13,8 +13,8 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 func TestDgemmNotTransTransSIMDBoundaries(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 func checkCloseNetlib(t *testing.T, name string, got, want float64) {
@@ -60,6 +60,11 @@ func fillSchurBlock(a, b []float64, n, off, size int, rnd *rand.Rand) {
 
 func compareGeneralizedEigenvalues(t *testing.T, ar1, ai1, b1, ar2, ai2, b2 []float64) {
 	t.Helper()
+	compareGeneralizedEigenvaluesWithMetric(t, ar1, ai1, b1, ar2, ai2, b2, eigenDistance)
+}
+
+func compareGeneralizedEigenvaluesWithMetric(t *testing.T, ar1, ai1, b1, ar2, ai2, b2 []float64, distance func(float64, float64, float64, float64, float64, float64) float64) {
+	t.Helper()
 	used := make([]bool, len(ar2))
 	for i := range ar1 {
 		best, bestj := math.Inf(1), -1
@@ -67,7 +72,7 @@ func compareGeneralizedEigenvalues(t *testing.T, ar1, ai1, b1, ar2, ai2, b2 []fl
 			if used[j] {
 				continue
 			}
-			d := eigenDistance(ar1[i], ai1[i], b1[i], ar2[j], ai2[j], b2[j])
+			d := distance(ar1[i], ai1[i], b1[i], ar2[j], ai2[j], b2[j])
 			if d < best {
 				best, bestj = d, j
 			}
@@ -151,32 +156,48 @@ func checkOrthogonal(t *testing.T, name string, q []float64, n int) {
 			maxErr = math.Max(maxErr, math.Abs(dot-want))
 		}
 	}
-	if maxErr > 1e-11*float64(n) {
+	if math.IsNaN(maxErr) || math.IsInf(maxErr, 0) || maxErr > 1e-11*float64(n) {
 		t.Fatalf("%s: orthogonality error=%g", name, maxErr)
 	}
 }
 
 func checkPencilResidual(t *testing.T, name string, orig, schur, q, z []float64, n int) {
 	t.Helper()
-	norm, maxErr := 0.0, 0.0
+	residual := normalizedPencilResidual(orig, schur, q, z, n)
+	if math.IsNaN(residual) || math.IsInf(residual, 0) || residual > 1e-10*float64(n) {
+		t.Fatalf("%s: relative reconstruction error=%g", name, residual)
+	}
+}
+
+// Normalize before multiplication to avoid hiding tiny-input errors or
+// overflowing on large inputs. Two products keep this check cubic in n.
+func normalizedPencilResidual(orig, schur, q, z []float64, n int) float64 {
+	norm := 0.0
+	for _, v := range orig {
+		norm = math.Max(norm, math.Abs(v))
+	}
+	if norm == 0 {
+		norm = 1
+	}
+	tmp := make([]float64, n*n)
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			for k := 0; k < n; k++ {
+				tmp[i*n+j] += q[i*n+k] * (schur[k*n+j] / norm)
+			}
+		}
+	}
+	residual := 0.0
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
 			got := 0.0
 			for k := 0; k < n; k++ {
-				for l := 0; l < n; l++ {
-					got += q[i*n+k] * schur[k*n+l] * z[j*n+l]
-				}
+				got += tmp[i*n+k] * z[j*n+k]
 			}
-			if math.IsNaN(orig[i*n+j]) || math.IsInf(orig[i*n+j], 0) || math.IsNaN(got) || math.IsInf(got, 0) {
-				t.Fatalf("%s: nonfinite residual operand at [%d,%d]: original=%g reconstructed=%g", name, i, j, orig[i*n+j], got)
-			}
-			norm = math.Max(norm, math.Abs(orig[i*n+j]))
-			maxErr = math.Max(maxErr, math.Abs(orig[i*n+j]-got))
+			residual = math.Max(residual, math.Abs(orig[i*n+j]/norm-got))
 		}
 	}
-	if maxErr > 1e-10*float64(n)*math.Max(1, norm) {
-		t.Fatalf("%s: reconstruction error=%g, norm=%g", name, maxErr, norm)
-	}
+	return residual
 }
 
 func eigenDistance(ar1, ai1, b1, ar2, ai2, b2 float64) float64 {

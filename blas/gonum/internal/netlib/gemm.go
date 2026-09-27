@@ -33,7 +33,7 @@ import "C"
 import (
 	"unsafe"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 // Dgemm computes a row-major matrix product using the reference BLAS.

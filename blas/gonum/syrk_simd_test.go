@@ -12,7 +12,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 type blockedSyrkFunc[T zeroSyrkFloat] func(blas.Uplo, int, int, T, []T, int, T, []T, int) bool

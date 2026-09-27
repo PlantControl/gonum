@@ -7,8 +7,8 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 )
 
 // Dtgex2 swaps adjacent diagonal 1×1 or 2×2 blocks in a generalized real
@@ -25,6 +25,20 @@ import (
 // Dtgex2 is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dtgex2(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
 	q []float64, ldq int, z []float64, ldz int, j1, n1, n2 int, work []float64, lwork int) bool {
+	return impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, j1, n1, n2, work, lwork, nil)
+}
+
+// dtgex2Scratch is reused across a sequence of swaps. Its slices are passed to
+// the configurable BLAS backend, so they may escape to the heap.
+type dtgex2Scratch struct {
+	s, t, li, ir       [16]float64
+	taul, taur         [4]float64
+	scpy, tcpy, licopy [16]float64
+	sylvester          dtgsy2Scratch
+}
+
+func (impl Implementation) dtgex2(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
+	q []float64, ldq int, z []float64, ldz int, j1, n1, n2 int, work []float64, lwork int, scratch *dtgex2Scratch) bool {
 
 	switch {
 	case n < 0:
@@ -78,12 +92,13 @@ func (impl Implementation) Dtgex2(wantq, wantz bool, n int, a []float64, lda int
 	work[0] = float64(minWork)
 
 	const ld = 4
-	var scratch struct {
-		s, tt, li, ir [ld * ld]float64
+	if scratch == nil {
+		scratch = new(dtgex2Scratch)
 	}
-	s, tt, li, ir := scratch.s[:], scratch.tt[:], scratch.li[:], scratch.ir[:]
-	copyLocalBlock(m, a[j1*lda+j1:], lda, s, ld)
-	copyLocalBlock(m, b[j1*ldb+j1:], ldb, tt, ld)
+	*scratch = dtgex2Scratch{}
+	s, tt, li, ir := scratch.s[:], scratch.t[:], scratch.li[:], scratch.ir[:]
+	copyLocalBlock(m, a[j1*lda+j1:], lda, s[:], ld)
+	copyLocalBlock(m, b[j1*ldb+j1:], ldb, tt[:], ld)
 
 	eps := dlamchP
 	smlnum := dlamchS / eps
@@ -99,8 +114,8 @@ func (impl Implementation) Dtgex2(wantq, wantz bool, n int, a []float64, lda int
 		return true
 	}
 
-	if !impl.dtgex2SwapLarge(m, n1, n2, s, tt, li, ir, ld, threshA, threshB,
-		a[j1*lda+j1:], lda, b[j1*ldb+j1:], ldb, work) {
+	if !impl.dtgex2SwapLarge(m, n1, n2, s[:], tt[:], li[:], ir[:], ld, threshA, threshB,
+		a[j1*lda+j1:], lda, b[j1*ldb+j1:], ldb, work, scratch) {
 		return false
 	}
 
@@ -165,7 +180,7 @@ func (impl Implementation) dtgex2Apply11(wantq, wantz bool, n int, a []float64, 
 }
 
 func (impl Implementation) dtgex2SwapLarge(m, n1, n2 int, s, t, li, ir []float64, ld int, threshA, threshB float64,
-	a []float64, lda int, b []float64, ldb int, work []float64) bool {
+	a []float64, lda int, b []float64, ldb int, work []float64, scratch *dtgex2Scratch) bool {
 	for i := 0; i < n1; i++ {
 		for j := 0; j < n2; j++ {
 			li[i*ld+j] = t[i*ld+n1+j]
@@ -173,9 +188,9 @@ func (impl Implementation) dtgex2SwapLarge(m, n1, n2 int, s, t, li, ir []float64
 		}
 	}
 	var iwork [8]int
-	scale, _, _, _, ok := impl.Dtgsy2(blas.NoTrans, 0, n1, n2,
+	scale, _, _, _, ok := impl.dtgsy2(blas.NoTrans, 0, n1, n2,
 		s, ld, s[n1*ld+n1:], ld, ir[n2*ld+n1:], ld,
-		t, ld, t[n1*ld+n1:], ld, li, ld, 0, 1, iwork[:])
+		t, ld, t[n1*ld+n1:], ld, li, ld, 0, 1, iwork[:], &scratch.sylvester)
 	if !ok {
 		return false
 	}
@@ -189,16 +204,13 @@ func (impl Implementation) dtgex2SwapLarge(m, n1, n2 int, s, t, li, ir []float64
 		ir[(n2+i)*ld+i] = scale
 	}
 
-	var taul, taur [4]float64
+	taul, taur := scratch.taul[:], scratch.taur[:]
 	impl.Dgeqr2(m, n2, li, ld, taul[:n2], work)
 	impl.Dorg2r(m, m, n2, li, ld, taul[:n2], work)
 	impl.Dgerq2(n1, m, ir[n2*ld:], ld, taur[:n1], work)
 	impl.Dorgr2(m, m, n1, ir, ld, taur[:n1], work)
 
 	var tmp, ircopy [16]float64
-	var scratch struct {
-		scpy, tcpy, licopy [16]float64
-	}
 	scpy, tcpy, licopy := scratch.scpy[:], scratch.tcpy[:], scratch.licopy[:]
 	localMul(m, li, true, s, false, tmp[:], ld)
 	localMul(m, tmp[:], false, ir, true, s, ld)

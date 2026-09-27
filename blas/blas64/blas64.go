@@ -5,15 +5,15 @@
 package blas64
 
 import (
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/gonum"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/gonum"
 )
 
 var blas64 blas.Float64 = gonum.Implementation{}
 
 // Use sets the BLAS float64 implementation to be used by subsequent BLAS calls.
 // The default implementation is
-// gonum.org/v1/gonum/blas/gonum.Implementation.
+// plantcontrol.org/v1/gonum/blas/gonum.Implementation.
 func Use(b blas.Float64) {
 	blas64 = b
 }

@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Valid2x1 band storage has active coordinates(0,0),(1,0), at indices1,3

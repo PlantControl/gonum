@@ -13,7 +13,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 func TestL1NormReadBoundsAMD64(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack/gonum/internal/netlib"
-	"gonum.org/v1/gonum/lapack/testlapack"
+	"plantcontrol.org/v1/gonum/lapack/gonum/internal/netlib"
+	"plantcontrol.org/v1/gonum/lapack/testlapack"
 )
 
 func BenchmarkDggesNetlibControl(b *testing.B) {

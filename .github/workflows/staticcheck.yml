@@ -1,7 +1,7 @@
 name: Staticcheck
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   ci:

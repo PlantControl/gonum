@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/spatial/r3"
+	"plantcontrol.org/v1/gonum/spatial/r3"
 )
 
 // Particle3 is a particle in a volume.

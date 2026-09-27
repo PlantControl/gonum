@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package cblas64 provides a simple interface to the complex64 BLAS API.
-package cblas64 // import "gonum.org/v1/gonum/blas/cblas64"
+package cblas64 // import "plantcontrol.org/v1/gonum/blas/cblas64"

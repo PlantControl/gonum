@@ -4,7 +4,7 @@
 
 package flow
 
-import "gonum.org/v1/gonum/graph"
+import "plantcontrol.org/v1/gonum/graph"
 
 // DominatorsSLT returns a dominator tree for all nodes in the flow graph
 // g starting from the given root node using the sophisticated version of

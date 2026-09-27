@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package blas32 provides a simple interface to the float32 BLAS API.
-package blas32 // import "gonum.org/v1/gonum/blas/blas32"
+package blas32 // import "plantcontrol.org/v1/gonum/blas/blas32"

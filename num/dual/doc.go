@@ -7,7 +7,7 @@
 //
 // See https://en.wikipedia.org/wiki/Dual_number for details of their properties
 // and uses.
-package dual // imports "gonum.org/v1/gonum/num/dual"
+package dual // imports "plantcontrol.org/v1/gonum/num/dual"
 
 // TODO(kortschak): Handle special cases properly.
 //  - Pow

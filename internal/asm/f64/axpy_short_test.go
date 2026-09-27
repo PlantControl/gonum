@@ -11,7 +11,7 @@ import (
 	"slices"
 	"testing"
 
-	. "gonum.org/v1/gonum/internal/asm/f64"
+	. "plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 var axpyShortLengths = []int{0, 1, 2, 3, 4, 7, 8, 15, 16, 17, 64}

@@ -12,7 +12,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/internal/asm/c64"
+	"plantcontrol.org/v1/gonum/internal/asm/c64"
 )
 
 type dotEntryFixture struct {

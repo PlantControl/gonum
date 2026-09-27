@@ -7,7 +7,7 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas/cblas128"
+	"plantcontrol.org/v1/gonum/blas/cblas128"
 )
 
 // Zlarfg generates a complex elementary reflector H of order n such that
@@ -85,7 +85,6 @@ func (impl Implementation) Zlarfg(n int, alpha complex128, x []complex128, incX 
 		if n > 1 {
 			xnorm = bi.Dznrm2(n-1, x, incX)
 		}
-		alpha = complex(alphr, alphi)
 		beta = -math.Copysign(dlapy3(alphr, alphi, xnorm), alphr)
 	}
 

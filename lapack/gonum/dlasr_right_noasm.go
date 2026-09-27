@@ -6,7 +6,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/lapack"
+import "plantcontrol.org/v1/gonum/lapack"
 
 // Race instrumentation changes the floating-point fusion of the scalar fallback.
 func dlasrRightVariableCarry4(direct lapack.Direct, m, n int, c, s, a []float64, lda int) bool {

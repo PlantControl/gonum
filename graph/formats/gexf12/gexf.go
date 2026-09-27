@@ -5,7 +5,7 @@
 // Package gexf12 implements marshaling and unmarshaling of GEXF1.2 documents.
 //
 // For details of GEXF see https://gephi.org/gexf/format/.
-package gexf12 // import "gonum.org/v1/gonum/graph/formats/gexf12"
+package gexf12 // import "plantcontrol.org/v1/gonum/graph/formats/gexf12"
 
 import (
 	"bytes"

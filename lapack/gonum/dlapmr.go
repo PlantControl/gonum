@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas/blas64"
+import "plantcontrol.org/v1/gonum/blas/blas64"
 
 // Dlapmr rearranges the rows of the m×n matrix X as specified by the permutation
 // k[0],k[1],...,k[m-1] of the integers 0,...,m-1.

@@ -6,7 +6,7 @@
 
 package c64
 
-import "gonum.org/v1/gonum/internal/math32"
+import "plantcontrol.org/v1/gonum/internal/math32"
 
 // AsumUnitary returns the sum of the absolute real and imaginary components.
 func AsumUnitary(x []complex64) float32 {

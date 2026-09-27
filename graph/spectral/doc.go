@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package spectral provides graph spectral analysis functions.
-package spectral // import "gonum.org/v1/gonum/graph/spectral"
+package spectral // import "plantcontrol.org/v1/gonum/graph/spectral"

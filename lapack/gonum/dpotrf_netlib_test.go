@@ -11,8 +11,8 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/lapack/gonum/internal/netlib"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack/gonum/internal/netlib"
 )
 
 func TestDpotrfNetlib(t *testing.T) {

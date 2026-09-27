@@ -11,10 +11,10 @@ import (
 	"math"
 	"testing"
 
-	asmc128 "gonum.org/v1/gonum/internal/asm/c128"
-	asmc64 "gonum.org/v1/gonum/internal/asm/c64"
-	asmf32 "gonum.org/v1/gonum/internal/asm/f32"
-	asmf64 "gonum.org/v1/gonum/internal/asm/f64"
+	asmc128 "plantcontrol.org/v1/gonum/internal/asm/c128"
+	asmc64 "plantcontrol.org/v1/gonum/internal/asm/c64"
+	asmf32 "plantcontrol.org/v1/gonum/internal/asm/f32"
+	asmf64 "plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 type kernelRun struct {

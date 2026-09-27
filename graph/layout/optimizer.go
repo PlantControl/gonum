@@ -5,8 +5,8 @@
 package layout
 
 import (
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/spatial/r2"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/spatial/r2"
 )
 
 // LayoutR2 implements graph layout updates and representations.

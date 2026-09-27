@@ -5,15 +5,15 @@
 package cblas64
 
 import (
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/gonum"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/gonum"
 )
 
 var cblas64 blas.Complex64 = gonum.Implementation{}
 
 // Use sets the BLAS complex64 implementation to be used by subsequent BLAS calls.
 // The default implementation is
-// gonum.org/v1/gonum/blas/gonum.Implementation.
+// plantcontrol.org/v1/gonum/blas/gonum.Implementation.
 func Use(b blas.Complex64) {
 	cblas64 = b
 }
