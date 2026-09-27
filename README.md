@@ -14,7 +14,7 @@ go get plantcontrol.org/v1/gonum@latest
 ## Focus
 
 - BLAS (`blas/...`) and LAPACK (`lapack/...`) are the core. New LAPACK routines are added when we need them.
-- Branch [`codex/arm64-simd-blas`](https://github.com/PlantControl/gonum/tree/codex/arm64-simd-blas) holds the SIMD kernels, which outperform upstream Gonum. Most development happens there. It will replace `main` once Go SIMD reaches general availability.
+- Branch [`simd`](https://github.com/PlantControl/gonum/tree/simd) holds Go SIMD kernels for ARM64 and AMD64, which outperform upstream Gonum. Most development happens there. It will be merged into `main` once Go SIMD reaches general availability; until then `main` stays portable.
 - The other packages are kept in sync but are not actively developed.
 
 ## Provenance
