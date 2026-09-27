@@ -5,7 +5,8 @@ PlantControl fork of Gonum. Module `plantcontrol.org/v1/gonum`. Everything after
 ## Scope
 
 - Focus on `blas/` and `lapack/`. Add LAPACK routines when a consumer needs them.
-- SIMD work lives on `codex/arm64-simd-blas`; `main` stays portable until Go SIMD is GA.
+- SIMD work (ARM64 and AMD64) lives on `simd`; `main` stays portable until Go SIMD is GA. Build and test SIMD with `GOEXPERIMENT=simd` on Go 1.27+.
+- Branch for SIMD changes from `simd` and open PRs against it. Merge `main` into `simd` regularly.
 - Other packages get maintenance only. Don't port upstream churn unless asked.
 
 ## Commands
