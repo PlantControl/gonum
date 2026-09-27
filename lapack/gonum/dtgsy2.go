@@ -5,9 +5,9 @@
 package gonum
 
 import (
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dtgsy2 solves the generalized Sylvester equation using Level 1 and 2 BLAS.
@@ -43,6 +43,18 @@ func (impl Implementation) Dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 	b []float64, ldb int, c []float64, ldc int, d []float64, ldd int,
 	e []float64, lde int, f []float64, ldf int,
 	rdsum, rdscal float64, iwork []int) (scale, rdsum2, rdscal2 float64, pq int, ok bool) {
+	return impl.dtgsy2(trans, ijob, m, n, a, lda, b, ldb, c, ldc, d, ldd, e, lde, f, ldf, rdsum, rdscal, iwork, nil)
+}
+
+type dtgsy2Scratch struct {
+	z   [64]float64
+	rhs [8]float64
+}
+
+func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []float64, lda int,
+	b []float64, ldb int, c []float64, ldc int, d []float64, ldd int,
+	e []float64, lde int, f []float64, ldf int,
+	rdsum, rdscal float64, iwork []int, scratch *dtgsy2Scratch) (scale, rdsum2, rdscal2 float64, pq int, ok bool) {
 
 	switch trans {
 	case blas.NoTrans, blas.Trans:
@@ -100,10 +112,10 @@ func (impl Implementation) Dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 	bi := blas64.Implementation()
 
 	const ldz = 8
-	var scratch struct {
-		z   [ldz * ldz]float64
-		rhs [ldz]float64
+	if scratch == nil {
+		scratch = new(dtgsy2Scratch)
 	}
+	*scratch = dtgsy2Scratch{}
 	z, rhs := scratch.z[:], scratch.rhs[:]
 	var ipiv, jpiv [ldz]int
 
@@ -165,8 +177,7 @@ func (impl Implementation) Dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 				if is < 0 {
 					is = -is
 				}
-				is--             // Convert to 0-based.
-				ie = is + mb - 1 // 0-based end index.
+				is-- // Convert to 0-based.
 
 				// Solve the (I,J)-subsystem.
 				if mb == 1 && nb == 1 {
@@ -424,8 +435,7 @@ func (impl Implementation) Dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 				if js < 0 {
 					js = -js
 				}
-				js--             // Convert to 0-based.
-				je = js + nb - 1 // 0-based end index.
+				js-- // Convert to 0-based.
 
 				// Solve the (I,J)-subsystem.
 				if mb == 1 && nb == 1 {

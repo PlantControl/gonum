@@ -1,69 +1,69 @@
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12120	     49428 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12184	     49531 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12145	     49295 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12121	     49362 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12099	     49215 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   10000	     51242 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12192	     49201 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   10000	     50199 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12110	     49232 ns/op	       0 B/op	       0 allocs/op
 PASS
 
 goos: darwin
 goarch: arm64
-pkg: gonum.org/v1/gonum/lapack/gonum
+pkg: plantcontrol.org/v1/gonum/lapack/gonum
 cpu: Apple M1 Pro
 BenchmarkDgghrdControl/mode=z/n=31/stride=31         	   12121	     49507 ns/op	       0 B/op	       0 allocs/op
 PASS

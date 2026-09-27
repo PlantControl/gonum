@@ -3,17 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Package digraph6 implements graphs specified by digraph6 strings.
-package digraph6 // import "gonum.org/v1/gonum/graph/encoding/digraph6"
+package digraph6 // import "plantcontrol.org/v1/gonum/graph/encoding/digraph6"
 
 import (
 	"fmt"
 	"math/big"
 	"strings"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/graph/simple"
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/iterator"
+	"plantcontrol.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 // Graph is a digraph6-represented directed graph.

@@ -9,7 +9,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 func BenchmarkDgemmTT(b *testing.B) {

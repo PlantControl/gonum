@@ -8,7 +8,7 @@ import (
 	"math"
 	"math/cmplx"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Zlange returns the value of the specified norm of a general m×n complex

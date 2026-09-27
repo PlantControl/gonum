@@ -11,7 +11,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func TestDlasrRightVariableCarry4(t *testing.T) {

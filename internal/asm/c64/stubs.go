@@ -5,8 +5,8 @@
 package c64
 
 import (
-	"gonum.org/v1/gonum/internal/cmplx64"
-	"gonum.org/v1/gonum/internal/math32"
+	"plantcontrol.org/v1/gonum/internal/cmplx64"
+	"plantcontrol.org/v1/gonum/internal/math32"
 )
 
 // Add is

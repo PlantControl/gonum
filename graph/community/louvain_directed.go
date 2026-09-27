@@ -9,10 +9,10 @@ import (
 	"math/rand/v2"
 	"slices"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
-	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph/iterator"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 // qDirected returns the modularity Q score of the graph g subdivided into the

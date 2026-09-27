@@ -8,7 +8,7 @@
 
 package cmplx64
 
-import math "gonum.org/v1/gonum/internal/math32"
+import math "plantcontrol.org/v1/gonum/internal/math32"
 
 // Abs returns the absolute value (also called the modulus) of x.
 func Abs(x complex64) float32 { return math.Hypot(real(x), imag(x)) }

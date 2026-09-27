@@ -7,8 +7,8 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dlatdf computes a contribution to the reciprocal Dif-estimate by solving

@@ -7,9 +7,9 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // This implementation follows DHGEQZ in Reference LAPACK 3.12.1 at commit
@@ -366,8 +366,8 @@ func (impl Implementation) Dhgeqz(job lapack.SchurJob, compq, compz lapack.Schur
 			s1, s2, wr, wr2, wi = impl.dlag2(h[(ilast-1)*ldh+ilast-1:], ldh, t[(ilast-1)*ldt+ilast-1:], ldt, 100*safmin)
 			if wi == 0 && math.Abs((wr/s1)*t[ilast*ldt+ilast]-h[ilast*ldh+ilast]) >
 				math.Abs((wr2/s2)*t[ilast*ldt+ilast]-h[ilast*ldh+ilast]) {
-				s1, s2 = s2, s1
-				wr, wr2 = wr2, wr
+				s1 = s2
+				wr = wr2
 			}
 			if wi != 0 && ifirst+1 == ilast {
 				b11, b22 := impl.standardize2x2Block(n, ifirst, ifrstm, ilastm,

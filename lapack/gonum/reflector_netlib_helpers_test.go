@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func reflectorData(n, k int, direct lapack.Direct, store lapack.StoreV) ([]float64, int) {

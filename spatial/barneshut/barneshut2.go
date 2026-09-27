@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/spatial/r2"
+	"plantcontrol.org/v1/gonum/spatial/r2"
 )
 
 // Particle2 is a particle in a plane.

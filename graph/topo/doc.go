@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package topo provides graph topology analysis functions.
-package topo // import "gonum.org/v1/gonum/graph/topo"
+package topo // import "plantcontrol.org/v1/gonum/graph/topo"

@@ -4,7 +4,7 @@
 
 package multi
 
-import "gonum.org/v1/gonum/graph"
+import "plantcontrol.org/v1/gonum/graph"
 
 // Node here is a duplication of simple.Node
 // to avoid needing to import both packages.

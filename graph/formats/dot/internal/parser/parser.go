@@ -16,8 +16,8 @@ import (
 	"fmt"
 	"strings"
 
-	parseError "gonum.org/v1/gonum/graph/formats/dot/internal/errors"
-	"gonum.org/v1/gonum/graph/formats/dot/internal/token"
+	parseError "plantcontrol.org/v1/gonum/graph/formats/dot/internal/errors"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/internal/token"
 )
 
 const (

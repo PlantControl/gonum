@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/stat/combin"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/stat/combin"
 )
 
 func TestNewVecDense(t *testing.T) {

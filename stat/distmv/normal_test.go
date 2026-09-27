@@ -10,10 +10,10 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/diff/fd"
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/diff/fd"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/stat"
 )
 
 func TestNormProbs(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 	"slices"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 type ttFloat interface{ float32 | float64 }

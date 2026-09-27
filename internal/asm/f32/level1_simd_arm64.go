@@ -10,7 +10,7 @@ import (
 	"simd/archsimd"
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/math32"
+	"plantcontrol.org/v1/gonum/internal/math32"
 )
 
 // SasumUnitary returns the sum of the absolute values of x.

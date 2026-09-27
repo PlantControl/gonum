@@ -11,8 +11,8 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
-	"gonum.org/v1/gonum/lapack/gonum/internal/netlib"
+	"plantcontrol.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack/gonum/internal/netlib"
 )
 
 func TestDggesNetlibNonfiniteFailure(t *testing.T) {

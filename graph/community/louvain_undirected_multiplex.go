@@ -9,10 +9,10 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
-	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/internal/order"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph/iterator"
+	"plantcontrol.org/v1/gonum/internal/order"
 )
 
 // UndirectedMultiplex is an undirected multiplex graph.

@@ -9,11 +9,11 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
-	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/graph/multi"
-	"gonum.org/v1/gonum/graph/testgraph"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph/iterator"
+	"plantcontrol.org/v1/gonum/graph/multi"
+	"plantcontrol.org/v1/gonum/graph/testgraph"
 )
 
 func directedBuilder(nodes []graph.Node, edges []testgraph.WeightedLine, _, _ float64) (g graph.Graph, n []graph.Node, e []testgraph.Edge, s, a float64, ok bool) {

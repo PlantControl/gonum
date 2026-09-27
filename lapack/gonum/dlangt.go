@@ -7,7 +7,7 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dlangt returns the value of the given norm of an n×n tridiagonal matrix

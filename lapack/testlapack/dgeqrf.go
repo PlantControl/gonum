@@ -8,7 +8,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/floats"
 )
 
 type Dgeqrfer interface {

@@ -16,7 +16,7 @@ import (
 	"time"
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/asm/c64"
+	"plantcontrol.org/v1/gonum/internal/asm/c64"
 )
 
 // Each backend runs in a child so an assembly overread fails this test without

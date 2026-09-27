@@ -10,8 +10,8 @@ import (
 	"slices"
 	"sort"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 const (

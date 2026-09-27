@@ -4,7 +4,7 @@
 
 package iterator
 
-import "gonum.org/v1/gonum/graph"
+import "plantcontrol.org/v1/gonum/graph"
 
 // OrderedEdges implements the graph.Edges and graph.EdgeSlicer interfaces.
 // The iteration order of OrderedEdges is the order of edges passed to

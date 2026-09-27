@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
-	"gonum.org/v1/gonum/stat/sampleuv"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/stat/sampleuv"
 )
 
 // TunableClusteringScaleFree constructs a subgraph in the destination, dst, of order n.

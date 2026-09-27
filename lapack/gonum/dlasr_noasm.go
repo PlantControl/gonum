@@ -6,7 +6,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/lapack"
+import "plantcontrol.org/v1/gonum/lapack"
 
 func dlasrLeftVariableSIMD(direct lapack.Direct, m, n int, c, s, a []float64, lda int) bool {
 	return false

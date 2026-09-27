@@ -7,8 +7,8 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dggsvd3 computes the generalized singular value decomposition (GSVD)

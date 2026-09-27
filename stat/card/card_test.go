@@ -16,7 +16,7 @@ import (
 	"sync"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 // exact is an exact cardinality accumulator.

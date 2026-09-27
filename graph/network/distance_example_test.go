@@ -7,9 +7,9 @@ package network_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/graph/network"
-	"gonum.org/v1/gonum/graph/path"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/graph/network"
+	"plantcontrol.org/v1/gonum/graph/path"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 func ExampleEccentricity_diameter() {

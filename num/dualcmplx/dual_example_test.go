@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/num/dualcmplx"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/num/dualcmplx"
 )
 
 // point is a 2-dimensional point/vector.

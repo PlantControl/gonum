@@ -6,4 +6,4 @@
 // the gonum/graph interfaces.
 //
 // All types in multi return the graph.Empty value for empty iterators.
-package multi // import "gonum.org/v1/gonum/graph/multi"
+package multi // import "plantcontrol.org/v1/gonum/graph/multi"

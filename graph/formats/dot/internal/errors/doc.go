@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package errors provides generated internal error functions for DOT parsing.
-package errors // import "gonum.org/v1/gonum/graph/formats/dot/internal/errors"
+package errors // import "plantcontrol.org/v1/gonum/graph/formats/dot/internal/errors"

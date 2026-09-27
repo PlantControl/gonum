@@ -10,9 +10,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 type Dtgsyler interface {
@@ -291,63 +290,4 @@ func testDtgsylWorkspace(t *testing.T, impl Dtgsyler) {
 			}
 		}
 	}
-}
-
-func dtgsylResidual(A, B, C, D, E, F, R, L blas64.General, trans blas.Transpose, scale float64) float64 {
-	m := A.Rows
-	n := B.Rows
-
-	if m == 0 || n == 0 {
-		return 0
-	}
-
-	var resid1, resid2 float64
-
-	if trans == blas.NoTrans {
-		// Equation 1: A*R - L*B = scale*C
-		res1 := zeros(m, n, n)
-		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, A, R, 0, res1)
-		blas64.Gemm(blas.NoTrans, blas.NoTrans, -1, L, B, 1, res1)
-		for i := range m {
-			for j := range n {
-				res1.Data[i*res1.Stride+j] -= scale * C.Data[i*C.Stride+j]
-			}
-		}
-		resid1 = dlange(lapack.MaxColumnSum, m, n, res1.Data, res1.Stride)
-
-		// Equation 2: D*R - L*E = scale*F
-		res2 := zeros(m, n, n)
-		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, D, R, 0, res2)
-		blas64.Gemm(blas.NoTrans, blas.NoTrans, -1, L, E, 1, res2)
-		for i := range m {
-			for j := range n {
-				res2.Data[i*res2.Stride+j] -= scale * F.Data[i*F.Stride+j]
-			}
-		}
-		resid2 = dlange(lapack.MaxColumnSum, m, n, res2.Data, res2.Stride)
-	} else {
-		// Equation 1: A^T*R + D^T*L = scale*C
-		res1 := zeros(m, n, n)
-		blas64.Gemm(blas.Trans, blas.NoTrans, 1, A, R, 0, res1)
-		blas64.Gemm(blas.Trans, blas.NoTrans, 1, D, L, 1, res1)
-		for i := range m {
-			for j := range n {
-				res1.Data[i*res1.Stride+j] -= scale * C.Data[i*C.Stride+j]
-			}
-		}
-		resid1 = dlange(lapack.MaxColumnSum, m, n, res1.Data, res1.Stride)
-
-		// Equation 2: R*B^T + L*E^T = -scale*F
-		res2 := zeros(m, n, n)
-		blas64.Gemm(blas.NoTrans, blas.Trans, 1, R, B, 0, res2)
-		blas64.Gemm(blas.NoTrans, blas.Trans, 1, L, E, 1, res2)
-		for i := range m {
-			for j := range n {
-				res2.Data[i*res2.Stride+j] += scale * F.Data[i*F.Stride+j]
-			}
-		}
-		resid2 = dlange(lapack.MaxColumnSum, m, n, res2.Data, res2.Stride)
-	}
-
-	return math.Max(resid1, resid2)
 }

@@ -10,8 +10,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/floats"
 )
 
 func TestFlattenBanded(t *testing.T) {

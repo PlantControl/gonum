@@ -11,7 +11,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 func TestL1NormFiniteGroupingAMD64(t *testing.T) {

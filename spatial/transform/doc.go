@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package transform provides functions for spatial transformations.
-package transform // import "gonum.org/v1/gonum/spatial/transform"
+package transform // import "plantcontrol.org/v1/gonum/spatial/transform"

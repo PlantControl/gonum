@@ -9,11 +9,11 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/spatial/r1"
-	"gonum.org/v1/gonum/stat"
-	"gonum.org/v1/gonum/stat/distmv"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/mat"
+	"plantcontrol.org/v1/gonum/spatial/r1"
+	"plantcontrol.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/stat/distmv"
 )
 
 type lhDist interface {

@@ -4,4 +4,4 @@
 
 // Package samplemv implements advanced sampling routines from explicit and implicit
 // probability distributions.
-package samplemv // import "gonum.org/v1/gonum/stat/samplemv"
+package samplemv // import "plantcontrol.org/v1/gonum/stat/samplemv"

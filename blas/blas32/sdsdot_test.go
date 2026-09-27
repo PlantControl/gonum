@@ -7,7 +7,7 @@ package blas32_test
 import (
 	"testing"
 
-	"gonum.org/v1/gonum/blas/blas32"
+	"plantcontrol.org/v1/gonum/blas/blas32"
 )
 
 func TestSDDotWidenedBias(t *testing.T) {

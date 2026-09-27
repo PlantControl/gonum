@@ -1,0 +1,35 @@
+goos: darwin
+goarch: arm64
+pkg: gonum.org/v1/gonum/lapack/gonum
+cpu: Apple M1 Pro
+BenchmarkDggesNetlib/n=10/dense/vectors=none/sort=true/Go         	   22117	     55259 ns/op	    1536 B/op	       1 allocs/op
+BenchmarkDggesNetlib/n=10/dense/vectors=none/sort=true/Netlib     	   52366	     23062 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: darwin
+goarch: arm64
+pkg: gonum.org/v1/gonum/lapack/gonum
+cpu: Apple M1 Pro
+BenchmarkDggesNetlib/n=10/riccati/vectors=both/sort=false/Go         	   31186	     42919 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDggesNetlib/n=10/riccati/vectors=both/sort=false/Netlib     	   86006	     13852 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: darwin
+goarch: arm64
+pkg: gonum.org/v1/gonum/lapack/gonum
+cpu: Apple M1 Pro
+BenchmarkDggesNetlib/n=10/riccati/vectors=right/sort=false/Go         	   48996	     26469 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDggesNetlib/n=10/riccati/vectors=right/sort=false/Netlib     	   95701	     12513 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: darwin
+goarch: arm64
+pkg: gonum.org/v1/gonum/lapack/gonum
+cpu: Apple M1 Pro
+BenchmarkDggesNetlib/n=10/tiny/vectors=right/sort=false/Go         	   50834	     29465 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDggesNetlib/n=10/tiny/vectors=right/sort=false/Netlib     	   77968	     15404 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: darwin
+goarch: arm64
+pkg: gonum.org/v1/gonum/lapack/gonum
+cpu: Apple M1 Pro
+BenchmarkDggesNetlib/n=50/riccati/vectors=none/sort=true/Go         	     486	   2466658 ns/op	    1536 B/op	       1 allocs/op
+BenchmarkDggesNetlib/n=50/riccati/vectors=none/sort=true/Netlib     	    1030	   1165129 ns/op	       0 B/op	       0 allocs/op
+PASS

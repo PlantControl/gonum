@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
-	"gonum.org/v1/gonum/spatial/r2"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/vg"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/spatial/r2"
 
-	. "gonum.org/v1/gonum/graph/layout"
+	. "plantcontrol.org/v1/gonum/graph/layout"
 )
 
 func TestEadesR2(t *testing.T) {

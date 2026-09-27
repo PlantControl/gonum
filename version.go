@@ -9,7 +9,7 @@ import (
 	"runtime/debug"
 )
 
-const root = "gonum.org/v1/gonum"
+const root = "plantcontrol.org/v1/gonum"
 
 // Version returns the version of Gonum and its checksum. The returned
 // values are only valid in binaries built with module support.

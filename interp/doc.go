@@ -6,4 +6,4 @@
 // Outside of the interpolation interval determined by the interpolated data,
 // the returned value is undefined (but we do our best to return something
 // reasonable).
-package interp // import "gonum.org/v1/gonum/interp"
+package interp // import "plantcontrol.org/v1/gonum/interp"

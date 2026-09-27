@@ -10,8 +10,8 @@ import (
 	"math/cmplx"
 	"testing"
 
-	gonum "gonum.org/v1/gonum/blas/gonum"
-	"gonum.org/v1/gonum/blas/gonum/internal/netlib"
+	gonum "plantcontrol.org/v1/gonum/blas/gonum"
+	"plantcontrol.org/v1/gonum/blas/gonum/internal/netlib"
 )
 
 func TestComplexDotABI(t *testing.T) {

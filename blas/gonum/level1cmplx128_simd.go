@@ -10,7 +10,7 @@ import (
 	"math"
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 func dznrm2Unitary(x []complex128) (norm float64, ok bool) {

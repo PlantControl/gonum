@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package r2 provides 2D vectors and boxes and operations on them.
-package r2 // import "gonum.org/v1/gonum/spatial/r2"
+package r2 // import "plantcontrol.org/v1/gonum/spatial/r2"

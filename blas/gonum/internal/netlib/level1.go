@@ -96,7 +96,7 @@ import "C"
 import (
 	"unsafe"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 // Implementation calls the reference BLAS. Repeat greater than one batches

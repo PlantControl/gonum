@@ -1,0 +1,38 @@
+{
+  "base": "a78cf83eff160df0e423b08af0c7642ade964150",
+  "head": "a78cf83eff160df0e423b08af0c7642ade964150",
+  "go": "go version go1.26.4 darwin/arm64",
+  "samples": 6,
+  "benchtime": "1s",
+  "cases": [
+    "n=10/dense/vectors=none/sort=true",
+    "n=10/riccati/vectors=both/sort=false",
+    "n=10/riccati/vectors=right/sort=false",
+    "n=10/tiny/vectors=right/sort=false",
+    "n=50/riccati/vectors=none/sort=true"
+  ],
+  "threads": {
+    "GOMAXPROCS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "cpu": "Apple M1 Pro",
+  "blas": "/opt/homebrew/opt/lapack/lib/libblas.dylib:\n\t/opt/homebrew/opt/lapack/lib/libblas.3.dylib (compatibility version 3.0.0, current version 3.12.0)\n\t/opt/homebrew/opt/gcc/lib/gcc/current/libgfortran.5.dylib (compatibility version 6.0.0, current version 6.0.0)\n\t/opt/homebrew/opt/gcc/lib/gcc/current/libquadmath.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)",
+  "lapack": "/opt/homebrew/opt/lapack/lib/liblapack.dylib:\n\t/opt/homebrew/opt/lapack/lib/liblapack.3.dylib (compatibility version 3.0.0, current version 3.12.0)\n\t@rpath/libblas.3.dylib (compatibility version 3.0.0, current version 3.12.0)\n\t/opt/homebrew/opt/gcc/lib/gcc/current/libgfortran.5.dylib (compatibility version 6.0.0, current version 6.0.0)\n\t/opt/homebrew/opt/gcc/lib/gcc/current/libquadmath.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)",
+  "lapack_path": "/opt/homebrew/Cellar/lapack/3.12.1",
+  "sha256": {
+    "/Users/josephj/workspace/gonum/lapack/gonum/dgges_netlib_cases_test.go": "b1954c13d30262c64ef65a1fb53dda73a17840dc4dac1933e6b3e9c56253c7ed",
+    "/Users/josephj/workspace/gonum/lapack/gonum/dgges_netlib_bench_test.go": "d19b8a19ed980ab0e05a5db6ed4ba7e64cd3b23fe23a1ed9c92bb32efecb6ccf",
+    "/Users/josephj/workspace/gonum/lapack/gonum/netlib_helpers_test.go": "8dc3d519d2dcf5b64e50d69599b3e8616a22d0c5d289aafae3191a37ada97c3a",
+    "/Users/josephj/workspace/gonum/lapack/gonum/internal/netlib/differential.go": "4a793cce4e6481da22fd5f4fd116fc515df7d58aac4d8c7671182ae0b7bc50f2",
+    "/Users/josephj/workspace/gonum/lapack/gonum/dgges.go": "dcbfebb4008dd87eb7351f5922b2ef8e0709c4501ae047c9fcdc0a2ec0632b75",
+    "/Users/josephj/workspace/gonum/lapack/gonum/dtgex2.go": "949af7dfaea527afc9e1fd5bbbd11a29158856d3831f72410704b82b72db9eb6",
+    "/Users/josephj/workspace/gonum/lapack/gonum/dtgexc.go": "d0447123903186eef7551300a08ce20839f9dd0e81bbc9cb3acfd4e6df85744e",
+    "/Users/josephj/workspace/gonum/lapack/gonum/dtgsen.go": "70244b689f856e299c720d73edda0b530aac15d5a5957db7d8890023a8f8144b",
+    "/Users/josephj/workspace/gonum/lapack/gonum/dtgsy2.go": "7fd8f37524ec01354980250804fc485e86a7c9bab30e2d088a3404c880972c0e",
+    "/opt/homebrew/opt/lapack/lib/liblapack.dylib": "03cdc1090a9918e4beeff6c43be0868c3a994065ac96e6a3e7400ece8f445db3",
+    "/opt/homebrew/opt/lapack/lib/liblapacke.dylib": "cc19907d0d967be326fb972860ff6bb560e53d2f18487b215ef87b9fc421cec4",
+    "/opt/homebrew/opt/lapack/lib/libblas.dylib": "2a7822dcb025edafa53546fa6b5d2882404543793fdf7fab016ee4d720470930"
+  }
+}

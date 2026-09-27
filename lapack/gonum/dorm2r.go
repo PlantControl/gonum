@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dorm2r multiplies a general matrix C by an orthogonal matrix from a QR factorization
 // determined by Dgeqrf.

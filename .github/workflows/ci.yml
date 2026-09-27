@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
 
@@ -48,7 +48,7 @@ jobs:
         FORCE_GOARCH: ${{ matrix.force-goarch }}
     defaults:
         run:
-            working-directory: ${{ env.GOPATH }}/src/gonum.org/v1/gonum
+            working-directory: ${{ env.GOPATH }}/src/plantcontrol.org/v1/gonum
 
     steps:
     - name: Install Go
@@ -59,7 +59,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-          path: ${{ env.GOPATH }}/src/gonum.org/v1/gonum
+          path: ${{ env.GOPATH }}/src/plantcontrol.org/v1/gonum
 
     - name: Cache-Go
       uses: actions/cache@v4

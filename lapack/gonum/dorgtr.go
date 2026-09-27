@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dorgtr generates a real orthogonal matrix Q which is defined as the product
 // of n-1 elementary reflectors of order n as returned by Dsytrd.

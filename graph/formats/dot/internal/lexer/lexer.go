@@ -16,7 +16,7 @@ import (
 	"os"
 	"unicode/utf8"
 
-	"gonum.org/v1/gonum/graph/formats/dot/internal/token"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/internal/token"
 )
 
 const (

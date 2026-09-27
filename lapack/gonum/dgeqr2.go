@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dgeqr2 computes a QR factorization of the m×n matrix A.
 //

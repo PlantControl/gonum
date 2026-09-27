@@ -175,7 +175,7 @@ benchstat -col /implementation internal/asm/simdbench/results/dgges-netlib/reche
 Profile separately with the exact single-case selector, 5s benchtime and
 `-test.cpuprofile`; add `-test.memprofile` for sorting. Read with
 `go tool pprof -top` and `-sample_index=alloc_objects`. Confirm scratch escapes
-with `go build -pgo=off -gcflags='gonum.org/v1/gonum/lapack/gonum=-m=2' ./lapack/gonum`
+with `go build -pgo=off -gcflags='plantcontrol.org/v1/gonum/lapack/gonum=-m=2' ./lapack/gonum`
 under the same toolchain/experiment.
 
 Original local evidence (not portable storage):

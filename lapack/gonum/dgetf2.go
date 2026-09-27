@@ -7,7 +7,7 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 )
 
 // Dgetf2 computes the LU decomposition of an m×n matrix A using partial

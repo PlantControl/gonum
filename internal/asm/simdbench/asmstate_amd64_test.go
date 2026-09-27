@@ -14,8 +14,8 @@ import (
 	"testing"
 	"unsafe"
 
-	asmc128 "gonum.org/v1/gonum/internal/asm/c128"
-	asmf64 "gonum.org/v1/gonum/internal/asm/f64"
+	asmc128 "plantcontrol.org/v1/gonum/internal/asm/c128"
+	asmf64 "plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 var asmStateSource = [4]float64{1, 2, 3, 4}

@@ -18,4 +18,4 @@
 // so the data is kept in raw form. As an exception, quoted text with a leading
 // `"<` and a trailing `>"` is not unquoted to ensure preservation of the string
 // during a round-trip.
-package dot // import "gonum.org/v1/gonum/graph/encoding/dot"
+package dot // import "plantcontrol.org/v1/gonum/graph/encoding/dot"

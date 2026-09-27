@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"sync"
 
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 // dgemvParallelThreshold is the M*N product at or above which Dgemv switches

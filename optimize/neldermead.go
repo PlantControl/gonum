@@ -8,7 +8,7 @@ import (
 	"math"
 	"sort"
 
-	"gonum.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/floats"
 )
 
 // nmIterType is a Nelder-Mead evaluation kind

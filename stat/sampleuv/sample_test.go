@@ -9,9 +9,9 @@ import (
 	"sort"
 	"testing"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/stat"
-	"gonum.org/v1/gonum/stat/distuv"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/stat/distuv"
 )
 
 const tol = 1e-2

@@ -4,7 +4,7 @@
 
 package mathext
 
-import "gonum.org/v1/gonum/mathext/internal/amos"
+import "plantcontrol.org/v1/gonum/mathext/internal/amos"
 
 // AiryAi returns the value of the Airy function at z. The Airy function here,
 // Ai(z), is one of the two linearly independent solutions to

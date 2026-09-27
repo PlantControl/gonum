@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // DgesvdBenchmark measures values-only and thin-vector decompositions. Workspace

@@ -7,7 +7,7 @@ package unit_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/unit"
+	"plantcontrol.org/v1/gonum/unit"
 )
 
 func ExampleNew() {

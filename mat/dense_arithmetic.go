@@ -7,9 +7,9 @@ package mat
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/lapack/lapack64"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/lapack/lapack64"
 )
 
 // Add adds a and b element-wise, placing the result in the receiver. Add

@@ -7,10 +7,10 @@ package network
 import (
 	"math"
 
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/linear"
-	"gonum.org/v1/gonum/graph/simple"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/internal/linear"
+	"plantcontrol.org/v1/gonum/graph/simple"
 )
 
 // MaxFlowDinic computes the maximum flow from source to target in a directed,

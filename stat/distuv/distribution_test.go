@@ -8,10 +8,10 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/floats/scalar"
-	"gonum.org/v1/gonum/integrate/quad"
-	"gonum.org/v1/gonum/stat"
+	"plantcontrol.org/v1/gonum/floats"
+	"plantcontrol.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/integrate/quad"
+	"plantcontrol.org/v1/gonum/stat"
 )
 
 type meaner interface {

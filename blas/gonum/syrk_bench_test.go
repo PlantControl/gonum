@@ -9,7 +9,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas"
 )
 
 type syrkBenchFloat interface{ float32 | float64 }

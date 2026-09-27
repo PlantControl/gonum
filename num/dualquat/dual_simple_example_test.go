@@ -7,8 +7,8 @@ package dualquat_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/num/dualquat"
-	"gonum.org/v1/gonum/num/quat"
+	"plantcontrol.org/v1/gonum/num/dualquat"
+	"plantcontrol.org/v1/gonum/num/quat"
 )
 
 func Example_displace() {

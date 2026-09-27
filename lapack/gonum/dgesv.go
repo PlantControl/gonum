@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas"
+import "plantcontrol.org/v1/gonum/blas"
 
 // Dgesv computes the solution to a real system of linear equations
 //

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func TestDhgeqzNetlibZeroDiagonalChase(t *testing.T) {

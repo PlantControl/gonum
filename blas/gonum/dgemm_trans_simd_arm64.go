@@ -10,7 +10,7 @@ import (
 	"math"
 	"simd/archsimd"
 
-	"gonum.org/v1/gonum/internal/asm/f64"
+	"plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 func dgemmSerialNotTransSIMD(m, n, k int, a []float64, lda int, b []float64, ldb int, c []float64, ldc int, alpha float64) bool {

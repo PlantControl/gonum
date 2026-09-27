@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "gonum.org/v1/gonum/internal/asm/f64"
+	. "plantcontrol.org/v1/gonum/internal/asm/f64"
 )
 
 var dotUnitaryLengthsSink float64

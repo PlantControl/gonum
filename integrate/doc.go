@@ -4,4 +4,4 @@
 
 // Package integrate provides functions to compute an integral given a
 // specific list of evaluations.
-package integrate // import "gonum.org/v1/gonum/integrate"
+package integrate // import "plantcontrol.org/v1/gonum/integrate"

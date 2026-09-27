@@ -10,8 +10,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/floats/scalar"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/floats/scalar"
 )
 
 // throwPanic will throw unexpected panics if true, or will just report them as errors if false

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"gonum.org/v1/gonum/internal/asm/c64"
+	"plantcontrol.org/v1/gonum/internal/asm/c64"
 )
 
 func TestAxpyUnitaryToAlignment(t *testing.T) {

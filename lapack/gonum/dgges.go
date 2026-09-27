@@ -7,8 +7,8 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // This implementation follows DGGES in Reference LAPACK 3.12.1 at commit
@@ -52,7 +52,7 @@ import (
 // lapack.SortSelected. An eigenvalue (alphar[j] + i*alphai[j]) / beta[j] is
 // selected if selctg(alphar[j], alphai[j], beta[j]) returns true. Note that
 // when beta[j] is zero, the eigenvalue is infinite; the caller must handle this
-// case. Selecting either eigenvalue of a complex conjugate pair selects both.
+// case. For a complex conjugate pair, selecting either member selects both.
 //
 // On entry, a and b contain the n×n matrices A and B. On return, a has been
 // overwritten by its real Schur form S, and b has been overwritten by the upper

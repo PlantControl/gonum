@@ -7,8 +7,8 @@ package gonum
 import (
 	"math"
 
-	"gonum.org/v1/gonum/blas"
-	"gonum.org/v1/gonum/lapack"
+	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dgees computes for an n×n real nonsymmetric matrix A, the eigenvalues, the
@@ -253,8 +253,8 @@ func (impl Implementation) Dgees(jobvs lapack.SchurComp, sort lapack.SchurSort, 
 	if scalea {
 		// Undo scaling for the Schur form of A.
 		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, n, a, lda)
-		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wr, n)
-		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wi, n)
+		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wr, 1)
+		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wi, 1)
 	}
 
 	work[0] = float64(maxwrk)

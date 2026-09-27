@@ -4,7 +4,7 @@
 
 package gonum
 
-import "gonum.org/v1/gonum/blas/blas64"
+import "plantcontrol.org/v1/gonum/blas/blas64"
 
 // Dtzrzf reduces the m×n (m ≤ n) upper trapezoidal matrix A to upper
 // triangular form by means of orthogonal transformations.

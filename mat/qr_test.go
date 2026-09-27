@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"gonum.org/v1/gonum/blas/blas64"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 )
 
 func TestQR(t *testing.T) {

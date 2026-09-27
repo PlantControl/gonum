@@ -1,0 +1,275 @@
+diff --git a/lapack/gonum/dgges.go b/lapack/gonum/dgges.go
+index 4dc1302c..80db445d 100644
+--- a/lapack/gonum/dgges.go
++++ b/lapack/gonum/dgges.go
+@@ -52,7 +52,7 @@ import (
+ // lapack.SortSelected. An eigenvalue (alphar[j] + i*alphai[j]) / beta[j] is
+ // selected if selctg(alphar[j], alphai[j], beta[j]) returns true. Note that
+ // when beta[j] is zero, the eigenvalue is infinite; the caller must handle this
+-// case. For complex conjugate pairs, both eigenvalues must be selected.
++// case. For a complex conjugate pair, selecting either member selects both.
+ //
+ // On entry, a and b contain the n×n matrices A and B. On return, a has been
+ // overwritten by its real Schur form S, and b has been overwritten by the upper
+diff --git a/lapack/gonum/dtgex2.go b/lapack/gonum/dtgex2.go
+index 856566ce..329625c5 100644
+--- a/lapack/gonum/dtgex2.go
++++ b/lapack/gonum/dtgex2.go
+@@ -25,6 +25,20 @@ import (
+ // Dtgex2 is an internal routine. It is exported for testing purposes.
+ func (impl Implementation) Dtgex2(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
+ 	q []float64, ldq int, z []float64, ldz int, j1, n1, n2 int, work []float64, lwork int) bool {
++	return impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, j1, n1, n2, work, lwork, nil)
++}
++
++// dtgex2Scratch is reused across a sequence of swaps. Its slices are passed to
++// the configurable BLAS backend, so they may escape to the heap.
++type dtgex2Scratch struct {
++	s, t, li, ir       [16]float64
++	taul, taur         [4]float64
++	scpy, tcpy, licopy [16]float64
++	sylvester          dtgsy2Scratch
++}
++
++func (impl Implementation) dtgex2(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
++	q []float64, ldq int, z []float64, ldz int, j1, n1, n2 int, work []float64, lwork int, scratch *dtgex2Scratch) bool {
+ 
+ 	switch {
+ 	case n < 0:
+@@ -78,7 +92,11 @@ func (impl Implementation) Dtgex2(wantq, wantz bool, n int, a []float64, lda int
+ 	work[0] = float64(minWork)
+ 
+ 	const ld = 4
+-	var s, tt, li, ir [ld * ld]float64
++	if scratch == nil {
++		scratch = new(dtgex2Scratch)
++	}
++	*scratch = dtgex2Scratch{}
++	s, tt, li, ir := scratch.s[:], scratch.t[:], scratch.li[:], scratch.ir[:]
+ 	copyLocalBlock(m, a[j1*lda+j1:], lda, s[:], ld)
+ 	copyLocalBlock(m, b[j1*ldb+j1:], ldb, tt[:], ld)
+ 
+@@ -97,7 +115,7 @@ func (impl Implementation) Dtgex2(wantq, wantz bool, n int, a []float64, lda int
+ 	}
+ 
+ 	if !impl.dtgex2SwapLarge(m, n1, n2, s[:], tt[:], li[:], ir[:], ld, threshA, threshB,
+-		a[j1*lda+j1:], lda, b[j1*ldb+j1:], ldb, work) {
++		a[j1*lda+j1:], lda, b[j1*ldb+j1:], ldb, work, scratch) {
+ 		return false
+ 	}
+ 
+@@ -162,7 +180,7 @@ func (impl Implementation) dtgex2Apply11(wantq, wantz bool, n int, a []float64,
+ }
+ 
+ func (impl Implementation) dtgex2SwapLarge(m, n1, n2 int, s, t, li, ir []float64, ld int, threshA, threshB float64,
+-	a []float64, lda int, b []float64, ldb int, work []float64) bool {
++	a []float64, lda int, b []float64, ldb int, work []float64, scratch *dtgex2Scratch) bool {
+ 	for i := 0; i < n1; i++ {
+ 		for j := 0; j < n2; j++ {
+ 			li[i*ld+j] = t[i*ld+n1+j]
+@@ -170,9 +188,9 @@ func (impl Implementation) dtgex2SwapLarge(m, n1, n2 int, s, t, li, ir []float64
+ 		}
+ 	}
+ 	var iwork [8]int
+-	scale, _, _, _, ok := impl.Dtgsy2(blas.NoTrans, 0, n1, n2,
++	scale, _, _, _, ok := impl.dtgsy2(blas.NoTrans, 0, n1, n2,
+ 		s, ld, s[n1*ld+n1:], ld, ir[n2*ld+n1:], ld,
+-		t, ld, t[n1*ld+n1:], ld, li, ld, 0, 1, iwork[:])
++		t, ld, t[n1*ld+n1:], ld, li, ld, 0, 1, iwork[:], &scratch.sylvester)
+ 	if !ok {
+ 		return false
+ 	}
+@@ -186,13 +204,14 @@ func (impl Implementation) dtgex2SwapLarge(m, n1, n2 int, s, t, li, ir []float64
+ 		ir[(n2+i)*ld+i] = scale
+ 	}
+ 
+-	var taul, taur [4]float64
++	taul, taur := scratch.taul[:], scratch.taur[:]
+ 	impl.Dgeqr2(m, n2, li, ld, taul[:n2], work)
+ 	impl.Dorg2r(m, m, n2, li, ld, taul[:n2], work)
+ 	impl.Dgerq2(n1, m, ir[n2*ld:], ld, taur[:n1], work)
+ 	impl.Dorgr2(m, m, n1, ir, ld, taur[:n1], work)
+ 
+-	var tmp, scpy, tcpy, licopy, ircopy [16]float64
++	var tmp, ircopy [16]float64
++	scpy, tcpy, licopy := scratch.scpy[:], scratch.tcpy[:], scratch.licopy[:]
+ 	localMul(m, li, true, s, false, tmp[:], ld)
+ 	localMul(m, tmp[:], false, ir, true, s, ld)
+ 	localMul(m, li, true, t, false, tmp[:], ld)
+diff --git a/lapack/gonum/dtgexc.go b/lapack/gonum/dtgexc.go
+index 42b11f3a..95b28175 100644
+--- a/lapack/gonum/dtgexc.go
++++ b/lapack/gonum/dtgexc.go
+@@ -29,6 +29,11 @@ package gonum
+ // Dtgexc is an internal routine. It is exported for testing purposes.
+ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
+ 	q []float64, ldq int, z []float64, ldz int, ifst, ilst int, work []float64, lwork int) (ifstOut, ilstOut int, ok bool) {
++	return impl.dtgexc(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, ifst, ilst, work, lwork, nil)
++}
++
++func (impl Implementation) dtgexc(wantq, wantz bool, n int, a []float64, lda int, b []float64, ldb int,
++	q []float64, ldq int, z []float64, ldz int, ifst, ilst int, work []float64, lwork int, scratch *dtgex2Scratch) (ifstOut, ilstOut int, ok bool) {
+ 	minWork := 1
+ 	if n > 1 {
+ 		minWork = 4*n + 16
+@@ -103,6 +108,9 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 		}
+ 	}
+ 
++	if scratch == nil {
++		scratch = new(dtgex2Scratch)
++	}
+ 	here := ifst
+ 
+ 	if ilst > ifst {
+@@ -112,7 +120,7 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 				if here+nbf < n-1 && a[(here+nbf+1)*lda+here+nbf] != 0 {
+ 					nbl = 2
+ 				}
+-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, nbf, nbl, work, lwork) {
++				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, nbf, nbl, work, lwork, scratch) {
+ 					return ifst, here, false
+ 				}
+ 				here += nbl
+@@ -126,11 +134,11 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 			if here+3 < n && a[(here+3)*lda+here+2] != 0 {
+ 				nbl = 2
+ 			}
+-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here+1, 1, nbl, work, lwork) {
++			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here+1, 1, nbl, work, lwork, scratch) {
+ 				return ifst, here, false
+ 			}
+ 			if nbl == 1 {
+-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
++				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
+ 					return ifst, here, false
+ 				}
+ 				here++
+@@ -140,17 +148,17 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 				nbl = 1
+ 			}
+ 			if nbl == 2 {
+-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 2, work, lwork) {
++				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 2, work, lwork, scratch) {
+ 					return ifst, here, false
+ 				}
+ 				here += 2
+ 				continue
+ 			}
+-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
++			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
+ 				return ifst, here, false
+ 			}
+ 			here++
+-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
++			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
+ 				return ifst, here, false
+ 			}
+ 			here++
+@@ -162,7 +170,7 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 				if here >= 2 && a[(here-1)*lda+here-2] != 0 {
+ 					nbl = 2
+ 				}
+-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, nbf, work, lwork) {
++				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, nbf, work, lwork, scratch) {
+ 					return ifst, here, false
+ 				}
+ 				here -= nbl
+@@ -176,11 +184,11 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 			if here >= 2 && a[(here-1)*lda+here-2] != 0 {
+ 				nbl = 2
+ 			}
+-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, 1, work, lwork) {
++			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-nbl, nbl, 1, work, lwork, scratch) {
+ 				return ifst, here, false
+ 			}
+ 			if nbl == 1 {
+-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
++				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
+ 					return ifst, here, false
+ 				}
+ 				here--
+@@ -190,17 +198,17 @@ func (impl Implementation) Dtgexc(wantq, wantz bool, n int, a []float64, lda int
+ 				nbl = 1
+ 			}
+ 			if nbl == 2 {
+-				if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-1, 2, 1, work, lwork) {
++				if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here-1, 2, 1, work, lwork, scratch) {
+ 					return ifst, here, false
+ 				}
+ 				here -= 2
+ 				continue
+ 			}
+-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
++			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
+ 				return ifst, here, false
+ 			}
+ 			here--
+-			if !impl.Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork) {
++			if !impl.dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, here, 1, 1, work, lwork, scratch) {
+ 				return ifst, here, false
+ 			}
+ 			here--
+diff --git a/lapack/gonum/dtgsen.go b/lapack/gonum/dtgsen.go
+index dda533ed..87c1ccc1 100644
+--- a/lapack/gonum/dtgsen.go
++++ b/lapack/gonum/dtgsen.go
+@@ -188,6 +188,7 @@ func (impl Implementation) Dtgsen(ijob int, wantq, wantz bool, selected []bool,
+ 	// Reorder blocks to collect selected eigenvalues at top-left.
+ 	// Use a bubble-sort like approach with Dtgexc.
+ 	{
++		var scratch *dtgex2Scratch
+ 		ks := 0 // Target position (where to move selected eigenvalues)
+ 		pair := false
+ 
+@@ -213,8 +214,11 @@ func (impl Implementation) Dtgsen(ijob int, wantq, wantz bool, selected []bool,
+ 			if isSelected {
+ 				// Move this block to position ks.
+ 				if k != ks {
+-					_, _, swapOk := impl.Dtgexc(wantq, wantz, n, a, lda, b, ldb,
+-						q, ldq, z, ldz, k, ks, work, lwork)
++					if scratch == nil {
++						scratch = new(dtgex2Scratch)
++					}
++					_, _, swapOk := impl.dtgexc(wantq, wantz, n, a, lda, b, ldb,
++						q, ldq, z, ldz, k, ks, work, lwork, scratch)
+ 					if !swapOk {
+ 						ok = false
+ 						// Continue to extract eigenvalues even if reordering failed.
+diff --git a/lapack/gonum/dtgsy2.go b/lapack/gonum/dtgsy2.go
+index 6a91ff6c..b9d15f9e 100644
+--- a/lapack/gonum/dtgsy2.go
++++ b/lapack/gonum/dtgsy2.go
+@@ -43,6 +43,18 @@ func (impl Implementation) Dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
+ 	b []float64, ldb int, c []float64, ldc int, d []float64, ldd int,
+ 	e []float64, lde int, f []float64, ldf int,
+ 	rdsum, rdscal float64, iwork []int) (scale, rdsum2, rdscal2 float64, pq int, ok bool) {
++	return impl.dtgsy2(trans, ijob, m, n, a, lda, b, ldb, c, ldc, d, ldd, e, lde, f, ldf, rdsum, rdscal, iwork, nil)
++}
++
++type dtgsy2Scratch struct {
++	z   [64]float64
++	rhs [8]float64
++}
++
++func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []float64, lda int,
++	b []float64, ldb int, c []float64, ldc int, d []float64, ldd int,
++	e []float64, lde int, f []float64, ldf int,
++	rdsum, rdscal float64, iwork []int, scratch *dtgsy2Scratch) (scale, rdsum2, rdscal2 float64, pq int, ok bool) {
+ 
+ 	switch trans {
+ 	case blas.NoTrans, blas.Trans:
+@@ -100,8 +112,11 @@ func (impl Implementation) Dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
+ 	bi := blas64.Implementation()
+ 
+ 	const ldz = 8
+-	var z [ldz * ldz]float64
+-	var rhs [ldz]float64
++	if scratch == nil {
++		scratch = new(dtgsy2Scratch)
++	}
++	*scratch = dtgsy2Scratch{}
++	z, rhs := scratch.z[:], scratch.rhs[:]
+ 	var ipiv, jpiv [ldz]int
+ 
+ 	// Determine block structure of A.

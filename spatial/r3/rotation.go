@@ -7,7 +7,7 @@ package r3
 import (
 	"math"
 
-	"gonum.org/v1/gonum/num/quat"
+	"plantcontrol.org/v1/gonum/num/quat"
 )
 
 // TODO: possibly useful additions to the current rotation API:

@@ -1,0 +1,324 @@
+=== RUN   TestDggesNetlibControlPencils
+    dgges_netlib_cases_test.go:191: LAPACK runtime 3.12.0
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.98e-15 B=1.11e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.61e-15 B=1.33e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.33e-15 B=1.26e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.44e-15 B=1.67e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.51e-15 B=1.67e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=2e-15 B=1.67e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.78e-15 B=1.78e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.89e-15 B=1.67e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.33e-16 B=2.22e-16
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.89e-16 B=2.29e-16
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.44e-15 B=1.78e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.11e-15 B=2.78e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.55e-15 B=1.83e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.05e-15 B=3e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.05e-15 B=1.05e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.55e-15 B=1.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2e-15 B=1.22e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2e-15 B=2.28e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.33e-15 B=2.44e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.11e-15 B=3.55e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.72e-15 B=3.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.55e-15 B=2.66e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.94e-15 B=2.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.44e-15 B=2.22e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.55e-15 B=3e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.59e-15 B=2.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.44e-15 B=1.22e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.33e-15 B=1.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.04e-14 B=4.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.55e-15 B=3e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.07e-14 B=5.11e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.55e-15 B=3.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.11e-15 B=3.11e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.28e-15 B=3.5e-15
+=== RUN   TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=9.44e-15 B=4.55e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5e-15 B=4.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.66e-15 B=3e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=5.5e-15 B=4.22e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=6.3e-15 B=4.33e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.85e-15 B=2.89e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=5.02e-15 B=3e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.27e-15 B=3.11e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=5.13e-15 B=2.89e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=6.02e-15 B=3.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.67e-15 B=2e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.44e-15 B=2.66e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.03e-14 B=5.88e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.66e-15 B=8.77e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.01e-14 B=5.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.33e-15 B=8.66e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=4.55e-15 B=3.14e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=4.11e-15 B=3.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.27e-14 B=8.44e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.18e-14 B=7.33e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=8.56e-15 B=4e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=8.04e-15 B=3.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=9.59e-15 B=3.33e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.38e-15 B=4.22e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=9.51e-15 B=5.33e-15
+    dgges_netlib_cases_test.go:248: Go relative residual A=8.63e-15 B=3.89e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=9.49e-15 B=4.33e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.04e-14 B=5.77e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=0 B=0
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=0 B=0
+=== RUN   TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.33e-15 B=2.89e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=3.22e-15 B=3.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.59e-14 B=9.88e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.64e-14 B=9.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=1.6e-14 B=9.66e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=1.65e-14 B=9.44e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=false
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=true
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=false
+    dgges_netlib_cases_test.go:248: Go relative residual A=3.8e-15 B=3.75e-15
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=4.11e-15 B=3.76e-15
+=== RUN   TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=true
+    dgges_netlib_cases_test.go:248: Go relative residual A=2.46e-14 B=2e-14
+    dgges_netlib_cases_test.go:248: Netlib relative residual A=2.18e-14 B=1.48e-14
+--- PASS: TestDggesNetlibControlPencils (7.12s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/dense/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/tiny/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/singular/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/near-unit/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=10/riccati/vectors=both/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/dense/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/tiny/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/singular/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/near-unit/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=50/riccati/vectors=both/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=false (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/dense/vectors=both/sort=true (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=false (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/tiny/vectors=both/sort=true (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=none/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=right/sort=true (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=false (0.04s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/singular/vectors=both/sort=true (0.04s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=false (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/near-unit/vectors=both/sort=true (0.06s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=none/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=false (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=right/sort=true (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=100/riccati/vectors=both/sort=true (0.07s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=false (0.07s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=none/sort=true (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=false (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=right/sort=true (0.15s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=false (0.46s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/dense/vectors=both/sort=true (0.51s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=false (0.07s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=none/sort=true (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=false (0.10s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=right/sort=true (0.15s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=false (0.46s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/tiny/vectors=both/sort=true (0.51s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=false (0.00s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=none/sort=true (0.01s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=false (0.02s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=right/sort=true (0.03s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=false (0.35s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/singular/vectors=both/sort=true (0.36s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=none/sort=true (0.08s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=false (0.09s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=right/sort=true (0.13s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=false (0.43s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/near-unit/vectors=both/sort=true (0.49s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=false (0.05s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=none/sort=true (0.11s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=false (0.08s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=right/sort=true (0.16s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=false (0.43s)
+    --- PASS: TestDggesNetlibControlPencils/n=200/riccati/vectors=both/sort=true (0.53s)
+PASS

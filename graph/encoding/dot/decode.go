@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/encoding"
-	"gonum.org/v1/gonum/graph/formats/dot"
-	"gonum.org/v1/gonum/graph/formats/dot/ast"
-	"gonum.org/v1/gonum/graph/internal/set"
+	"plantcontrol.org/v1/gonum/graph"
+	"plantcontrol.org/v1/gonum/graph/encoding"
+	"plantcontrol.org/v1/gonum/graph/formats/dot"
+	"plantcontrol.org/v1/gonum/graph/formats/dot/ast"
+	"plantcontrol.org/v1/gonum/graph/internal/set"
 )
 
 // AttributeSetters is implemented by graph values that can set global
