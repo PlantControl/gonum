@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -51,32 +53,17 @@ jobs:
             working-directory: ${{ env.GOPATH }}/src/plantcontrol.org/v1/gonum
 
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.go-version }}
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
           path: ${{ env.GOPATH }}/src/plantcontrol.org/v1/gonum
 
-    - name: Cache-Go
-      uses: actions/cache@v4
+    - name: Install Go
+      uses: cloudx-io/setup-go@8b45cf394acf101459db0d47aa9735a4fe5eea63 # v1.0.0
       with:
-        # In order:
-        # * Module download cache 
-        # * Build cache (Linux)
-        # * Build cache (Mac)
-        # * Build cache (Windows)
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-          ~/Library/Caches/go-build
-          '%LocalAppData%\go-build'
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        go-version: ${{ matrix.go-version }}
+        cache-key-prefix: build-${{ matrix.force-goarch }}-${{ matrix.tags }}
+        cache-dependency-path: src/plantcontrol.org/v1/gonum/go.sum
 
     - name: Check copyrights+imports+formatting+generate
       if: matrix.platform == 'ubuntu-latest' && matrix.tags == ''
