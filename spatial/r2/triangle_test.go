@@ -140,7 +140,7 @@ func TestTriangleCentroid(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		tri := Triangle{
 			{rnd.Float64() * 20, rnd.Float64() * 20},
-			{rand.Float64() * 20, rnd.Float64() * 20},
+			{rnd.Float64() * 20, rnd.Float64() * 20},
 			{rnd.Float64() * 20, rnd.Float64() * 20},
 		}
 		got := tri.Centroid()
