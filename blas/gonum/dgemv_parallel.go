@@ -14,12 +14,13 @@ import (
 // dgemvParallelThreshold is the M*N product at or above which Dgemv switches
 // from a single-threaded GemvN/GemvT call to a row-block parallel dispatch.
 //
-// Chosen empirically on a 4-core box: for square matrices the parallel path
-// pulls ahead around 256² (M*N ≈ 6.5e4) and is comfortably faster by 512²
-// (M*N ≈ 2.6e5). 1e5 is a conservative midpoint that avoids scheduling
-// overhead dominating very small problems while keeping the fast path live
-// for everything in the medium/large regime DMCplus actually exercises.
-const dgemvParallelThreshold = 100000
+// Dgemv is memory-bandwidth bound, so the split only pays once each band
+// streams enough of A to hide goroutine start-up and the WaitGroup join.
+// BenchmarkDgemvSplit on a 4-core/8-thread i7-1270P with -cpu 2,4,8: the
+// parallel path is 2.0–2.7× slower at 256², 1.2–1.8× slower at 500², about
+// even to 1.4× slower at 724², and 0.68–0.90× (faster) from 1024² upward, for
+// both NoTrans and Trans. The earlier 1e5 threshold put 500² on the slow path.
+const dgemvParallelThreshold = 1 << 20
 
 // dgemvParallel computes y = alpha*A*x + beta*y (or with Aᵀ when trans is
 // true) by partitioning the output dimension across worker goroutines. It is
