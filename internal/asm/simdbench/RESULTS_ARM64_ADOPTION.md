@@ -1,119 +1,19 @@
 # ARM64 adoption of the September AMD64 bundle
 
-## Baseline and scope
+## Summary
 
-The imported baseline is `53702365864f9d09bad60c5fe54891d8777cc406`,
-whose tree matches bundle source `9a1169e8268c8581fa1022a8422aa272903552d9`
-(`747704973603960872bf348263b68083e479cc7c`). All delivered SHA256 checks
-passed before import. Native validation uses an Apple M1 Pro, darwin/arm64,
-stock Go 1.27.1 and `GOEXPERIMENT=simd`. AMD64-specific assembly is not
-executed on this host; the imported report remains separate evidence.
-
-The adoption work first reconciles native conformance failures, then evaluates
-bounded ARM64 candidates against the unchanged import. Existing portable SIMD
-and archsimd kernels are the baseline, not scalar code selected to exaggerate
-gains. Handwritten NEON is conditional on generated-code evidence and repeated
-native leaf and consumer measurements. Unsupported build modes retain their
-existing implementations. No cross-compilation is used in this investigation.
-
-## Import validation
-
-- Default Go toolchain and Go 1.24: affected kernel, BLAS, LAPACK and mat tests pass.
-- Go 1.27.1 SIMD with combined `safe noasm bounds` tags: the same scope passes.
-- Full native SIMD: fails only in f64, at `TestGemvTSmallIEEEAndPadding`
-  (Inf versus NaN) and `TestSIMDPositiveStridePanics` (writes before panic).
-- Portable emulation and race tests reproduce those two f64 failures.
-- Native Netlib: LAPACK passes; BLAS fails its old Sdsdot zero-length expectation.
-- Changed Go files are gofmt-clean; the imported diff passes whitespace checks.
-
-These are baseline results, not acceptance of the subsequent adoption changes.
-The bundle separately discloses AMD64 checkptr level-2 allocation assertions;
-ordinary and level-1 results do not erase those failures.
-
-## Conformance reconciliation
-
-Sdsdot now agrees directly with Reference-LAPACK 3.12.1 for zero length: it
-returns the supplied bias. The old oracle test explicitly expected Gonum to
-disagree with Netlib; that special case was removed, not the oracle comparison.
-
-The small transposed GEMV reference distinguishes ARM64 scalar FMA tails from
-separately rounded vector products, without changing the production arithmetic
-or the AMD64 reference. Oversized-stride tests still require a bounds panic;
-they no longer prescribe partial mutations of invalid inputs before that panic.
-Go may move bounds checks within an unrolled block. Valid-input numerical,
-padding, aliasing and access tests remain in place.
-
-## Candidate selection
-
-- Four-row DGER: reuse y loads across rows instead of entering AXPY for each row.
-  First scope is disjoint unit-stride input. This does not cover Dgetf2's
-  strided, shared-matrix input and is not a claimed LU improvement.
-- DDOT: the current slice intrinsic loop emits extensive per-load bounds and
-  address work. Compare a checked pointer-loop archsimd implementation with a
-  whole-kernel NEON assembly leaf, preserving its exact FMA/reduction order.
-  A baseline CPU profile of `mat.BenchmarkInnerMedMed` attributes 92.67% of
-  sampled CPU cumulatively to DotUnitary and its inlined loads. Profile timing
-  is not performance acceptance evidence.
-
-## Measurement method and rejected alternatives
-
-All acceptance timings use the skill's alternating prebuilt-binary runner,
-`GOMAXPROCS=1`, stock Go 1.27.1 with SIMD, default native NEON width, and no
-PGO input or GOFLAGS override. Builds, tests and worker CPU work were stopped
-before timing. Both revisions use identical deterministic benchmark fixtures.
-Each case has ten samples per revision: 100ms per leaf/public-BLAS sample and
-200ms for matrix-inner-product samples. Benchstat is
-`golang.org/x/perf v0.0.0-20260312031701-16a31bc5fbd0`, using its default
-Mann-Whitney comparison and 95% confidence intervals. These are per-case tests,
-not a multiplicity-adjusted aggregate application-throughput estimate.
-
-The unchanged baseline worktree is at the imported commit above. Its only
-additions are identical public DDOT/DGER benchmark files; generating all
-single-precision sources reproduces the baseline exactly. Raw observations,
-run order, settings and binary hashes are retained under
-`/tmp/gonum-arm64-adopt.79xQZz/` in `dot-final`, `ddot-final`, `ger-final`,
-and `inner-final`. Each directory contains `baseline.txt`, `candidate.txt`,
-`metadata.json`, and per-run stdout/stderr. Benchmark commands are reproducible
-from the retained Go benchmark names without those temporary binaries.
-
-A real NEON assembly dot leaf was implemented and passed exact arithmetic,
-tail, offset, overlap, ABI and Darwin guard-page checks. It used two
-post-increment four-vector loads and four FMLA operations per eight elements.
-It was nevertheless **rejected**: in ten-round native comparisons against a
-checked Go pointer-loop control it took 4.6–100.4% more time for every tested
-active length, 16–4096, across aligned and offset inputs. The Go control emits
-eight vector loads and four FMLAs without hot-loop bounds checks. Fewer assembly
-instructions did not establish faster execution; ABI/load-scheduling costs were
-not independently isolated. The rejected source/control checkout and binaries
-remain in the temporary evidence directory; assembly, its race-only fallback,
-and its comparison-only source files are not retained in the repository.
-
-The first dot wrapper imposed about 0.62ns on short inputs; restoring the
-original short path before long-path validation removed the significant cost.
-The first DGER entry called its helper even for tiny rejected shapes, costing
-about 2.3ns. The final entry checks unit strides and cheap size bounds before
-the helper call. Both rejected measurements remain in `dot-import-v-neon`,
-`dot-go-v-neon`, and `ger-import-v-candidate`; they are not final-source results.
-
-## Toolchain boundary
-
-Release notes and current proposal pages were checked on 2026-09-08. SIMD
-remains behind the experiment in this work; SVE/default-enablement proposals
-are not used as evidence that a new API or hardware capability is available.
-Use the installed Go 1.27.1 source to resolve exact intrinsic signatures.
-
-- <https://go.dev/doc/go1.27>
-- <https://github.com/golang/go/issues/78902>
-- <https://github.com/golang/go/issues/73787>
-- <https://github.com/golang/go/issues/79781>
-- <https://github.com/golang/go/issues/78979>
-- <https://github.com/golang/go/issues/76175>
+The import is usable on native ARM64 with the conformance adjustments below.
+Two kernels are kept, DDOT and four-row DGER. Both use Go archsimd NEON, and
+the compiler already emits the necessary instructions. No handwritten assembly
+is kept. AMD64 production routing does not change. Not every AMD64
+optimization has an ARM64 counterpart, and not every BLAS routine is newly
+faster.
 
 ## Retained native results
 
-Times below are medians from the final ten-round cohorts, against the unchanged
-import. All reported active-path reductions have p<0.01. These measurements are
-for the Apple M1 Pro only; they do not establish AMD64 or other ARM64 timings.
+Times are medians from the final ten-round cohorts, against the unchanged
+import. All reported active-path reductions have p<0.01. These measurements
+are for the Apple M1 Pro only, not AMD64 or other ARM64 hosts.
 
 | Operation | Import | Retained Go | Time change |
 | --- | ---: | ---: | ---: |
@@ -135,28 +35,166 @@ for the Apple M1 Pro only; they do not establish AMD64 or other ARM64 timings.
 | Dger 64x512, pad=0 | 7.128us | 5.766us | -19.10% |
 | Dger 64x512, pad=3 | 7.231us | 6.804us | -5.91% |
 
-Every final measured case reports zero allocations. DotUnitary n=0/1/7/8/15
-and public Ddot n=7/8/15 show no significant difference in either tested offset;
-this is not a proof of equivalence. Across all measured active lengths 16–4096,
-leaf reductions are 49.48–78.18% and public Ddot reductions are 46.52–77.93%.
+### DDOT
 
-DGER's 24 active shape/padding cases improve 5.91–57.45%. Retained tiny fallback
-costs are explicit: 3x7 pad0 is 20.56→20.87ns (+1.51%, p=0.001), 3x7 pad3 is
-20.60→20.89ns (+1.41%, p=0.008), and 4x1 pad0 is 19.77→20.02ns (+1.26%,
-p=0.014). The fourth tiny control is inconclusive. The new guarded route is
-retained for the larger useful gains, not presented as universally faster.
-The three strided controls measured 11.97–12.97% lower times, but execute the
-unchanged scalar path: no new strided algorithm or causal explanation is claimed.
+- Every final measured case reports zero allocations.
+- DotUnitary n=0/1/7/8/15 and public Ddot n=7/8/15 show no significant
+  difference in either tested offset. This does not prove equivalence.
+- Across all measured active lengths 16–4096, leaf reductions are
+  49.48–78.18% and public Ddot reductions are 46.52–77.93%.
 
-A separate ten-round confirmation uses 200ms per public-BLAS sample, recorded
-in `ddot-confirm` and `ger-confirm`. Ddot n=16/128/256, offset=0, takes
-48.86%/76.93%/78.23% less time respectively (all p<0.001), with baseline
-confidence intervals narrowed to about 1%. DGER 64x512 improves 20.40% with
-pad0 and 5.98% with pad3 (both p<0.001). All four tiny DGER controls confirm
-a 0.25–0.29ns cost, 1.21–1.39% (p≤0.017). This small fallback regression is
-accepted explicitly in exchange for the measured active-path improvements.
+### DGER
 
-Reproduce the focused comparisons using identical harnesses in both revisions:
+The 24 active shape/padding cases improve 5.91–57.45%. Retained tiny fallback
+costs:
+
+- 3x7 pad0: 20.56→20.87ns (+1.51%, p=0.001)
+- 3x7 pad3: 20.60→20.89ns (+1.41%, p=0.008)
+- 4x1 pad0: 19.77→20.02ns (+1.26%, p=0.014)
+
+The fourth tiny control is inconclusive. The guarded route is kept for its
+larger gains. It is not universally faster. The three strided
+controls measured 11.97–12.97% lower times, but they execute the unchanged
+scalar path. This work claims no new strided algorithm or causal explanation.
+
+### Confirmation run
+
+A separate ten-round confirmation, in `ddot-confirm` and `ger-confirm`, uses
+200ms per public-BLAS sample.
+
+- Ddot n=16/128/256, offset=0, takes 48.86%/76.93%/78.23% less time
+  (all p<0.001). Baseline confidence intervals narrowed to approximately 1%.
+- DGER 64x512 improves 20.40% with pad0 and 5.98% with pad3 (both p<0.001).
+- All four tiny DGER controls confirm a 0.25–0.29ns cost, 1.21–1.39%
+  (p≤0.017). We explicitly accept this small fallback regression for the
+  measured active-path improvements.
+
+## Baseline and scope
+
+- Imported baseline: `53702365864f9d09bad60c5fe54891d8777cc406`. Its tree
+  matches bundle source `9a1169e8268c8581fa1022a8422aa272903552d9`
+  (`747704973603960872bf348263b68083e479cc7c`).
+- All delivered SHA256 checks passed before import.
+- Native host: Apple M1 Pro, darwin/arm64, stock Go 1.27.1 and
+  `GOEXPERIMENT=simd`.
+- This host does not execute AMD64-specific assembly. The imported report is
+  separate evidence.
+
+The work first fixes native conformance failures. Then it evaluates bounded
+ARM64 candidates against the unchanged import. The baseline is the existing
+portable SIMD and archsimd kernels, not scalar code selected to exaggerate
+gains. Handwritten NEON needs generated-code evidence and repeated native leaf
+and consumer measurements. Unsupported build modes keep their existing
+implementations.
+
+## Import validation
+
+- Default Go toolchain and Go 1.24: affected kernel, BLAS, LAPACK and mat tests pass.
+- Go 1.27.1 SIMD with combined `safe noasm bounds` tags: the same scope passes.
+- Full native SIMD: fails only in f64, at `TestGemvTSmallIEEEAndPadding`
+  (Inf versus NaN) and `TestSIMDPositiveStridePanics` (writes before panic).
+- Portable emulation and race tests reproduce those two f64 failures.
+- Native Netlib: LAPACK passes. BLAS fails its old Sdsdot zero-length expectation.
+- Changed Go files are gofmt-clean. The imported diff passes whitespace checks.
+
+These are baseline results, not acceptance of the later adoption changes. The
+bundle separately discloses AMD64 checkptr level-2 allocation assertion
+failures. Ordinary and level-1 results do not cancel those failures.
+
+## Conformance fixes
+
+- Sdsdot now agrees directly with Reference-LAPACK 3.12.1 for zero length. It
+  returns the supplied bias. The old oracle test expected Gonum to disagree
+  with Netlib. We removed that special case, not the oracle comparison.
+- The small transposed GEMV reference separates ARM64 scalar FMA tails from
+  separately rounded vector products. The production arithmetic and the AMD64
+  reference do not change.
+- Oversized-stride tests still require a bounds panic. They no longer require
+  partial mutations of invalid inputs before that panic. Go can move bounds
+  checks within an unrolled block.
+- Valid-input numerical, padding, aliasing and access tests stay in place.
+
+## Candidate selection
+
+- **Four-row DGER:** Reuse y loads across rows, not AXPY for each row. The
+  first scope is disjoint unit-stride input. This does not cover Dgetf2's
+  strided, shared-matrix input and is not a claimed LU improvement.
+- **DDOT:** The current slice intrinsic loop emits much per-load bounds and
+  address work. Compare a checked pointer-loop archsimd implementation with a
+  whole-kernel NEON assembly leaf, and keep its exact FMA/reduction order. A
+  baseline CPU profile of `mat.BenchmarkInnerMedMed` gives 92.67% of sampled
+  CPU cumulatively to DotUnitary and its inlined loads. Profile timing is not
+  performance acceptance evidence.
+
+## Method
+
+- All acceptance timings use the skill's alternating prebuilt-binary runner.
+- `GOMAXPROCS=1`, stock Go 1.27.1 with SIMD, default native NEON width, no
+  PGO input and no GOFLAGS override.
+- Builds, tests and worker CPU work were stopped before timing.
+- Both revisions use identical deterministic benchmark fixtures.
+- Each case has ten samples per revision: 100ms per leaf/public-BLAS sample
+  and 200ms for matrix-inner-product samples.
+- Benchstat is `golang.org/x/perf v0.0.0-20260312031701-16a31bc5fbd0`, with
+  its default Mann-Whitney comparison and 95% confidence intervals.
+- These are per-case tests, not a multiplicity-adjusted aggregate
+  application-throughput estimate.
+
+The unchanged baseline worktree is at the imported commit above. Its only
+additions are identical public DDOT/DGER benchmark files. Generation of all
+single-precision sources reproduces the baseline exactly.
+
+Raw observations, run order, settings and binary hashes are under
+`/tmp/gonum-arm64-adopt.79xQZz/`, in `dot-final`, `ddot-final`, `ger-final`
+and `inner-final`. Each directory contains `baseline.txt`, `candidate.txt`,
+`metadata.json` and per-run stdout/stderr. The retained Go benchmark names
+reproduce the benchmark commands without those temporary binaries.
+
+## Rejected alternatives
+
+A real NEON assembly dot leaf passed exact arithmetic, tail, offset, overlap,
+ABI and Darwin guard-page checks. It used two post-increment four-vector loads
+and four FMLA operations per eight elements.
+
+We **rejected** it. In ten-round native comparisons against a checked Go
+pointer-loop control, it took 4.6–100.4% more time. This applied to all
+tested active lengths, 16–4096, aligned and offset. The Go
+control emits eight vector loads and four FMLAs with no hot-loop bounds
+checks. Fewer assembly instructions did not give faster execution. ABI and
+load-scheduling costs were not separately isolated.
+
+The temporary evidence directory keeps the rejected source/control checkout
+and binaries. The repository does not keep the assembly, its race-only
+fallback or its comparison-only source files.
+
+Early wrapper costs:
+
+- The first dot wrapper added approximately 0.62ns on short inputs. The
+  original short path, restored before long-path validation, removed the
+  significant cost.
+- The first DGER entry called its helper even for tiny rejected shapes, which
+  cost approximately 2.3ns. The final entry checks unit strides and cheap
+  size bounds before the helper call.
+- Both rejected measurements are in `dot-import-v-neon`, `dot-go-v-neon` and
+  `ger-import-v-candidate`. They are not final-source results.
+
+## Toolchain boundary
+
+Release notes and current proposal pages were checked on 2026-09-08. SIMD
+stays behind the experiment in this work. SVE and default-enablement proposals
+are not evidence that a new API or hardware capability is available. Use the
+installed Go 1.27.1 source to find exact intrinsic signatures.
+
+- <https://go.dev/doc/go1.27>
+- <https://github.com/golang/go/issues/78902>
+- <https://github.com/golang/go/issues/73787>
+- <https://github.com/golang/go/issues/79781>
+- <https://github.com/golang/go/issues/78979>
+- <https://github.com/golang/go/issues/76175>
+
+## Reproduce
+
+Use identical harnesses in both revisions:
 
 ```sh
 GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -c ./internal/asm/f64 -o f64.test
@@ -171,32 +209,32 @@ GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -c ./mat -o mat.test
 
 ## Final validation
 
-The retained Go implementations pass the full native Go 1.27.1 SIMD test suite.
-Default-toolchain and Go 1.24 tests pass for internal assembly helpers, BLAS,
-LAPACK/gonum and mat, as do Go 1.27.1 SIMD tests with combined
-`safe noasm bounds` tags. Native Reference-LAPACK 3.12.1 oracle tests pass for
-BLAS/gonum and LAPACK/gonum. Focused race tests cover DDOT, DGER, imported GEMVT
-arithmetic and stride panics. Portable SIMD emulation also passes f64,
-BLAS/gonum, LAPACK/gonum and mat tests. Persistent tests include exact FMA/reduction
-behavior, tails, padding, alias fallbacks, invalid geometry and Darwin guard
-pages. Focused DDOT checkptr level-2 tests pass; this does not claim that the
-bundle's unrelated whole-suite checkptr allocation assertions are resolved.
+These checks pass:
 
-Final f64/BLAS vet, changed-file goimports, repository import/copyright policy
-and whitespace checks pass. No native AMD64 execution or cross-compilation was
-performed; preservation of AMD64 routing is a source-review result.
+- the full native Go 1.27.1 SIMD test suite
+- default-toolchain and Go 1.24 tests for internal assembly helpers, BLAS,
+  LAPACK/gonum and mat
+- Go 1.27.1 SIMD tests with combined `safe noasm bounds` tags
+- native Reference-LAPACK 3.12.1 oracle tests for BLAS/gonum and LAPACK/gonum
+- focused race tests for DDOT, DGER, imported GEMVT arithmetic and stride
+  panics
+- portable SIMD emulation for f64, BLAS/gonum, LAPACK/gonum and mat tests
+- focused DDOT checkptr level-2 tests
+- final f64/BLAS vet, changed-file goimports, repository import/copyright
+  policy and whitespace checks
 
-## Scope and remaining opportunities
+Persistent tests include exact FMA/reduction behavior, tails, padding, alias
+fallbacks, invalid geometry and Darwin guard pages.
 
-The import is usable on native ARM64 with the conformance adjustments above.
-This is not a claim that every AMD64 optimization has an ARM64 counterpart or
-that every BLAS routine was newly accelerated. Both retained kernels use Go
-archsimd NEON; the compiler already emits the required instructions. AMD64
-production routing is unchanged. No handwritten assembly is retained.
+The DDOT checkptr pass does not resolve the bundle's unrelated whole-suite
+checkptr allocation assertions. No native AMD64 execution or cross-compilation
+was done. Preservation of AMD64 routing is a source-review result.
 
-Single-precision GER is a separate candidate, not automatically promoted from
-the double-precision timings. Fixed-stride widened dots may merit an interleaved
-NEON-load experiment later, but arbitrary NEON gathers and short-call setup need
-their own evidence. Dgetf2's strided/shared-matrix DGER calls remain outside the
-new route. Recheck generated code and crossovers on future Go releases before
-removing guards or switching APIs; this work makes no GA release promise.
+## Remaining opportunities
+
+- Single-precision GER is a separate candidate. The double-precision timings
+  do not automatically promote it.
+- Fixed-stride widened dots can get an interleaved NEON-load experiment later.
+  Arbitrary NEON gathers and short-call setup need their own evidence.
+- On future Go releases, recheck generated code and crossovers before you
+  remove guards or change APIs. This work makes no GA release promise.

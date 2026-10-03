@@ -2,55 +2,83 @@
 
 Status: measured baseline, not a production optimization. 2026-09-06.
 
-## Scope and method
+## Summary
 
-Production source: `0d23bc3f388b99360d940cb3bb54b9289334ce1a`,
-verified against fetched `origin/codex/arm64-simd-blas`.
-The accompanying changes add benchmark fixtures, numerical tests, and a native
-Netlib bridge only; the existing three Dgges benchmarks now reject non-convergence.
+- Reference Netlib is faster than Gonum Dgges in all cases. The gap is
+  largest with Schur vectors and sorting at large n.
+- Gonum sorting allocates scratch memory; form/vectors do not.
+- Main costs: strided Drot under Dgghrd, then Dtgsen and the QZ sweep.
 
-The shared fixture is a synthetic dense regular pencil, not a captured controlsys
-workload or a Hamiltonian/DARE benchmark. Distinct conjugate pairs have real parts
-near -2, +0.5, +2, -0.5 and imaginary magnitude near 0.2. Common orthogonal left
-and right transformations densify A and B while preserving the known spectrum.
-Half the eigenvalues lie in the open left half-plane and half inside the unit disk.
+## Scope
+
+Production source: `0d23bc3f388b99360d940cb3bb54b9289334ce1a`, verified
+against fetched `origin/codex/arm64-simd-blas`. The changes add benchmark
+fixtures, numerical tests and a native Netlib bridge only. The existing three
+Dgges benchmarks now reject non-convergence.
+
+## Fixture
+
+The shared fixture is a synthetic dense regular pencil. It is not a captured
+controlsys workload or a Hamiltonian/DARE benchmark.
+
+- Distinct conjugate pairs have real parts near -2, +0.5, +2, -0.5 and
+  imaginary magnitude near 0.2.
+- Common orthogonal left and right transformations densify A and B and keep the
+  known spectrum.
+- Half the eigenvalues are in the open left half-plane. Half are inside the
+  unit disk.
 
 Modes:
 
-- `form`: no Schur vectors, no sorting; still computes the generalized Schur form.
+- `form`: no Schur vectors, no sorting. It still computes the generalized Schur
+  form.
 - `vectors`: both Schur-vector matrices, no sorting.
 - `left`: both vectors, select negative real part.
 - `unit`: both vectors, select magnitude strictly less than one.
 
+## Method
+
 Both implementations use the same mathematical inputs in their native layouts:
-Gonum row-major, Netlib column-major. Fixture generation, layout conversion,
-workspace queries and caller-owned allocation are outside timing. Both timed
-loops restore A and B with contiguous copies, call Dgges, and check success and
-selected dimension. Timings therefore include input restoration, not just the
-factorization. The C bridge calls LAPACK_dgges directly, not the allocating and
-transposing LAPACKE row-major convenience entry point.
+Gonum row-major, Netlib column-major.
 
-This is native Apple M1 Pro, darwin/arm64 v8.0, macOS 26.6.2 (25G83), AC power
-at 80%, Go 1.27.1, GOEXPERIMENT=simd, -pgo=off, empty GOFLAGS, GOMAXPROCS=1
-and benchmark CPU=1. No frequency/affinity pinning. Normal desktop background
-activity remains. Builds, tests and profiles did not overlap timed cohorts.
+- Outside timing: fixture generation, layout conversion, workspace queries and
+  caller-owned allocation.
+- Each timed loop restores A and B with contiguous copies, calls Dgges, and
+  checks success and the selected dimension. Thus timings include input
+  restoration.
+- The C bridge calls LAPACK_dgges directly. It does not use the allocating and
+  transposing LAPACKE row-major entry point.
 
-The linked reference is Homebrew LAPACK 3.12.1 with runtime ILAVER=3.12.0 and
-reference libblas, not Accelerate or OpenBLAS. The measured binary links
-`/opt/homebrew/opt/lapack/lib/liblapack.3.dylib` and `libblas.3.dylib`.
-Binary SHA256:
-`fcbda8e4f810239d937fe0d9ca2ec2d4a391bc587be712f3fcc0edc93e30fbd7`.
+Host and runtime:
 
-Ten 100 ms rounds alternate Gonum/Netlib then Netlib/Gonum. Benchstat is
-x/perf `v0.0.0-20260312031701-16a31bc5fbd0`. Each row has ten samples per
-backend; uncertainty is benchstat's 95% median interval. The raw samples are
-retained in [samples.txt](results/dgges-netlib/samples.txt). They are grouped
-by backend in lexical round-file order; execution order was alternating.
+- Native Apple M1 Pro, darwin/arm64 v8.0, macOS 26.6.2 (25G83), AC power at 80%.
+- Go 1.27.1, GOEXPERIMENT=simd, -pgo=off, empty GOFLAGS, GOMAXPROCS=1,
+  benchmark CPU=1.
+- No frequency/affinity pinning. Normal desktop background activity was present.
+- Builds, tests and profiles did not overlap timed cohorts.
+
+Reference library:
+
+- Homebrew LAPACK 3.12.1, runtime ILAVER=3.12.0, with reference libblas. Not
+  Accelerate or OpenBLAS.
+- The binary links `/opt/homebrew/opt/lapack/lib/liblapack.3.dylib` and
+  `libblas.3.dylib`.
+- Binary SHA256:
+  `fcbda8e4f810239d937fe0d9ca2ec2d4a391bc587be712f3fcc0edc93e30fbd7`.
+
+Statistics:
+
+- Ten 100 ms rounds alternate Gonum/Netlib, then Netlib/Gonum.
+- Benchstat is x/perf `v0.0.0-20260312031701-16a31bc5fbd0`.
+- Each row has ten samples per backend. Uncertainty is benchstat's 95% median
+  interval.
+- Raw samples: [samples.txt](results/dgges-netlib/samples.txt). The file groups
+  them by backend in lexical round-file order. The execution order alternated.
 
 ## Time results
 
-Percentages below are **Netlib time relative to Gonum**, not improvements made
-by this commit. Negative means Netlib uses less time.
+Percentages give **Netlib time relative to Gonum**. They are not improvements
+from this commit. Negative means Netlib uses less time.
 
 | Mode | n | Gonum | Netlib | Netlib time difference |
 | --- | ---: | ---: | ---: | ---: |
@@ -71,13 +99,14 @@ by this commit. Negative means Netlib uses less time.
 | unit | 128 | 32.37 ms | 19.29 ms | -40.40% |
 | unit | 256 | 355.3 ms | 192.5 ms | -45.83% |
 
-All differences have p<0.001 except form n=128/256 (p=0.002).
-Median intervals are at most +/-3% in this cohort. Multiple comparisons and one
-synthetic pencil per size limit generalization; there is no application-speedup
-or native AMD64 claim.
+- All differences have p<0.001, except form n=128/256 (p=0.002).
+- Median intervals are at most +/-3% in this cohort.
+- Multiple comparisons and one synthetic pencil per size limit generalization.
+- We make no application-speedup claim and no native AMD64 claim.
 
-The 100 ms cohort permits one iteration per sample at n=256. A separate ten-round
-500 ms confirmation, not pooled with the original, gives:
+At n=256, the 100 ms cohort permits only one iteration per sample. A separate
+ten-round 500 ms confirmation gives these results. We did not pool them with
+the original.
 
 | n=256 mode | Gonum | Netlib | Netlib time difference |
 | --- | ---: | ---: | ---: |
@@ -86,10 +115,10 @@ The 100 ms cohort permits one iteration per sample at n=256. A separate ten-roun
 
 Raw confirmation samples: [recheck.txt](results/dgges-netlib/recheck.txt).
 
-## Allocations and profiles
+## Allocations
 
-Gonum form/vectors have zero measured B/op and allocs/op. Sorting exposes
-previously unmeasured scratch allocation:
+Gonum form/vectors have zero measured B/op and allocs/op. Sorting shows scratch
+allocation that earlier runs did not measure:
 
 | n | left: bytes / allocations | unit: bytes / allocations |
 | ---: | ---: | ---: |
@@ -98,71 +127,92 @@ previously unmeasured scratch allocation:
 | 128 | 423,936 / 2,592 | 1,507,328 / 9,216 |
 | 256 | 1,507,328 / 9,216 | 6,029,312 / 36,864 |
 
-Netlib reports zero Go allocations/op throughout. This is not a measurement of
-C/Fortran heap activity. The first form n=32 case has a small noisy Go B/op signal
-(median 3.5 bytes, rounded zero allocs/op); do not interpret it as a native
-allocation or make a zero-total-memory claim.
+- Netlib reports zero Go allocations/op in all cases. This does not measure
+  C/Fortran heap activity.
+- The first form n=32 case has a small noisy Go B/op signal (median 3.5 bytes,
+  rounded zero allocs/op). It is not a native allocation. Do not use it for a
+  zero-total-memory claim.
 
-Separate five-second n=256 CPU profiles, not used for timing comparisons:
+## Profiles
 
-- Vectors (5.67 s sampled CPU): Drot 58.38% flat / 60.67% cumulative;
-  Dgghrd 59.96% cumulative; double QZ sweep 32.63% flat / 33.69% cumulative.
-- The Drot samples are overwhelmingly the general strided loop at
-  `blas/gonum/level1float64.go:560-565`, not the contiguous SIMD helper.
-  Dgghrd's strided Q, A, B and Z column updates at lines 120, 127, 128, 131
-  account for 0.75, 0.97, 0.64 and 0.91 seconds respectively.
-- Unit sorting (5.39 s sampled CPU): Drot 41.93% cumulative,
-  double QZ sweep 21.52%, Dtgsen 27.64%, and applyDtgex2Transforms 19.85%.
-  Cumulative figures overlap and must not be added.
-- Sampled allocation objects attribute 99.08% to the Dtgex2 call chain:
-  46.51% flat in Dtgex2, 33.49% in dtgex2SwapLarge, 19.07% in Dtgsy2.
-  Profiles also include benchmark calibration/setup and runtime activity.
-- Go compiler escape diagnostics confirm local scratch arrays in Dtgex2
-  (`s, tt, li, ir` at line 81) move to the heap. This is an observed mechanism,
-  not evidence that removing allocations alone closes the timing gap.
+Separate five-second n=256 CPU profiles. We did not use them for timing
+comparisons. Cumulative figures overlap; do not add them.
 
-The next measured targets are (1) strided rotations beneath Dgghrd, including
-Schur-vector accumulation and native-layout effects; (2) block-swap scratch
-escapes and tiny/skinny matrix transforms beneath Dtgsen; then (3) QZ sweep
-data movement. Any change needs leaf and full-Dgges before/after gates, preserving
-block rejection, scaling, ordering, supported BLAS backends and workspace contracts.
-No such production changes are included here.
+Vectors (5.67 s sampled CPU):
 
-## Validation and limits
+- Drot: 58.38% flat / 60.67% cumulative.
+- Dgghrd: 59.96% cumulative.
+- Double QZ sweep: 32.63% flat / 33.69% cumulative.
+- Almost all Drot samples are in the general strided loop at
+  `blas/gonum/level1float64.go:560-565`, not in the contiguous SIMD helper.
+- Dgghrd strided Q, A, B and Z column updates (lines 120, 127, 128, 131) use
+  0.75, 0.97, 0.64 and 0.91 seconds.
 
-- Native SIMD + Netlib: all Dgges tests pass, and the complete lapack/gonum
-  test binary passes.
+Unit sorting (5.39 s sampled CPU):
+
+- Drot 41.93% cumulative, double QZ sweep 21.52%, Dtgsen 27.64%,
+  applyDtgex2Transforms 19.85%.
+- Sampled allocation objects: 99.08% in the Dtgex2 call chain. That is 46.51%
+  flat in Dtgex2, 33.49% in dtgex2SwapLarge and 19.07% in Dtgsy2.
+- Profiles also include benchmark calibration/setup and runtime activity.
+- Go compiler escape diagnostics confirm that local scratch arrays in Dtgex2
+  (`s, tt, li, ir` at line 81) move to the heap. This is an observed mechanism.
+  It does not show that allocation removal alone closes the timing gap.
+
+## Next targets
+
+1. Strided rotations under Dgghrd, including Schur-vector accumulation and
+   native-layout effects.
+2. Block-swap scratch escapes and tiny/skinny matrix transforms under Dtgsen.
+3. QZ sweep data movement.
+
+Each change needs leaf and full-Dgges before/after gates. It must keep block
+rejection, scaling, ordering, supported BLAS backends and workspace contracts.
+This commit includes no such production change.
+
+## Validation
+
+- Native SIMD + Netlib: all Dgges tests and the complete lapack/gonum test
+  binary pass.
 - Native SIMD + Netlib race: all Dgges tests pass.
 - Go 1.24.0 minimum-version Dgges tests pass.
 - Default Go 1.26.4: complete lapack/gonum and lapack/testlapack tests pass.
 - Formatting and git diff checks pass.
-- New fixture tests cover n=8/32/64/128/256 and all four modes. Each backend's
-  unsorted spectrum must contain selected values after unselected values for
-  both predicates. Sorted outputs must have exactly n/2 leading selected values
-  without splitting conjugate pairs.
-- Tests check finite values, homogeneous eigenvalue matching, canonical Schur
-  structure, vector orthogonality, workspace queries and O(n^3) reconstruction
-  residuals at the existing tolerances.
-- This validates the benchmark cases, not complete branch-level Netlib parity.
-  The new fixtures are regular and well separated from selection boundaries.
-  Existing exceptional-input tests remain unchanged.
-- Dgges remains float64 real input only; no Sgges/Cgges/Zgges, mat wrapper,
-  release guarantee, or new production SIMD kernel is added.
+
+New fixture tests cover n=8/32/64/128/256 and all four modes:
+
+- Each backend's unsorted spectrum must have selected values after unselected
+  values, for both predicates.
+- Sorted outputs must have exactly n/2 leading selected values, with no split
+  conjugate pairs.
+- Tests check finite values, homogeneous eigenvalue match, canonical Schur
+  structure, vector orthogonality, workspace queries and O(n^3)
+  reconstruction residuals at the existing tolerances.
+
+## Limits
+
+- The tests validate the benchmark cases, not complete branch-level Netlib
+  parity.
+- The new fixtures are regular and well separated from selection boundaries.
+  Existing exceptional-input tests do not change.
+- Dgges stays float64 real input only. This commit adds no Sgges/Cgges/Zgges,
+  mat wrapper, release guarantee or new production SIMD kernel.
 - The shared Gonum benchmark is portable. The optional native oracle bridge
-  currently requires darwin+cgo+netlib and the existing Homebrew library paths.
-  No cross-compilation was performed.
+  needs darwin+cgo+netlib and the existing Homebrew library paths.
+- No cross-compilation was done.
 
-## Reproduction
+## Reproduce
 
-Build once, validate, then time the prebuilt binary with no concurrent build/test work:
+Build once and validate. Then time the prebuilt binary with no concurrent
+build/test work:
 
 ```sh
 GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -pgo=off -tags netlib -c ./lapack/gonum -o /tmp/dgges.test
 GOMAXPROCS=1 /tmp/dgges.test -test.run '^Test(Dgges|NetlibRuntimeVersion)' -test.v
 ```
 
-Run the two commands below in alternating order for ten rounds, storing each
-output separately. For the longer recheck, append
+Run the two benchmark commands below in alternating order for ten rounds. Store
+each output separately. For the longer recheck, append
 `/mode=(vectors|unit)$/n=256$` to the benchmark selector and use 500ms.
 
 ```sh
@@ -172,12 +222,15 @@ benchstat -col /implementation internal/asm/simdbench/results/dgges-netlib/sampl
 benchstat -col /implementation internal/asm/simdbench/results/dgges-netlib/recheck.txt
 ```
 
-Profile separately with the exact single-case selector, 5s benchtime and
-`-test.cpuprofile`; add `-test.memprofile` for sorting. Read with
-`go tool pprof -top` and `-sample_index=alloc_objects`. Confirm scratch escapes
-with `go build -pgo=off -gcflags='plantcontrol.org/v1/gonum/lapack/gonum=-m=2' ./lapack/gonum`
-under the same toolchain/experiment.
+To profile:
+
+1. Use the exact single-case selector, 5s benchtime and `-test.cpuprofile`.
+2. For sorting, add `-test.memprofile`.
+3. Read with `go tool pprof -top` and `-sample_index=alloc_objects`.
+4. Confirm scratch escapes with
+   `go build -pgo=off -gcflags='plantcontrol.org/v1/gonum/lapack/gonum=-m=2' ./lapack/gonum`.
+   Use the same toolchain and experiment.
 
 Original local evidence (not portable storage):
-`/tmp/gonum-dgges-bench.5Un0qq`, including both CPU profiles, allocation profile,
-compiler diagnostics, validation logs and per-round stdout/stderr.
+`/tmp/gonum-dgges-bench.5Un0qq`. It includes both CPU profiles, the allocation
+profile, compiler diagnostics, validation logs and per-round stdout/stderr.

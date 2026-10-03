@@ -1,82 +1,111 @@
 # Bottom-up RowWise GEMV and LQ
 
-## Scope and mechanism
+## Summary
 
-Continue from `bc9a80b7e5d9133d2be149e8e38c0a72c05791ad`, following
-`go-optimisation` and `gonum-simd` with dedicated Sol implementation,
-code-generation and numerical reviews. A refreshed three-second LQ SolveTo
-profile at n=256/one RHS puts 80.63% flat CPU in DotInc, 83.19% cumulative
-in gemvN. Profiling is separate from acceptance timing.
+A new ARM64-experimental GEMV helper speeds up strided-output RowWise
+products, LQ solves and RowWise Dlarft (p<0.001). Allocations do not change.
+Two small fallback regressions remain.
 
-The actual call chain is LQ.SolveTo -> Dormlq -> Dlarft(Forward, RowWise)
--> Dgemv(NoTrans) -> GemvN -> gemvN -> DotInc. Dlarft forms a column of T
-using m=i preceding reflectors (normally 1..31 for block width 32), a long
-contiguous matrix-row tail and contiguous x, but strided y. Dormlq's T
-workspace has ldt=64. The existing contiguous SIMD gate requires incY=1,
-so these products previously used one sequential DotInc per output row.
+## Scope
 
-An additional ARM64-experimental gate selects 4<=m<=32, n>=8, incX=1,
-positive incY>1, valid lda and complete overflow-safe slice spans. Output's
-bounding span must be disjoint from active A and x spans. This is conservative:
-overlap only in output stride gaps still falls back. Read-only A/x sharing
-is allowed. Invalid slices, unsupported strides and overlapping outputs
-retain the existing fallback, including its partial-write panic behavior.
+Start point: `bc9a80b7e5d9133d2be149e8e38c0a72c05791ad`. The work follows
+`go-optimisation` and `gonum-simd`. Dedicated Sol reviews covered the
+implementation, the code generation and the numerics.
 
-The helper processes four rows together, with two-/one-row tails. It shares
-each x load while retaining a separate, sequentially ordered sum per output.
-It uses scalar arithmetic, not a horizontal SIMD reduction. The existing
-portable GemvNSIMD reduction was not promoted to this path because it
-reassociates terms; that is not automatically the same numerical contract.
-Beta zero does not read old y; nonzero beta retains y*beta + alpha*sum.
-DotInc itself, AMD64, float32 and default/safe/noasm implementations are unchanged.
+A new three-second LQ SolveTo profile at n=256/one RHS puts 80.63% flat CPU
+in DotInc and 83.19% cumulative in gemvN. Profiles are separate from
+acceptance timing.
 
-Generated code has four register-resident scalar FMA accumulators, no
-hot-loop helper calls, divisions, allocations or FP stack spills. Bounds
-branches remain for the four matrix loads per column. The non-inlined
-validator performs two overflow-check divisions once per eligible call;
-cheap shape/stride predicates avoid it on nonqualifying shapes. There is
-no claim that all bounds checks or dispatch overhead were eliminated.
+Call chain: LQ.SolveTo -> Dormlq -> Dlarft(Forward, RowWise)
+-> Dgemv(NoTrans) -> GemvN -> gemvN -> DotInc.
 
-## Measurement contract
+- Dlarft forms one column of T from m=i preceding reflectors (normally 1..31
+  for block width 32).
+- Each product has a long contiguous matrix-row tail and contiguous x, but
+  strided y. The T workspace of Dormlq has ldt=64.
+- The old contiguous SIMD gate requires incY=1. Thus these products used one
+  sequential DotInc for each output row.
 
-Host: Apple M1 Pro, darwin/arm64, macOS 26.6.2 (25G83), AC power. No CPU
-affinity or frequency pinning. Native builds use Go 1.27.1,
-GOEXPERIMENT=simd and explicit -pgo=off; GOFLAGS is empty and no repository
-PGO profile is present. Default compatibility uses Go 1.26.4.
-[Go 1.27 release notes](https://go.dev/doc/go1.27#simd), the installed
-simd.Emulated documentation and the
-[portable SIMD proposal](https://github.com/golang/go/issues/78902) were
-refreshed on 2026-09-06. This pass introduces no new experimental API.
+## Gate
 
-Clean comparison baseline: `684ac2fa7f76389fafc682e5da1c66c14b931b3a`,
-which adds only the common test/benchmark harness to the starting revision.
-Candidate implementation: `f8d215fb0f8a369373e114b64e9cd35cec9d339a`.
-Benchmark source is identical between these checkpoints; the candidate has
-an additional validator-only test.
+A new ARM64-experimental gate selects calls with:
 
-The direct GEMV fixture uses finite exact-binary inputs and beta=0, so every
-iteration overwrites y with the same bounded result. It includes boundary,
-long-tail, contiguous and unsupported-shape/stride controls. RowWise Dlarft
-benchmarks generate valid LQ reflectors with Dgelq2 before timing and
-overwrite T each iteration. Existing ColumnWise benchmark names remain
-unchanged. Public solves reuse factorizations and include normal SolveTo
-costs, not factorization; separate factorization benchmarks include that work.
+- 4<=m<=32, n>=8, incX=1 and positive incY>1.
+- Valid lda and complete slice spans with no overflow.
+- An output bounding span disjoint from the active A and x spans.
 
-The skill's compare_benchmarks.py runner alternates prebuilt baseline/candidate
-order, rejects failed or mismatched runs, and records hashes and runtime
-settings. Acceptance uses ten rounds on a quiet host, GOMAXPROCS=1 unless
-specified, with GOGC/GOMEMLIMIT unset. No builds, tests or profiles overlap
-timed cohorts. Three-round 100 ms screens were diagnostic only.
-benchstat is golang.org/x/perf v0.0.0-20260312031701-16a31bc5fbd0.
+The gate is conservative: overlap only in output stride gaps still goes to
+the fallback. A and x can share read-only storage. Invalid slices,
+unsupported strides and overlapping outputs use the old fallback, with its
+partial-write panic behavior.
 
-Raw logs, profiles, disassembly and runner metadata are local temporary
-evidence under `/tmp/gonum-rowwise-gemv.JW8uih`; persistent benchmark entry
-points and the source checkpoints permit reruns after that directory expires.
+## Helper design
+
+- Processes four rows together, with two-row and one-row tails.
+- Shares each x load. Each output keeps a separate sum in sequential order.
+- Uses scalar arithmetic, not a horizontal SIMD reduction. The portable
+  GemvNSIMD reduction reassociates terms, so it has a different numerical
+  contract.
+- Beta zero does not read old y. Nonzero beta keeps y*beta + alpha*sum.
+- DotInc, AMD64, float32 and default/safe/noasm implementations do not change.
+
+Generated code:
+
+- Four scalar FMA accumulators stay in registers.
+- The hot loop has no helper calls, divisions, allocations or FP stack spills.
+- Bounds branches remain for the four matrix loads in each column.
+- The non-inlined validator does two overflow-check divisions once for each
+  eligible call. Cheap shape/stride tests skip it for other shapes.
+- Not all bounds checks or dispatch overhead are removed.
+
+## Setup
+
+- Host: Apple M1 Pro, darwin/arm64, macOS 26.6.2 (25G83), AC power. No CPU
+  affinity or frequency pinning.
+- Native builds: Go 1.27.1, GOEXPERIMENT=simd, explicit -pgo=off. GOFLAGS is
+  empty. The repository has no PGO profile.
+- Default compatibility: Go 1.26.4.
+- On 2026-09-06 we read again the
+  [Go 1.27 release notes](https://go.dev/doc/go1.27#simd), the installed
+  simd.Emulated documentation and the
+  [portable SIMD proposal](https://github.com/golang/go/issues/78902).
+  This work adds no new experimental API.
+
+Checkpoints:
+
+- Clean baseline: `684ac2fa7f76389fafc682e5da1c66c14b931b3a`. It adds only
+  the common test/benchmark harness to the start revision.
+- Candidate: `f8d215fb0f8a369373e114b64e9cd35cec9d339a`. Benchmark source is
+  identical. The candidate adds one validator-only test.
+
+Fixtures:
+
+- Direct GEMV: finite exact-binary inputs, beta=0, the same bounded y each
+  iteration. Controls: boundary, long-tail, contiguous and
+  unsupported-shape/stride.
+- RowWise Dlarft: Dgelq2 makes valid LQ reflectors before timing. Each
+  iteration overwrites T. ColumnWise benchmark names do not change.
+- Public solves reuse factorizations and include normal SolveTo costs only.
+  Separate benchmarks measure factorization.
+
+Method:
+
+- The compare_benchmarks.py runner of the skill alternates baseline and
+  candidate order with prebuilt binaries. It rejects failed or mismatched runs
+  and records hashes and runtime settings.
+- Acceptance: ten rounds on a quiet host, GOMAXPROCS=1 unless specified,
+  GOGC/GOMEMLIMIT unset. No builds, tests or profiles overlap timed cohorts.
+- Three-round 100 ms screens are diagnostic only.
+- benchstat is golang.org/x/perf v0.0.0-20260312031701-16a31bc5fbd0.
+
+Raw logs, profiles, disassembly and runner metadata are in the temporary
+directory `/tmp/gonum-rowwise-gemv.JW8uih`. The persistent benchmarks and
+source checkpoints permit reruns.
 
 ## Kernel results
 
-Ten interleaved 150 ms rounds, GOMAXPROCS=1. All ten eligible cases improve
-30.93–73.68% with p<0.001, n=10 per version. Every case remains at zero
+Ten interleaved 150 ms rounds, GOMAXPROCS=1, n=10 for each version. All ten
+eligible cases improve 30.93–73.68% with p<0.001. All cases stay at zero
 B/op and allocs/op. Representative medians:
 
 | m x n | incY | Baseline ns/op | Candidate ns/op | Change |
@@ -90,17 +119,19 @@ B/op and allocs/op. Representative medians:
 | 32 x 256 | 64 | 9151 | 2408 | -73.68% |
 | 31 x 512 | 64 | 18736 | 5565 | -70.30% |
 
-Retained small fallback regressions: m=3/n=8 goes from 18.48 to 18.78 ns
-(+1.62%); m=4/n=7 from 21.79 to 22.07 ns (+1.31%), both p<0.001.
-These extra 0.28–0.30 ns are not hidden by the useful-size gains. The other
-five contiguous or unsupported-shape/stride controls are statistically
-inconclusive, not proven equivalent. Per-case changes are not an application
-throughput aggregate.
+Small fallback regressions, both p<0.001, reported separately from the gains
+(extra 0.28–0.30 ns):
+
+- m=3/n=8: 18.48 to 18.78 ns (+1.62%).
+- m=4/n=7: 21.79 to 22.07 ns (+1.31%).
+
+The other five contiguous or unsupported-shape/stride controls are
+inconclusive.
 
 ## Public solve results
 
-Ten interleaved 150 ms rounds, GOMAXPROCS=1. All four useful-size LQ
-improvements have p<0.001, n=10 per version:
+Ten interleaved 150 ms rounds, GOMAXPROCS=1, n=10 for each version. All four
+useful-size LQ improvements have p<0.001:
 
 | LQ size | RHS | Baseline us/op | Candidate us/op | Change |
 | ---: | ---: | ---: | ---: | ---: |
@@ -109,20 +140,17 @@ improvements have p<0.001, n=10 per version:
 | 128 | 16 | 893.3 | 622.1 | -30.35% |
 | 256 | 16 | 3784 | 2576 | -31.93% |
 
-Both LQ n=32 cases and all QR/LU/SVD solve controls are inconclusive.
-Cholesky n=128/one RHS shows a small -0.18% change (16.27 to 16.24 us,
-p=0.022); other Cholesky controls are inconclusive. No solve control has
-a statistically significant slowdown in this cohort, which does not prove
-exact equivalence. The unrelated small Cholesky movement is not attributed
-to the new helper. Multiple per-case tests increase false-positive risk.
+- Both LQ n=32 cases and all QR/LU/SVD solve controls are inconclusive.
+- Cholesky n=128/one RHS changes -0.18% (16.27 to 16.24 us, p=0.022), not
+  attributed to the new helper. Other Cholesky controls are inconclusive.
+- No solve control has a statistically significant slowdown.
+- Allocations do not change: QR/LQ two, LU/Cholesky zero, SVD seven for each
+  solve. These are steady-state SolveTo results, not factorization timings.
 
-Allocations remain unchanged: QR/LQ two, LU/Cholesky zero, SVD seven per
-solve. These are steady-state SolveTo results, not factorization timings.
+## Reflector construction results
 
-## Reflector construction
-
-Ten interleaved 150 ms rounds, GOMAXPROCS=1, k=32. All eight RowWise
-Dlarft cases improve 50.14–68.69%, p<0.001, n=10, with zero allocations:
+Ten interleaved 150 ms rounds, GOMAXPROCS=1, k=32, n=10. All eight RowWise
+Dlarft cases improve 50.14–68.69%, p<0.001, with zero allocations:
 
 | n / ldv | ldt | Baseline us/op | Candidate us/op | Change |
 | --- | ---: | ---: | ---: | ---: |
@@ -135,81 +163,111 @@ Dlarft cases improve 50.14–68.69%, p<0.001, n=10, with zero allocations:
 | 512 / 512 | 32 | 291.50 | 91.35 | -68.66% |
 | 512 / 512 | 64 | 291.50 | 91.27 | -68.69% |
 
-Two unchanged ColumnWise n=64 controls show small increases: ldt=32,
-11.63 to 11.64 us (+0.07%, p=0.004); ldt=64, 11.61 to 11.64 us
-(+0.21%, p=0.001). These observations are retained rather than attributed
-to the new RowWise algorithm. The other six ColumnWise controls are
-inconclusive. All ColumnWise cases remain allocation-free. Separate ten-round
-300 ms rechecks do not confirm either small slowdown: ldt=32 is 11.62 to
-11.63 us (p=0.839), ldt=64 is 11.63 to 11.63 us (p=0.616). These are
-separate measurements, not pooled with or substituted for the original cohort.
+Unchanged ColumnWise n=64 controls show small increases, not attributed to
+the new RowWise algorithm:
 
-## Factorization and runtime controls
+- ldt=32: 11.63 to 11.64 us (+0.07%, p=0.004).
+- ldt=64: 11.61 to 11.64 us (+0.21%, p=0.001).
 
-Ten 150 ms rounds of separate factorization measurements find LQ wide
-n=256 improving 3.82% (35.71 to 34.35 ms, p=0.019), with a wider 6%
-candidate interval. LQ n=128 and all four QR square/tall n=128/256 cases
-are inconclusive. A separate ten-round 300 ms LQ n=256 recheck confirms
-the gain: 35.72 to 34.35 ms (-3.84%, p<0.001), with unchanged allocations.
+The other six ColumnWise controls are inconclusive. All ColumnWise cases stay
+allocation-free. Separate ten-round 300 ms rechecks do not confirm the two
+slowdowns: ldt=32 is 11.62 to 11.63 us (p=0.839), ldt=64 is 11.63 to 11.63 us
+(p=0.616).
 
-Thin SVD square n=256 improves 1.02% (56.18 to 55.61 ms, p=0.011),
-and wide n=256 improves 2.39% (82.29 to 80.32 ms, p=0.001). Tall n=256
-and all three n=128 shapes are inconclusive. These small measured effects
-do not establish improvements for all SVD modes or sizes. Allocation counts
-and byte medians are unchanged across both factorization cohorts.
+## Factorization results
 
-With GOMAXPROCS=4, ten 150 ms rounds retain LQ solve gains: one RHS
-n=128/256 improves 56.69%/59.62%, and sixteen RHS improves 30.42%/33.84%.
-All four have p<0.001; all four QR controls are inconclusive. Allocations
-are unchanged.
+Ten 150 ms rounds of separate factorization measurements:
 
-With GOMAXPROCS=1 and GODEBUG=simd=0, ten 150 ms rounds give LQ n=256
-one RHS 2039.3 to 825.1 us (-59.54%) and sixteen RHS 3.893 to 2.680 ms
-(-31.16%), both p<0.001. Both QR controls are inconclusive and allocations
-unchanged. The new helper is scalar; portable emulation does not disable
-all architecture-specific leaves in the rest of Gonum.
+- LQ wide n=256 improves 3.82% (35.71 to 34.35 ms, p=0.019), with a wider 6%
+  candidate interval. A separate ten-round 300 ms recheck confirms it: 35.72
+  to 34.35 ms (-3.84%, p<0.001), allocations unchanged.
+- LQ n=128 and all four QR square/tall n=128/256 cases are inconclusive.
+- Thin SVD square n=256 improves 1.02% (56.18 to 55.61 ms, p=0.011).
+- Thin SVD wide n=256 improves 2.39% (82.29 to 80.32 ms, p=0.001).
+- Thin SVD tall n=256 and all three n=128 shapes are inconclusive.
+- Allocation counts and byte medians do not change in the two cohorts.
+
+## Runtime controls
+
+Ten 150 ms rounds for each setting. All gains have p<0.001. All QR controls
+are inconclusive. Allocations do not change.
+
+- GOMAXPROCS=4: LQ one RHS n=128/256 improves 56.69%/59.62%. Sixteen RHS
+  improves 30.42%/33.84%.
+- GOMAXPROCS=1 and GODEBUG=simd=0: LQ n=256 one RHS goes from 2039.3 to
+  825.1 us (-59.54%). Sixteen RHS goes from 3.893 to 2.680 ms (-31.16%).
+
+The new helper is scalar. Portable emulation does not disable all
+architecture-specific leaves in the rest of Gonum.
 
 ## Numerical validation
 
-Persistent tests cover the m=3/4/5 and 31/32/33 boundaries, n=7/8/9 and
-longer tails, offsets, ldt=32/64, beta-zero NaN outputs, exact signed zero,
-ordered overflow/cancellation, subnormals and bitwise comparisons with the
-retained scalar path. NaNs are compared by classification, not payload.
-Tests preserve output gaps and guards, verify read-only A/x storage, exercise
-true active A/x overlap, output overlap, negative/zero/nonunit increments,
-short slices with capped capacities, and overflow-safe span rejection.
+Persistent tests cover:
 
-Existing independent Dlarft reflector reconstruction, Dgelqf versus
-unblocked Dgelq2, Dormlq versus Dorml2, and public LQ reconstruction/solve
-checks cover the consumers. No numerical tolerance is relaxed. This pass
-does not add a Netlib LQ bridge or claim to beat optimized vendor BLAS.
+- The m=3/4/5 and 31/32/33 boundaries, n=7/8/9 and longer tails.
+- Offsets, ldt=32/64, beta-zero NaN outputs and exact signed zero.
+- Ordered overflow/cancellation and subnormals.
+- Bitwise comparisons with the old scalar path. NaNs are compared by class,
+  not payload.
+- Output gaps and guards, read-only A/x storage, true active A/x overlap and
+  output overlap.
+- Negative, zero and nonunit increments, short slices with capped capacities,
+  and rejection of overflowing spans.
 
-Validation passed: full `go test -pgo=off ./...` on default Go 1.26.4 and
-experimental Go 1.27.1; affected f64/BLAS/LAPACK/mat suites with safe, noasm
-and bounds tags; focused f64 race; and GODEBUG=simd=0 GEMV/LQ/QR/SVD and
-reflector tests. Common RowWise tests also pass on the clean baseline.
-Formatting, import-policy, copyright and diff checks pass.
+Existing consumer checks: independent Dlarft reflector reconstruction,
+Dgelqf versus unblocked Dgelq2, Dormlq versus Dorml2, and public LQ
+reconstruction/solve. No numerical tolerance is relaxed.
 
-## Remaining measured work
+These checks pass:
 
-Post-change three-second profiles were collected only after timing finished.
-For LQ n=256/one RHS, DotInc is now 6.10% flat, while the new GemvN helper
-is 59.59% flat / 61.05% cumulative. Its residual bounds/address work is a
-future tuning hypothesis. Transposed/transposed DGEMM is 22.97% cumulative,
-including strided AXPY work. LQ setup appears in this profile (Factorize
-2.03% cumulative); it remains excluded from steady-state SolveTo timing.
+- Full `go test -pgo=off ./...` on default Go 1.26.4 and experimental
+  Go 1.27.1.
+- Affected f64/BLAS/LAPACK/mat suites with the safe, noasm and bounds tags.
+- Focused f64 race tests, and GODEBUG=simd=0 GEMV/LQ/QR/SVD and reflector
+  tests.
+- Common RowWise tests on the clean baseline.
+- Formatting, import-policy, copyright and diff checks.
 
-For thin wide SVD n=256, Dbdsqr is 38.05% cumulative and Dlasr 34.22%
-cumulative; these nested costs must not be added. Dlasr itself is 19.47%
-flat and its blocked right-variable helper 13.86% flat. DotUnitary contributes
-21.83% cumulative, and SIMD DGEMM 12.39%. This provides a measured next
-LAPACK target: rotation application beneath bidiagonal SVD, with GEMV/dot
-consumers retained as controls. These profiles identify hypotheses, not
-accepted additional optimizations or a vendor-library speed claim.
+## Limits
 
-## Reproduction
+- Inconclusive results do not prove equivalence.
+- Many per-case tests increase the risk of false positives. Per-case changes
+  are not an application throughput aggregate.
+- Rechecks are separate measurements. We do not pool them with the first
+  cohorts or use them in their place.
+- Small SVD factorization effects do not show gains for all SVD modes or
+  sizes.
+- This work adds no Netlib LQ bridge. It makes no claim against optimized
+  vendor BLAS.
 
-Build the same package on each checkpoint with:
+## Remaining work
+
+Three-second profiles ran only after timing finished.
+
+LQ n=256/one RHS:
+
+- DotInc is now 6.10% flat.
+- The new GemvN helper is 59.59% flat / 61.05% cumulative. Its remaining
+  bounds/address work is a possible future target.
+- Transposed/transposed DGEMM is 22.97% cumulative, with strided AXPY work.
+- LQ setup (Factorize 2.03% cumulative) is in the profile, not in SolveTo
+  timing.
+
+Thin wide SVD n=256:
+
+- Dbdsqr is 38.05% cumulative and Dlasr 34.22% cumulative. Do not add these
+  nested costs.
+- Dlasr itself is 19.47% flat. Its blocked right-variable helper is 13.86%
+  flat.
+- DotUnitary is 21.83% cumulative, and SIMD DGEMM 12.39%.
+
+Next measured LAPACK target: rotation application below bidiagonal SVD. Keep
+GEMV/dot consumers as controls. These profiles give hypotheses only, not
+accepted optimizations.
+
+## Reproduce
+
+Build the same packages at each checkpoint:
 
 ```sh
 GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -pgo=off -c ./internal/asm/f64 -o /tmp/f64.test
@@ -217,8 +275,8 @@ GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -pgo=off -c ./lapack/gonum -o /tm
 GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -pgo=off -c ./mat -o /tmp/mat.test
 ```
 
-Use separate output paths for the two builds. No cross-compilation or native
-AMD64 timing is performed; other-backend promotion still needs native evidence.
+Use separate output paths for the two builds. There is no cross-compilation
+and no native AMD64 timing. Other backends need native data before promotion.
 
 Acceptance selectors (ten 150 ms rounds, default GOMAXPROCS=1):
 
@@ -230,19 +288,24 @@ mat:    ^BenchmarkFactorization$/(QR|LQ)$/shape=(square|tall|wide)$/n=(128|256)$
 mat:    ^BenchmarkFactorization$/SVD$/kind=thin$/shape=(square|tall|wide)$/n=(128|256)$
 ```
 
-The P4 cohort uses `^BenchmarkFactorizationSolve$/(QR|LQ)$/n=(128|256)$/nrhs=(1|16)$`.
-The emulation cohort uses `^BenchmarkFactorizationSolve$/(QR|LQ)$/n=256$/nrhs=(1|16)$`.
-Focused rechecks use ten 300 ms rounds and the same binaries:
-`^BenchmarkDlarft$/n=64$/ldv=32$/ldt=(32|64)$` and
-`^BenchmarkFactorization$/LQ$/shape=wide$/n=256$`.
+Other cohorts:
 
-For the skill runner, pass `--baseline`, `--candidate`, `--bench`,
-`--rounds 10`, `--benchtime 150ms` and a fresh `--output` directory; run
-benchstat on its baseline.txt and candidate.txt. Record the same runtime
-environment on both sides. Profile separately with the selected benchmark,
-`-test.run '^$' -test.benchtime=3s -test.cpuprofile=/tmp/profile.cpu`.
+- P4: `^BenchmarkFactorizationSolve$/(QR|LQ)$/n=(128|256)$/nrhs=(1|16)$`.
+- Emulation: `^BenchmarkFactorizationSolve$/(QR|LQ)$/n=256$/nrhs=(1|16)$`.
+- Focused rechecks (ten 300 ms rounds, same binaries):
+  `^BenchmarkDlarft$/n=64$/ldv=32$/ldt=(32|64)$` and
+  `^BenchmarkFactorization$/LQ$/shape=wide$/n=256$`.
 
-Final binary SHA-256 identities:
+Skill runner:
+
+- Pass `--baseline`, `--candidate`, `--bench`, `--rounds 10`,
+  `--benchtime 150ms` and a new `--output` directory.
+- Run benchstat on its baseline.txt and candidate.txt.
+- Record the same runtime environment on the two sides.
+- Profile separately with the selected benchmark and
+  `-test.run '^$' -test.benchtime=3s -test.cpuprofile=/tmp/profile.cpu`.
+
+Final binary SHA-256 values:
 
 ```text
 f64 baseline     32eea6cfd4c64a05f1a63d58d96d9cb7eb457aac9580db676640769fb2a3a58e

@@ -1,25 +1,34 @@
 # Portable Go SIMD candidates
 
-SIMD candidates live beside the routines they may replace in
-`internal/asm/{f32,f64,c64,c128}/simd.go` and cover every BLAS-related AMD64
-assembly entry point. Portable operations are shared across architectures.
-Portable GEMM tiles live in `blas/gonum/{d,s}gemm_simd.go`.
-Small AMD64 leaves handle complex permutations and widened dot products where
-the portable API or compiler-generated conversions would require scalar staging.
-Other targets retain portable fallbacks. This package keeps only the
-coverage manifest, equivalence tests, and comparison benchmarks.
+## Summary
 
-With Go 1.27 SIMD enabled, measured ARM64 paths now use portable kernels for
-real GEMM, selected contiguous GEMV shapes, and sufficiently long float64 norms.
-Other candidates remain comparison-only; AMD64 production retains assembly
-dispatch, including the separately validated assembly correctness repairs.
-See the [BLAS integration results](RESULTS_BLAS.md) for dispatch boundaries,
-accuracy checks, and consumer measurements. `current` means the existing
-production entry point. Most AMD64 entries use assembly; remaining Go paths
-are identified in the routine inventory.
+- SIMD candidates live beside the routines that they can replace, in
+  `internal/asm/{f32,f64,c64,c128}/simd.go`. They cover every BLAS-related
+  AMD64 assembly entry point.
+- All architectures share the portable operations. Portable GEMM tiles live in
+  `blas/gonum/{d,s}gemm_simd.go`.
+- Small AMD64 leaves do complex permutations and widened dot products, where
+  the portable API or compiler conversions need scalar staging.
+- Other targets keep portable fallbacks.
+- This package keeps only the coverage manifest, equivalence tests and
+  comparison benchmarks.
 
-With Go 1.27.1 or newer, run the same-binary equivalence tests and benchmarks
-with:
+## Production status
+
+With Go 1.27 SIMD on, measured ARM64 paths use portable kernels for real GEMM,
+selected contiguous GEMV shapes and sufficiently long float64 norms. All other
+candidates are for comparison only. AMD64 production keeps assembly dispatch,
+with the separately validated assembly correctness repairs.
+
+The [BLAS integration results](RESULTS_BLAS.md) give dispatch boundaries,
+accuracy checks and consumer measurements.
+
+`current` is the existing production entry point. Most AMD64 entries use
+assembly. The routine inventory identifies the remaining Go paths.
+
+## Reproduce
+
+Use Go 1.27.1 or newer. Run the same-binary equivalence tests and benchmarks:
 
 ```sh
 GOEXPERIMENT=simd go test ./internal/asm/simdbench
@@ -29,13 +38,13 @@ GOMAXPROCS=1 GOEXPERIMENT=simd go test ./internal/asm/simdbench \
 benchstat -col /implementation simd.txt
 ```
 
-Install `benchstat` with
-`go install golang.org/x/perf/cmd/benchstat@latest` if needed.
+If necessary, install `benchstat` with
+`go install golang.org/x/perf/cmd/benchstat@latest`.
 
-The `go` directive in `go.mod` does not need to change: the Go 1.27 toolchain
-and `GOEXPERIMENT=simd` satisfy the source build constraints.
+Do not change the `go` directive in `go.mod`. The Go 1.27 toolchain and
+`GOEXPERIMENT=simd` satisfy the source build constraints.
 
-On Windows PowerShell, the complete comparison can be run with:
+On Windows PowerShell, run the full comparison:
 
 ```powershell
 $env:GOTOOLCHAIN = "go1.27.1"
@@ -49,112 +58,149 @@ go test ./internal/asm/simdbench -run '^$' `
 benchstat -col /implementation amd64-simd.txt
 ```
 
-Record `git rev-parse HEAD`, `go version`, CPU model, OS, selected vector width,
-and processor affinity with the results. For a hybrid Intel CPU, use the same
-P-core affinity for each run. `GOAMD64=v1` still permits portable SIMD to select
-supported wider vectors at runtime.
+Record `git rev-parse HEAD`, `go version`, CPU model, OS, selected vector
+width and processor affinity with the results. On a hybrid Intel CPU, use the
+same P-core affinity for each run. `GOAMD64=v1` still lets portable SIMD
+select wider supported vectors at runtime.
 
-## Issue 6 follow-up
+## Result documents (Issue 6 follow-up)
 
-See [measured ARM64 results and AMD64 instruction findings](RESULTS.md) for
-the optimization follow-up. See [native AMD64 tuning results](RESULTS_AMD64.md) for the subsequent
-comparison against assembly on an AVX512 host. See the
-[integration review and ARM64 measurements](RESULTS_IMPORT.md) for subsequent
-correctness repairs, portable fallback validation, and remaining regressions.
-The [production BLAS follow-up](RESULTS_BLAS.md) resolves the prefix-scan
-regression and measures actual BLAS and SVD calls. The
-[Go development notes](UPSTREAM.md) record compiler experiments and changes to
-recheck with future releases. See the [tail and stride follow-up](RESULTS_TAIL_STRIDE.md)
-for subsequent AMD64 candidate tuning and compatibility repairs.
-The [native SVD rotation follow-up](RESULTS_SVD.md) adds independent Netlib
-comparisons and measures shared LAPACK cache-blocking improvements.
-The [complete Level 1 native comparison](RESULTS_LEVEL1_NETLIB.md) covers all
-46 public Level 1 routines and measures the subsequent scalar and SIMD changes.
-The [norm and strided-index follow-up](RESULTS_LEVEL1_NORMS_STRIDES.md) targets
-the remaining single-precision norm gap and strided maximum-index scans.
-The [bottom-up triangular solve pass](RESULTS_BOTTOM_UP.md) removes repeated
-single-element AXPY dispatch. The [strided GEMV follow-up](RESULTS_STRIDED_GEMV.md)
-traces reflector workspace strides through Dlarft and measures public QR gains.
-The [RowWise GEMV follow-up](RESULTS_ROWWISE_GEMV.md) shares input loads across
-ordered row reductions and measures public LQ gains.
+- [RESULTS.md](RESULTS.md): measured ARM64 results, AMD64 instruction findings.
+- [RESULTS_AMD64.md](RESULTS_AMD64.md): native AMD64 tuning against assembly on an AVX512 host.
+- [RESULTS_IMPORT.md](RESULTS_IMPORT.md): integration review, ARM64 measurements, correctness repairs, portable fallback validation, remaining regressions.
+- [RESULTS_BLAS.md](RESULTS_BLAS.md): prefix-scan regression fix, real BLAS and SVD calls.
+- [UPSTREAM.md](UPSTREAM.md): Go compiler experiments, changes to recheck with future releases.
+- [RESULTS_TAIL_STRIDE.md](RESULTS_TAIL_STRIDE.md): AMD64 candidate tuning, compatibility repairs.
+- [RESULTS_SVD.md](RESULTS_SVD.md): native SVD rotation, independent Netlib comparisons, shared LAPACK cache-blocking improvements.
+- [RESULTS_LEVEL1_NETLIB.md](RESULTS_LEVEL1_NETLIB.md): all 46 public Level 1 routines, scalar and SIMD changes.
+- [RESULTS_LEVEL1_NORMS_STRIDES.md](RESULTS_LEVEL1_NORMS_STRIDES.md): single-precision norm gap, strided maximum-index scans.
+- [RESULTS_BOTTOM_UP.md](RESULTS_BOTTOM_UP.md): bottom-up triangular solve without repeated single-element AXPY dispatch.
+- [RESULTS_STRIDED_GEMV.md](RESULTS_STRIDED_GEMV.md): reflector workspace strides through Dlarft, public QR gains.
+- [RESULTS_ROWWISE_GEMV.md](RESULTS_ROWWISE_GEMV.md): RowWise GEMV with shared input loads across ordered row reductions, public LQ gains.
+- [RESULTS_ALL_ASM.md](RESULTS_ALL_ASM.md): first complete native AMD64 checkpoint. All 57 BLAS assembly entries, 402 matched real BLAS consumer cases, remaining losses, separate square-root production change.
+- [RESULTS_GO1271.md](RESULTS_GO1271.md): stock Go 1.27.1 investigations, retained candidates, correctness repairs, measured costs.
+
+SIMD candidates do not change AMD64 production BLAS dispatch.
+
+## Scratch buffers and norms
 
 The [initial AMD64 results](https://github.com/jamestjsp/gonum/issues/6#issuecomment-5541048813)
-identified oversized scratch buffers, unnecessary staging for contiguous
-matrix rows, and decaying benchmark inputs. Most scratch now uses `make([]T, width)`:
-Go 1.27 specializes the width before escape analysis, producing stack storage
-for the selected vector size. This also avoids imposing a fixed future vector
-width ceiling. The allocation regression test must stay green on each target.
-The initial scratch-only change did not improve robust L2 norms. The subsequent
-tuning uses sums of squares for ordinary magnitudes and retries the scaled
-recurrence for extreme or non-finite results. Float64 norms now compensate
-summation error and, on fused backends, product error: the uncompensated
-candidate failed an existing SVD tolerance when combined with GEMV promotion.
+found oversized scratch buffers, unnecessary staging for contiguous matrix rows
+and benchmark inputs that decay.
 
-Real contiguous increment operations use their unitary candidates. Dot and
-sum candidates use four independent accumulators; explicit load spans reduce
-redundant bounds checks. On AMD64, native leaves now avoid component scratch
-arrays for several strided float32 and complex operations; float64 sparse
-updates use scalar unrolling where it wins. Fixed scalar prefix blocks retain
-the existing arithmetic order while avoiding intermediate staging. Other
-architectures keep their established portable paths. These are comparison
-candidates, and memory/address overhead remains significant against assembly.
+Most scratch now uses `make([]T, width)`. Go 1.27 specializes the width before
+escape analysis, so the scratch goes on the stack for the selected vector size.
+This sets no fixed ceiling on future vector widths. The allocation regression
+test must pass on each target.
 
-AMD64 code inspection also found legacy SSE scalar moves alternating with AVX
-vector operations inside staging loops. Integer memory views now move lane
-bits into and out of unsigned scratch, then `BitsToFloat32`/`BitsToFloat64`
-reinterpret them for vector arithmetic. Unlike scalar `math.Float64bits`
-calls, these views preserve integer moves through Go 1.27 optimization.
-Complex alpha broadcasts are hoisted outside the vector loop as well.
+The first scratch-only change did not make robust L2 norms faster. The later
+tuning:
+
+- Ordinary magnitudes use sums of squares.
+- Extreme or non-finite results retry the scaled recurrence.
+- Float64 norms compensate summation error and, on fused backends, product
+  error. The uncompensated candidate failed an existing SVD tolerance together
+  with GEMV promotion.
+
+## Kernel structure
+
+- Real contiguous increment operations use their unitary candidates.
+- Dot and sum candidates use four independent accumulators. Explicit load
+  spans remove redundant bounds checks.
+- On AMD64, native leaves avoid component scratch arrays for several strided
+  float32 and complex operations. Float64 sparse updates use scalar unrolling
+  where it is faster.
+- Fixed scalar prefix blocks keep the existing arithmetic order without
+  intermediate staging.
+- Other architectures keep their established portable paths.
+
+These are comparison candidates. Their memory and address overhead against
+assembly is still significant.
+
+## AVX/SSE mixing
+
+AMD64 code inspection found legacy SSE scalar moves between AVX vector
+operations in staging loops. Now, integer memory views move lane bits into and
+out of unsigned scratch. `BitsToFloat32`/`BitsToFloat64` then reinterpret the
+bits for vector arithmetic. Unlike scalar `math.Float64bits` calls, these views
+keep integer moves through Go 1.27 optimization. Complex alpha broadcasts are
+outside the vector loop.
+
 [Intel documents penalties for AVX/SSE mixing](https://www.intel.com/content/dam/develop/external/us/en/documents/11mc12-avoiding-2bavx-sse-2btransition-2bpenalties-2brh-2bfinal-809104.pdf).
-Removing these instructions is verified in Windows/AMD64 compiler output;
-their contribution to the office timings still needs native measurement.
+Windows/AMD64 compiler output shows that these instructions are gone. Their
+effect on the office timings still needs native measurement.
+
+## Clean assembly comparisons
 
 For controlled AMD64 assembly comparisons, build the benchmark binary with
-`-tags simdbenchclean`. The manifest, boundary and stride benchmarks then execute
-`VZEROUPPER` immediately before every current and candidate call, when AVX is
-supported. This includes the same state-preparation cost in both measurements
-and leaves all kernels and production dispatch unchanged. Keep these results
-separate from ordinary benchmark runs: instruction-state diagnostics reproduced
-a roughly fivefold slow state in the unchanged short assembly norm, while
-clearing only once before the trial did not ensure stability. Apply the same
-benchmark harness and tag to both revisions. The optional `simdasmstate` tag
-provides explicit native/clean/dirty controls on Linux AMD64.
+`-tags simdbenchclean`. When AVX is available, the manifest, boundary and
+stride benchmarks then execute `VZEROUPPER` immediately before every current
+and candidate call. Both measurements include the same state-preparation cost.
+Kernels and production dispatch do not change.
 
-Portable mixed-precision and prefix fallbacks still mix scalar arithmetic
-with vectors. The AMD64 Ddot leaf avoids scalar widening, and ordinary norms
-avoid the scaled recurrence. Efficient portable widening/reduction/scan
-operations remain opportunities. Recheck generated instructions with future Go
-releases before retaining a source workaround.
+Keep these results separate from ordinary benchmark runs. Use the same
+benchmark harness and tag for both revisions. Instruction-state diagnostics
+reproduced an approximately fivefold slow state in the unchanged short assembly
+norm. One clear before the trial did not make timings stable.
 
-In-place scaling and division benchmarks use unit-magnitude factors to avoid
-subnormal decay. Numerical equivalence tests retain the original factors.
-Old timings for the seven affected in-place `Div`, `Scal`, and `Dscal` cases
-cannot be compared directly with corrected timings. When comparing source
-revisions, apply the corrected benchmark harness to both checkouts.
+The optional `simdasmstate` tag gives explicit native/clean/dirty controls on
+Linux AMD64.
 
-The checked manifest fails when an AMD64 assembly symbol is added or removed,
-when its package-local candidate is absent, when a candidate does not reach a
-`simd` operation, or when its benchmark/equivalence runner is missing.
-Equivalence tests cover empty inputs and vector boundaries, and allocation
-tests cover all 57 current and candidate entry points.
+## Open work
 
-When portable SIMD becomes stable, recheck the package path, build constraint,
-vector-width contract, generated code, and benchmark crossovers before changing
-dispatch. Removing `goexperiment.simd` is intentionally a small boundary
-change; it is not assumed to be the only migration Go will require.
+- Portable mixed-precision and prefix fallbacks still mix scalar arithmetic
+  with vectors.
+- The AMD64 Ddot leaf avoids scalar widening. Ordinary norms avoid the scaled
+  recurrence.
+- Efficient portable widening, reduction and scan operations are still
+  possible improvements.
+- With future Go releases, recheck generated instructions before you keep a
+  source workaround.
 
-The native AMD64 follow-up keeps AMD64 production dispatch unchanged. Contiguous
-complex kernels use interleaved vectors, matrix kernels share loads across rows,
-and ordinary L2 norms use vector sums of squares with a scaled fallback for
-extreme magnitudes. The widening and complex-shuffle AMD64 leaves avoid Go
-1.27.1 `FromArch` stack copies in hot loops. Recheck these workarounds when the
-compiler or portable API changes. Small calls, arbitrary strides, and matrix
-shapes still have different crossovers; native timing is required before changing
-production dispatch.
+## Benchmark inputs
+
+In-place scaling and division benchmarks use unit-magnitude factors to prevent
+subnormal decay. Numerical equivalence tests keep the original factors. Old
+timings for the seven affected in-place `Div`, `Scal` and `Dscal` cases are
+not directly comparable with corrected timings.
 
 The `BenchmarkSIMDBoundaries` and `BenchmarkSIMDStrides` sweeps cover uneven
 lengths and increments 1, 2, 3, 7, 16 and 63. Cumulative-product timing uses
-bounded alternating reciprocal factors so prefixes remain normal and finite.
-Apply the same benchmark harness to both source revisions before comparison.
+bounded alternating reciprocal factors, so prefixes stay normal and finite.
 
-The initial complete native AMD64 checkpoint is documented in [RESULTS_ALL_ASM.md](RESULTS_ALL_ASM.md). It covers all 57 BLAS assembly entries, 402 matched real BLAS consumer cases, remaining losses, and the separate square-root production change. The subsequent stock Go 1.27.1 investigations, retained candidates, correctness repairs and measured costs are documented in [RESULTS_GO1271.md](RESULTS_GO1271.md). SIMD candidates do not change AMD64 production BLAS dispatch.
+To compare source revisions, use the same corrected benchmark harness on both
+checkouts.
+
+## Manifest checks
+
+The checked manifest fails when:
+
+- an AMD64 assembly symbol is added or removed
+- its package-local candidate is absent
+- a candidate does not reach a `simd` operation
+- its benchmark or equivalence runner is missing
+
+Equivalence tests cover empty inputs and vector boundaries. Allocation tests
+cover all 57 current and candidate entry points.
+
+## Native AMD64 follow-up
+
+AMD64 production dispatch does not change.
+
+- Contiguous complex kernels use interleaved vectors.
+- Matrix kernels share loads across rows.
+- Ordinary L2 norms use vector sums of squares, with a scaled fallback for
+  extreme magnitudes.
+- The widening and complex-shuffle AMD64 leaves avoid Go 1.27.1 `FromArch`
+  stack copies in hot loops.
+
+Recheck these workarounds when the compiler or the portable API changes. Small
+calls, arbitrary strides and matrix shapes have different crossovers. Measure
+native timings before you change production dispatch.
+
+## Stable SIMD migration
+
+Recheck these items when portable SIMD becomes stable: package path, build
+constraint, vector-width contract, generated code and benchmark crossovers. Do
+this before you change dispatch. The removal of `goexperiment.simd` is intentionally a small
+boundary change. Do not assume that it is the only migration Go will require.

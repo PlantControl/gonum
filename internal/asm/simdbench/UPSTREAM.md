@@ -2,7 +2,7 @@
 
 Checked 2026-09-04 (America/Chicago). These are compiler-development findings,
 not Gonum benchmark results or a release commitment. The supported experiment
-for this work remains Go 1.27.1 with `GOEXPERIMENT=simd`.
+for this work is still Go 1.27.1 with `GOEXPERIMENT=simd`.
 
 ## Source snapshot
 
@@ -13,29 +13,30 @@ Live Go refs at inspection:
 - `release-branch.go1.27`: `2ee6421c51553e7164590445f96b123a858c1f4a`.
 
 Inspect [master changes](https://go-review.googlesource.com/q/project:go+branch:master+simd)
-as well as [dev.simd](https://go.googlesource.com/go/+/refs/heads/dev.simd).
-Much of the newer SIMD performance work is now proposed directly on master.
+and [dev.simd](https://go.googlesource.com/go/+/refs/heads/dev.simd). Much
+newer SIMD performance work goes directly to master.
 
-## Patterns applicable now
+## Patterns to use now
 
-- Keep a matrix output tile in vector accumulators across the inner dimension;
-  reuse each scalar broadcast across multiple strips. The experimental
+- Keep a matrix output tile in vector accumulators across the inner dimension.
+  Reuse each scalar broadcast across multiple strips. The experimental
   [SVE SGEMM kernel, CL 827812](https://go-review.googlesource.com/c/go/+/827812)
   (`6b8e07c91f38e60be2d8a5fe09a82af557a23fef`, open) uses sliced rows,
-  `j+vl <= len(row)`, explicit `s[off:off+vl]` loads, and incrementally advanced
-  offsets. Its SVE predicate-hoisting trick is not a NEON optimization.
-- Hoist invariant broadcasts, masks, and shuffle constants explicitly.
+  `j+vl <= len(row)`, explicit `s[off:off+vl]` loads and incrementally
+  advanced offsets. Its SVE predicate-hoisting trick is not a NEON
+  optimization.
+- Hoist invariant broadcasts, masks and shuffle constants explicitly.
   [SIMD loop-invariant-code motion, CL 803220](https://go-review.googlesource.com/c/go/+/803220)
   (`ecafbe48e206bd28e53385cb78e4448e1a5eb1b5`) is still open/WIP.
-- Keep hot arithmetic in vectors. Go 1.27.1's
+- Keep hot arithmetic in vectors. The Go 1.27.1
   [FromArch implementation](https://go.googlesource.com/go/+/refs/tags/go1.27.1/src/simd/tofrom_amd64.go)
-  relies on inlining to eliminate conversion code. Check generated instructions
-  before introducing a bridge inside a loop; a narrow whole-kernel leaf may
-  avoid repeated stack copies.
-- Choose unrolling from measured register pressure and loop instructions.
-  Extra accumulators can hide arithmetic latency but also introduce spills.
-  Test floating-point cancellation, extreme magnitudes, and fallback paths
-  when using fused arithmetic or changing reduction order.
+  needs inlining to remove conversion code. Check generated instructions
+  before you put a bridge inside a loop. A narrow whole-kernel leaf can avoid
+  repeated stack copies.
+- Select unrolling from measured register pressure and loop
+  instructions. Extra accumulators can hide arithmetic latency, but can also
+  cause spills. When you use fused arithmetic or change the reduction order,
+  test floating-point cancellation, extreme magnitudes and fallback paths.
 
 ## Compiler and API changes to recheck
 
@@ -49,22 +50,24 @@ Much of the newer SIMD performance work is now proposed directly on master.
 | [CL 817020](https://go-review.googlesource.com/c/go/+/817020), `0cc58e9616765a4c9211f96ea462ab091216bff4` | Open | Adds a NEON variant without hardware PMULL, avoiding whole-program portable SIMD emulation on affected ARM64 hosts. |
 | [CL 768264](https://go-review.googlesource.com/c/go/+/768264), `ab1d580d957a77eaf35f4ef93017bd880c532013` | Open on dev.simd | Experiments with high AVX512 registers to avoid overlap with scalar SSE registers. |
 
-The installed Go 1.27.1 portable API has neither float32-to-float64 widening nor
-float horizontal reductions or complex lane permutations. Retain measured
-widening/permutation leaves until an available portable operation and generated
-code justify replacing them. The developing reduction API is not a prefix-scan
-API; it does not by itself eliminate cumulative-sum staging.
+### Missing operations
+
+The installed Go 1.27.1 portable API has no float32-to-float64 widening, float
+horizontal reductions or complex lane permutations. Keep the measured
+widening/permutation leaves until a portable operation and its
+generated code justify replacement. The new reduction API is not a
+prefix-scan API, so it alone does not remove cumulative-sum staging.
 
 ## Compatibility gate
 
 [Portable SIMD](https://github.com/golang/go/issues/78902) is accepted as an
 experiment. [Default AMD64 enablement](https://github.com/golang/go/issues/78979)
 and the [CPU-feature vet proposal](https://github.com/golang/go/issues/76175)
-remain on hold. [SVE](https://github.com/golang/go/issues/79781) has active
-implementation work but is not a capability of the Apple M1 benchmark host.
-Do not remove experiment or CPU-feature guards from proposal status alone.
+are on hold. [SVE](https://github.com/golang/go/issues/79781) has active
+implementation work, but the Apple M1 benchmark host does not have it. Do not
+remove experiment or CPU-feature guards for proposal status alone.
 
-For each new release, verify the actual API and feature contracts, then compare
-the same source and benchmark harness on native ARM64 and AMD64, including
-supported vector widths and emulation. Remove a workaround only after numerical
-tests, generated-code inspection, and repeated timings support the change.
+For each new release, verify the actual API and feature contracts. Then
+compare the same source and benchmark harness on native ARM64 and AMD64, with
+supported vector widths and emulation. Remove a workaround only when numerical
+tests, generated-code inspection and repeated timings support it.

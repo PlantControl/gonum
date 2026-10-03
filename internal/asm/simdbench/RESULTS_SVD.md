@@ -1,26 +1,35 @@
 # Native SVD rotation follow-up
 
-## Scope and method
+## Summary
 
-Base: `150606198bafc4b32c207753acdfa6b43b2c288d`.
-Host: Apple M1 Pro, darwin/arm64, macOS 26.6.2.
-Primary toolchain: Go 1.27.1, `GOEXPERIMENT=simd`, `GOMAXPROCS=1`.
-Default comparison: installed Go 1.26.4 without the experiment.
-No AMD64 measurements or cross-compilation were performed in this pass.
+Scalar cache blocking in Right/Variable Dlasr cuts 256-by-256 thin-vector
+Dgesvd time by about half. The work also fixes a Left/Top/Backward
+correctness bug and the shared Dlasr test.
 
-Both source revisions used the same persistent benchmark harness. Native runs
-were serialized, with six samples per case and alternating base/change order.
-Final rotation samples used 50ms and SVD samples used 100ms benchmark durations;
-earlier screening runs used 100-200ms. Results are interpreted with benchstat,
-not a single fastest sample. The desktop host was not CPU-isolated.
+## Setup
 
-The fresh base profile of 256-by-256 thin-vector Dgesvd attributed 70.96% of
-flat samples to Dlasr and 75.72% cumulatively to Dbdsqr. The dominant branch
-was Right/Variable/Forward, accessing columns of row-major matrices.
+- Base: `150606198bafc4b32c207753acdfa6b43b2c288d`.
+- Host: Apple M1 Pro, darwin/arm64, macOS 26.6.2. Not CPU-isolated.
+- Primary toolchain: Go 1.27.1, `GOEXPERIMENT=simd`, `GOMAXPROCS=1`.
+- Default comparison: installed Go 1.26.4 without the experiment.
+- No AMD64 measurements or cross-compilation.
 
-## Accepted measurements
+Method:
 
-Median Dgesvd time with thin singular vectors, before and after this change:
+- The two source revisions used the same persistent benchmark harness.
+- Native runs were serial, with six samples per case and alternating
+  base/change order.
+- Final rotation samples used 50ms. SVD samples used 100ms. Earlier screens
+  used 100-200ms.
+- benchstat interprets the results, not a single fastest sample.
+
+The new base profile of 256-by-256 thin-vector Dgesvd put 70.96% of flat
+samples in Dlasr and 75.72% cumulative in Dbdsqr. The main branch was
+Right/Variable/Forward, which accesses columns of row-major matrices.
+
+## Results
+
+Median Dgesvd time with thin singular vectors, before and after the change:
 
 | Toolchain | Matrix | Base | Changed | Time change | p-value |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -32,27 +41,34 @@ Median Dgesvd time with thin singular vectors, before and after this change:
 | Go 1.26.4 default | 64 × 64 | 1.042 ms | 1.042 ms | no significant change | 0.699 |
 | Go 1.26.4 default | 256 × 256 | 120.48 ms | 60.90 ms | -49.46% | 0.002 |
 
-Each comparison has six samples per revision. Benchstat's 95% interval for
-the SIMD 256-by-256 result was ±4% on base and ±6% on changed; the default
-comparison was ±1% and ±8%. Smaller default-toolchain gains did not reach
-significance. Values-only SVD cases were unchanged within noise. No measured
-SVD case significantly regressed; thin-vector cases reported zero allocations
-per operation. These findings apply to this host and benchmark matrix, not
-every SVD workload.
+- Each comparison has six samples per revision.
+- 95% benchstat intervals for 256-by-256: SIMD ±4% base and ±6% changed;
+  default ±1% and ±8%.
+- Smaller default-toolchain gains are not significant.
+- Values-only SVD cases did not change beyond noise.
+- No measured SVD case had a significant regression.
+- Thin-vector cases had zero allocations per operation.
 
-Dense Right/Variable/Forward Dlasr on compact 256-by-256 matrices improved
-from 303.66 µs to 47.50 µs (-84.36%); Backward improved from 307.84 µs to
-47.13 µs (-84.69%). Both have p=0.002. At padded stride 259, both directions
-remained statistically unchanged, around 46 µs. The 63-by-65 fallback cases
-also remained statistically unchanged.
+Dlasr microbenchmarks:
 
-The microbenchmark tradeoffs are real: some blocked boundary cases regressed
-2-8%, and sparse Backward 64-by-256 at stride 259 regressed from 1.567 µs to
-1.762 µs (+12.41%, p=0.002). Identity-only calls commonly added about 2-3 ns.
-These costs are retained in the benchmark coverage and should constrain future
-dispatch tuning; this is not a claim that every rotation layout is faster.
+- Dense Right/Variable/Forward, compact 256-by-256: 303.66 µs to 47.50 µs
+  (-84.36%, p=0.002).
+- Backward: 307.84 µs to 47.13 µs (-84.69%, p=0.002).
+- Padded stride 259: no significant change in either direction, about 46 µs.
+- The 63-by-65 fallback cases: no significant change.
 
-The separate same-input native comparison produced:
+Microbenchmark costs:
+
+- Some blocked boundary cases regressed 2-8%.
+- Sparse Backward 64-by-256 at stride 259 regressed from 1.567 µs to
+  1.762 µs (+12.41%, p=0.002).
+- Identity-only calls usually added about 2-3 ns.
+
+These cases stay in the benchmarks. Use them to limit future dispatch tuning.
+
+### Native comparison
+
+Separate comparison with the same inputs:
 
 | Matrix | Changed Gonum | Reference-LAPACK | Lower elapsed time |
 | --- | ---: | ---: | --- |
@@ -62,74 +78,92 @@ The separate same-input native comparison produced:
 | 64 × 96 | 1.210 ms | 1.059 ms | Reference-LAPACK |
 | 256 × 256 | 54.64 ms | 89.61 ms | Gonum |
 
-All five paired differences have p=0.002, n=6 per implementation. Gonum takes
-about 39% less time in the large case, but Reference-LAPACK takes 12-31% less
-time in the smaller cases. This harness uses different inputs from the existing
-Dgesvd benchmark above; compare implementations within each table only.
-The reference backend and timing boundaries are documented below.
+All five paired differences have p=0.002, n=6 per implementation. Gonum
+takes about 39% less time in the large case. Reference-LAPACK takes 12-31%
+less time in the smaller cases. This harness uses different inputs from the
+Dgesvd benchmark above, so compare implementations within each table only.
+The reference backend and timing boundaries are in Reproduce.
 
 ## Changes
 
-- Corrected a pre-existing Left/Top/Backward duplicated loop that applied each
-  rotation once per matrix column. This is a correctness fix, not a valid
-  before/after speed comparison; it is not the profiled SVD branch.
-- Repaired the shared Dlasr test's reversed copies, bottom-pivot reference
-  indices, and missing right-side transpose. Nonzero structured and seeded
-  random fixtures now exercise all 12 side/pivot/direction combinations.
-- Right/Variable rotations use row blocks only when both dimensions are at
-  least 64 and every rotation is active. Each row retains its original rotation
-  order. Nominal blocks have 32 rows; a final remainder shorter than 16 rows is
-  merged into its preceding block. Small and identity-containing cases retain
-  the original traversal. An out-of-line helper keeps the fallback code small,
-  and incrementing the matrix index by its stride avoids a per-row address
-  multiplication.
+- **Correctness fix.** The old Left/Top/Backward loop was duplicated and
+  applied each rotation once per matrix column. This is not a valid
+  before/after speed comparison. It is not the profiled SVD branch.
+- **Test repair.** The shared Dlasr test had reversed copies, wrong
+  bottom-pivot reference indices and a missing right-side transpose.
+  Nonzero structured and seeded random fixtures now exercise all 12
+  side/pivot/direction combinations.
+- **Row blocks.** Right/Variable rotations use row blocks only when the two
+  dimensions are at least 64 and all rotations are active.
+  - Each row keeps its original rotation order.
+  - Nominal blocks have 32 rows. A final remainder shorter than 16 rows
+    merges into the block before it.
+  - Small and identity-containing cases keep the original traversal.
+  - An out-of-line helper keeps the fallback code small.
+  - The matrix index increments by its stride, so there is no per-row
+    address multiplication.
 
 This is architecture-neutral scalar cache blocking, not a new SIMD kernel.
-Generated ARM64 code uses scalar fused arithmetic and retains bounds checks.
-The existing SIMD BLAS configuration is otherwise unchanged.
+Generated ARM64 code uses scalar fused arithmetic and keeps bounds checks.
+The SIMD BLAS configuration does not otherwise change.
 
-A rejected row-at-a-time candidate was approximately five times slower on
-large padded rotation cases, consistent with serialized dependent arithmetic.
-Cutoff and tail sweeps also rejected a 33-row crossover and a one-row final
-block. Compact and padded strides must both be measured: the original compact
-256-by-256 rotation was much slower than its padded counterpart.
+Rejected options:
 
-## Independent reference and correctness
+- A row-at-a-time candidate was approximately five times slower on large
+  padded rotation cases. This is consistent with serial dependent arithmetic.
+- Cutoff and tail sweeps rejected a 33-row crossover and a one-row final
+  block.
+- Measure compact and padded strides. The original compact 256-by-256
+  rotation was much slower than the padded one.
+
+## Reference and correctness
 
 Source review pin: [Reference-LAPACK v3.12.1,
 6ec7f2bc4ecf4c4a93496aa2fa519575bc0e39ca](https://github.com/Reference-LAPACK/lapack/tree/6ec7f2bc4ecf4c4a93496aa2fa519575bc0e39ca),
-`SRC/dlasr.f`; the SVD bridge also calls Dbdsqr and Dgesvd.
-The installed Homebrew formula is `lapack 3.12.1_1`, but its runtime `ILAVER`
-reports **3.12.0**. These identifiers are recorded separately. Its linked BLAS
-is the Reference-LAPACK keg's `libblas`, not OpenBLAS or Accelerate.
+`SRC/dlasr.f`. The SVD bridge also calls Dbdsqr and Dgesvd.
 
-All 12 Dlasr computational branches were source-reviewed and independently
-exercised, including mixed identities and shapes around both the dispatch
-and tail-merge boundaries. Row-major leading-dimension validation is a
-deliberate adaptation of Netlib's column-major contract. The exact duplicated
-rotation regression failed before the repair. Padding, non-finite identity
-skips, and signed zero retain exact checks.
+- The installed Homebrew formula is `lapack 3.12.1_1`. Its runtime `ILAVER`
+  reports **3.12.0**. We record the two identifiers separately.
+- Its linked BLAS is the `libblas` of the Reference-LAPACK keg, not OpenBLAS
+  or Accelerate.
 
-The larger oracle cases exposed cancellation-sensitive failures in a newly
-added fixed output-relative comparison, including an unchanged branch. The
-new test instead bounds absolute error by the input vector norm and rotation
-count, using `2*gamma_(3*r)` for the two evaluations, and explicitly rejects
-non-finite results. Existing numerical tolerances were not relaxed.
+Dlasr checks:
 
-Persistent Dbdsqr tests cover upper/lower matrices, optional transformed
-matrices, and values-only cases. Dgesvd tests cover square/tall/wide shapes,
-five vector-job combinations, tiny/ordinary/huge scales, and a rank-deficient
-case. Comparisons check singular values, reconstruction, and orthogonality;
-they do not require identical singular vectors.
+- All 12 Dlasr computational branches were source-reviewed and
+  independently tested. Tests include mixed identities and shapes around the
+  dispatch and tail-merge boundaries.
+- Row-major leading-dimension validation is a deliberate adaptation of the
+  column-major contract of Netlib.
+- The exact duplicated-rotation regression failed before the repair.
+- Padding, non-finite identity skips and signed zero keep exact checks.
 
-This is not a full transitive SVD parity audit. Overwrite and mixed All/Store
-jobs, minimum-workspace paths, difficult non-convergence, and extreme or
-clustered bidiagonal cases remain outside the new differential suite.
+The larger oracle cases caused cancellation-sensitive failures in a new
+fixed output-relative comparison. One failure was in an unchanged branch.
+The new test instead bounds absolute error by the input vector norm and
+rotation count. It uses `2*gamma_(3*r)` for the two evaluations and rejects
+non-finite results. Existing numerical tolerances are not relaxed.
 
-## Reproduction
+Persistent Dbdsqr and Dgesvd tests:
+
+- Dbdsqr: upper/lower matrices, optional transformed matrices and
+  values-only cases.
+- Dgesvd: square/tall/wide shapes, five vector-job combinations,
+  tiny/ordinary/huge scales and a rank-deficient case.
+- They check singular values, reconstruction and orthogonality. They do not
+  require identical singular vectors.
+
+This is not a full transitive SVD parity audit. The new differential suite
+does not cover:
+
+- Overwrite and mixed All/Store jobs.
+- Minimum-workspace paths.
+- Difficult non-convergence.
+- Extreme or clustered bidiagonal cases.
+
+## Reproduce
 
 The optional bridge uses the existing `netlib && darwin && cgo` configuration
-and Homebrew LAPACK paths. It does not add a production CGo dependency.
+and Homebrew LAPACK paths. It adds no production CGo dependency.
 
 ```sh
 GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd go test -tags netlib ./lapack/gonum \
@@ -141,22 +175,36 @@ GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=simd GOMAXPROCS=1 \
 benchstat -col /implementation native-svd.txt
 ```
 
-The paired native benchmark computes the same logical random matrix and thin
-vectors with Dgesvd on both sides. Each implementation queries and reuses its
-own preferred workspace. Input restoration is included on both sides; layout
-conversion and workspace allocation are excluded. The native CGo call is
-included, and Go allocation counters do not account for native allocations.
-This compares Reference-LAPACK plus reference BLAS, not an optimized vendor
-library or the different Dgesdd algorithm.
+The paired native benchmark:
 
-Validation passed: full default and SIMD suites; affected LAPACK/mat `safe`
-and `noasm` suites; LAPACK `bounds`; focused Dlasr race tests; the persistent
-Netlib suite repeated three times; formatting, imports, copyright and diff
-checks. A broader Dlasr/Dbdsqr/Dgesvd race run also passed during integration.
+- Computes Dgesvd with thin vectors on the same logical random matrix on the
+  two sides.
+- Each implementation queries and reuses its own preferred workspace.
+- Includes input restoration on the two sides and the native CGo call.
+- Excludes layout conversion and workspace allocation.
+- Go allocation counters do not count native allocations.
+- Compares Reference-LAPACK plus reference BLAS. It does not compare an
+  optimized vendor library or the different Dgesdd algorithm.
+
+Validation passed:
+
+- Full default and SIMD suites.
+- Affected LAPACK/mat `safe` and `noasm` suites, and LAPACK `bounds`.
+- Focused Dlasr race tests.
+- The persistent Netlib suite, three times.
+- Formatting, imports, copyright and diff checks.
+- A broader Dlasr/Dbdsqr/Dgesvd race run during integration.
+
+## Limits
+
+These results apply to this host and benchmark matrix, not to every SVD
+workload. Not every rotation layout is faster.
 
 ## Remaining work
 
-Measure the shared traversal change on AMD64 before claiming a speedup there.
-Compare optimized OpenBLAS or Accelerate separately, and profile the remaining
-SVD cost before another kernel pass. Evaluate Dgesdd as a separate algorithmic
-project; do not attribute a Dgesvd-versus-Dgesdd difference to SIMD.
+- Measure the shared traversal change on AMD64 before you claim a speedup
+  there.
+- Compare optimized OpenBLAS or Accelerate separately.
+- Profile the remaining SVD cost before another kernel pass.
+- Evaluate Dgesdd as a separate algorithmic project. Do not attribute a
+  Dgesvd-versus-Dgesdd difference to SIMD.
