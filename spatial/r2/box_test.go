@@ -180,8 +180,8 @@ func TestBoxVertices(t *testing.T) {
 
 // randomBox returns a random valid bounding Box.
 func randomBox(rnd *rand.Rand) Box {
-	spatialScale := randomRange(0, 2000)
-	boxScale := randomRange(0.01, 1000)
+	spatialScale := randomRange(rnd, 0, 2000)
+	boxScale := randomRange(rnd, 0.01, 1000)
 	return centeredBox(Scale(spatialScale, randomVec(rnd)), Scale(boxScale, absElem(randomVec(rnd))))
 }
 
@@ -189,14 +189,14 @@ func randomBox(rnd *rand.Rand) Box {
 // used to facilitate testing
 func (b Box) random(rnd *rand.Rand) Vec {
 	return Vec{
-		X: randomRange(b.Min.X, b.Max.X),
-		Y: randomRange(b.Min.Y, b.Max.Y),
+		X: randomRange(rnd, b.Min.X, b.Max.X),
+		Y: randomRange(rnd, b.Min.Y, b.Max.Y),
 	}
 }
 
 // randomRange returns a random float64 [a,b)
-func randomRange(a, b float64) float64 {
-	return a + (b-a)*rand.Float64()
+func randomRange(rnd *rand.Rand, a, b float64) float64 {
+	return a + (b-a)*rnd.Float64()
 }
 
 func goldenVertices(a Box) []Vec {
