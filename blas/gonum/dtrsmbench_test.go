@@ -16,8 +16,8 @@ import (
 // BenchmarkDtrsmSmallRectangular covers the solve shapes used by controlsys
 // MatLog_N50: the LU panel update and the real-augmented complex solve. Issue #10
 // showed that downstream timings can depend on toolchain and executable layout
-// even when this kernel's arithmetic is unchanged. Keep the downstream harness
-// in testdata/issue10 alongside these focused kernel measurements.
+// even when this kernel's arithmetic is unchanged; see
+// internal/asm/simdbench/RESULTS_ISSUE10.md.
 //
 // Each timed iteration includes restoring B, so repeated solves cannot turn the
 // fixture into a different numerical workload. A and the known solution are

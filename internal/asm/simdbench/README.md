@@ -79,6 +79,7 @@ select wider supported vectors at runtime.
 - [RESULTS_ROWWISE_GEMV.md](RESULTS_ROWWISE_GEMV.md): RowWise GEMV with shared input loads across ordered row reductions, public LQ gains.
 - [RESULTS_ALL_ASM.md](RESULTS_ALL_ASM.md): first complete native AMD64 checkpoint. All 57 BLAS assembly entries, 402 matched real BLAS consumer cases, remaining losses, separate square-root production change.
 - [RESULTS_GO1271.md](RESULTS_GO1271.md): stock Go 1.27.1 investigations, retained candidates, correctness repairs, measured costs.
+- [RESULTS_ISSUE10.md](RESULTS_ISSUE10.md): ARM64 downstream regression traced to executable layout under Go 1.26.4, not the DGEMM threshold.
 
 SIMD candidates do not change AMD64 production BLAS dispatch.
 
