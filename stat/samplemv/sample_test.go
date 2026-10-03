@@ -174,7 +174,7 @@ func randomNormal(dim int, src *rand.Rand) (*distmv.Normal, bool) {
 	sigma.SymOuterK(1, a)
 	mu := make([]float64, dim)
 	for i := range mu {
-		mu[i] = rand.NormFloat64()
+		mu[i] = src.NormFloat64()
 	}
 	return distmv.NewNormal(mu, &sigma, src)
 }
