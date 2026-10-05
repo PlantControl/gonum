@@ -8,7 +8,9 @@
 package coloring
 
 import (
+	"cmp"
 	"errors"
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"sort"
@@ -94,14 +96,17 @@ func DsaturExact(term Terminator, g graph.Undirected) (k int, colors map[int64]i
 	// easiest branch of the search tree. This will be the maximum
 	// clique with the lowest degree into the remainder of the graph.
 
-	nodes := g.Nodes()
-	n := nodes.Len()
+	sorted := graph.NodesOf(g.Nodes())
+	n := len(sorted)
 	if n == 0 {
 		return
 	}
+	slices.SortFunc(sorted, byID)
+	nodes := iterator.NewOrderedNodes(sorted)
 
 	lb, maxClique, cliques := maximumClique(g)
 	if lb == n {
+		slices.SortFunc(maxClique, byID)
 		return lb, colorClique(maxClique), nil
 	}
 
@@ -232,8 +237,9 @@ func dSaturExact(term Terminator, selector *saturationDegree, cand dSaturColorin
 		break
 	}
 
-	// Recur over every feasible color.
-	for c := range feasible {
+	// Recur over every feasible color in ascending order. Map order would
+	// make the search path, and so its run time, vary from run to run.
+	for _, c := range slices.Sorted(maps.Keys(feasible)) {
 		cand.colors[vid] = c
 		effK := k
 		if c == newCol {
@@ -256,7 +262,7 @@ func dSaturExact(term Terminator, selector *saturationDegree, cand dSaturColorin
 // maximumClique returns a maximum clique in g and its order.
 func maximumClique(g graph.Undirected) (k int, maxClique []graph.Node, cliques [][]graph.Node) {
 	cliques = topo.BronKerbosch(g)
-	for _, c := range topo.BronKerbosch(g) {
+	for _, c := range cliques {
 		if len(c) > len(maxClique) {
 			maxClique = c
 		}
@@ -267,14 +273,21 @@ func maximumClique(g graph.Undirected) (k int, maxClique []graph.Node, cliques [
 // bestMaximumClique returns the maximum clique in g with the lowest degree into
 // the remainder of the graph.
 func bestMaximumClique(g graph.Undirected, cliques [][]graph.Node) (colors map[int64]int) {
-	switch len(cliques) {
-	case 0:
+	if len(cliques) == 0 {
 		return nil
-	case 1:
-		return colorClique(cliques[0])
 	}
 
-	sort.Slice(cliques, func(i, j int) bool { return len(cliques[i]) > len(cliques[j]) })
+	// Order cliques canonically so ties in size and degree resolve the
+	// same way on every run.
+	for _, c := range cliques {
+		slices.SortFunc(c, byID)
+	}
+	slices.SortFunc(cliques, func(a, b []graph.Node) int {
+		if c := cmp.Compare(len(b), len(a)); c != 0 {
+			return c
+		}
+		return slices.CompareFunc(a, b, byID)
+	})
 	maxClique := cliques[0]
 	minDegree := cliqueDegree(g, maxClique)
 	for _, c := range cliques[1:] {
@@ -290,6 +303,8 @@ func bestMaximumClique(g graph.Undirected, cliques [][]graph.Node) (colors map[i
 
 	return colorClique(maxClique)
 }
+
+func byID(a, b graph.Node) int { return cmp.Compare(a.ID(), b.ID()) }
 
 // cliqueDegree returns the degree of the clique to nodes outside the clique.
 func cliqueDegree(g graph.Undirected, clique []graph.Node) int {
