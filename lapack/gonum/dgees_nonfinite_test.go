@@ -154,3 +154,20 @@ func TestDhseqrNonFinite(t *testing.T) {
 		}
 	}
 }
+
+func TestDlaqr1NaNShifts(t *testing.T) {
+	t.Parallel()
+	nan := math.NaN()
+	for _, n := range []int{2, 3} {
+		h := nonFiniteTestMatrix(n)
+		for _, s := range [][4]float64{{nan, 0, 1, 0}, {1, nan, 1, 0}, {1, 1, nan, -1}, {nan, nan, nan, nan}} {
+			v := make([]float64, n)
+			if r := panicValue(func() { Implementation{}.Dlaqr1(n, h, n, s[0], s[1], s[2], s[3], v) }); r != nil {
+				t.Errorf("n=%d,shifts=%v: unexpected panic %v", n, s, r)
+			}
+		}
+		if r := panicValue(func() { Implementation{}.Dlaqr1(n, h, n, 1, 1, 2, -1, make([]float64, n)) }); r != badShifts {
+			t.Errorf("n=%d: mismatched finite shifts: got panic %v, want %q", n, r, badShifts)
+		}
+	}
+}
