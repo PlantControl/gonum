@@ -154,16 +154,16 @@ func (impl Implementation) Dbdsqr(uplo blas.Uplo, n, ncvt, nru, ncc int, d, e, v
 				mu := sminoa
 				for i := 1; i < n; i++ {
 					mu = math.Abs(d[i]) * (mu / (mu + math.Abs(e[i-1])))
-					sminoa = math.Min(sminoa, mu)
+					sminoa = fmin(sminoa, mu)
 					if sminoa == 0 {
 						break
 					}
 				}
 			}
 			sminoa = sminoa / math.Sqrt(float64(n))
-			thresh = math.Max(tol*sminoa, float64(maxIter*n*n)*unfl)
+			thresh = fmax(tol*sminoa, float64(maxIter*n*n)*unfl)
 		} else {
-			thresh = math.Max(math.Abs(tol)*smax, float64(maxIter*n*n)*unfl)
+			thresh = fmax(math.Abs(tol)*smax, float64(maxIter*n*n)*unfl)
 		}
 		// Prepare for the main iteration loop for the singular values.
 		maxIt := maxIter * n * n
