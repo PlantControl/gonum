@@ -70,8 +70,8 @@ import (
 // converged.
 //
 // Dgeev panics if A contains a NaN or an infinity. Reference LAPACK 3.12
-// DGEEV has no explicit check; NaN reaches DGEBAL, which fails with
-// INFO = -3, and an infinity becomes NaN when DLASCL scales A.
+// DGEEV has no explicit check: a NaN in the balanced block makes DGEBAL fail
+// with INFO = -3, and an infinity becomes NaN when DLASCL scales A.
 func (impl Implementation) Dgeev(jobvl lapack.LeftEVJob, jobvr lapack.RightEVJob, n int, a []float64, lda int, wr, wi []float64, vl []float64, ldvl int, vr []float64, ldvr int, work []float64, lwork int) (first int) {
 	wantvl := jobvl == lapack.LeftEVCompute
 	wantvr := jobvr == lapack.RightEVCompute
