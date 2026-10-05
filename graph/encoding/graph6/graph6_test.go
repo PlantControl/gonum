@@ -5,6 +5,8 @@
 package graph6
 
 import (
+	"fmt"
+	"math/rand/v2"
 	"reflect"
 	"testing"
 
@@ -261,3 +263,123 @@ func (i implicitCycle) Edge(xid, yid int64) graph.Edge     { return nil }
 type node int32
 
 func (n node) ID() int64 { return int64(n) }
+
+func TestFromIteration(t *testing.T) {
+	for _, n := range []int{0, 1, 2, 7, 62, 63, 81, 130} {
+		g := randomGraph6(n, 0.3, uint64(n))
+		if !IsValid(g) {
+			t.Fatalf("n=%d: unexpected invalid graph", n)
+		}
+		for u := range int64(n) {
+			var want []int64
+			for v := range int64(n) {
+				if g.HasEdgeBetween(u, v) {
+					want = append(want, v)
+				}
+			}
+			it := g.From(u)
+			for pass := range 2 {
+				var got []int64
+				for k := 0; ; k++ {
+					if l := it.Len(); l != len(want)-k {
+						t.Errorf("n=%d u=%d pass=%d: unexpected Len after %d steps: got:%d want:%d", n, u, pass, k, l, len(want)-k)
+					}
+					if !it.Next() {
+						break
+					}
+					got = append(got, it.Node().ID())
+				}
+				if !reflect.DeepEqual(got, want) && (len(got) != 0 || len(want) != 0) {
+					t.Errorf("n=%d u=%d pass=%d: unexpected neighbours: got:%v want:%v", n, u, pass, got, want)
+				}
+				if it.Next() {
+					t.Errorf("n=%d u=%d pass=%d: Next true after exhaustion", n, u, pass)
+				}
+				it.Reset()
+			}
+		}
+		if g.From(-1) != nil || g.From(int64(n)) != nil {
+			t.Errorf("n=%d: expected nil From for absent node", n)
+		}
+	}
+}
+
+func TestMalformed(t *testing.T) {
+	for _, g := range []Graph{
+		"",
+		">",
+		"\x7f",
+		"A",
+		"A??",
+		"B>",
+		"~",
+		"~??A",
+		"~~",
+		"~~?????A",
+	} {
+		if IsValid(g) {
+			t.Errorf("%q: unexpected valid graph", g)
+		}
+		if nodes := g.Nodes(); nodes != graph.Empty {
+			t.Errorf("%q: unexpected Nodes: %v", g, nodes)
+		}
+		for id := int64(-1); id < 3; id++ {
+			if from := g.From(id); from != graph.Empty {
+				t.Errorf("%q: unexpected From(%d): %v", g, id, from)
+			}
+			if node := g.Node(id); node != nil {
+				t.Errorf("%q: unexpected Node(%d): %v", g, id, node)
+			}
+			for vid := int64(-1); vid < 3; vid++ {
+				if g.HasEdgeBetween(id, vid) {
+					t.Errorf("%q: unexpected edge %d--%d", g, id, vid)
+				}
+				if e := g.Edge(id, vid); e != nil {
+					t.Errorf("%q: unexpected Edge(%d, %d): %v", g, id, vid, e)
+				}
+				if e := g.EdgeBetween(id, vid); e != nil {
+					t.Errorf("%q: unexpected EdgeBetween(%d, %d): %v", g, id, vid, e)
+				}
+			}
+		}
+	}
+}
+
+func randomGraph6(n int, p float64, seed uint64) Graph {
+	rnd := rand.New(rand.NewPCG(seed, seed))
+	g := simple.NewUndirectedGraph()
+	for i := range n {
+		g.AddNode(simple.Node(i))
+	}
+	for i := range n {
+		for j := i + 1; j < n; j++ {
+			if rnd.Float64() < p {
+				g.SetEdge(simple.Edge{F: simple.Node(i), T: simple.Node(j)})
+			}
+		}
+	}
+	return Encode(g)
+}
+
+func BenchmarkFrom(b *testing.B) {
+	for _, n := range []int{81, 500} {
+		g := randomGraph6(n, 0.3, 1)
+		b.Run(fmt.Sprintf("Next/n=%d", n), func(b *testing.B) {
+			for b.Loop() {
+				for u := range int64(n) {
+					it := g.From(u)
+					for it.Next() {
+						_ = it.Node()
+					}
+				}
+			}
+		})
+		b.Run(fmt.Sprintf("Len/n=%d", n), func(b *testing.B) {
+			for b.Loop() {
+				for u := range int64(n) {
+					_ = g.From(u).Len()
+				}
+			}
+		})
+	}
+}
