@@ -20,6 +20,24 @@ func abs(a int) int {
 	return a
 }
 
+// fmax returns the larger of a and b, or the other operand if one is NaN, as
+// gfortran's MAX intrinsic does. Reference LAPACK relies on this to keep NaN
+// data out of scale factors and thresholds.
+func fmax(a, b float64) float64 {
+	if a > b || b != b {
+		return a
+	}
+	return b
+}
+
+// fmin is the MIN counterpart of fmax.
+func fmin(a, b float64) float64 {
+	if a < b || b != b {
+		return a
+	}
+	return b
+}
+
 const (
 	// dlamchE is the machine epsilon. For IEEE this is 2^{-53}.
 	dlamchE = 0x1p-53

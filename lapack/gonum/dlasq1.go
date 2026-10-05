@@ -50,7 +50,7 @@ func (impl Implementation) Dlasq1(n int, d, e, work []float64) (info int) {
 	var sigmx float64
 	for i := 0; i < n-1; i++ {
 		d[i] = math.Abs(d[i])
-		sigmx = math.Max(sigmx, math.Abs(e[i]))
+		sigmx = fmax(sigmx, math.Abs(e[i]))
 	}
 	d[n-1] = math.Abs(d[n-1])
 	// Early return if sigmx is zero (matrix is already diagonal).
@@ -60,7 +60,7 @@ func (impl Implementation) Dlasq1(n int, d, e, work []float64) (info int) {
 	}
 
 	for i := 0; i < n; i++ {
-		sigmx = math.Max(sigmx, d[i])
+		sigmx = fmax(sigmx, d[i])
 	}
 
 	// Copy D and E into WORK (in the Z format) and scale (squaring the
