@@ -575,3 +575,76 @@ func init() {
 		return c.run
 	}
 }
+
+// See dggesRejectedSwapFixture for the construction and why Reference
+// DGGES reports INFO=N+2 rather than N+3 on these rejected reorderings.
+func TestDggesNetlibRejectedSwap(t *testing.T) {
+	major, minor, patch := netlib.Version()
+	t.Logf("LAPACK runtime %d.%d.%d", major, minor, patch)
+	for _, tc := range dggesRejectedSwapFixtures() {
+		n := tc.n
+		for _, vectors := range []string{"both", "none"} {
+			t.Run(tc.name+"/"+vectors, func(t *testing.T) {
+				g := newDggesComparison(n, tc.a, tc.b, vectors, 1, false)
+				ref := newDggesComparison(n, tc.a, tc.b, vectors, 1, true)
+				gs, gok := g.run()
+				rs, _ := ref.run()
+				if gok || ref.info != n+2 || gs != rs || gs != tc.sdim {
+					t.Fatalf("Go=(%d,%t), Netlib=(%d,info=%d), want sdim=%d info=%d",
+						gs, gok, rs, ref.info, tc.sdim, n+2)
+				}
+				for i := range n {
+					if (g.beta[i] == 0) != (ref.beta[i] == 0) || (g.ai[i] == 0) != (ref.ai[i] == 0) {
+						t.Fatalf("eigenvalue %d kind differs: Go=(%g,%g,%g) Netlib=(%g,%g,%g)",
+							i, g.ar[i], g.ai[i], g.beta[i], ref.ar[i], ref.ai[i], ref.beta[i])
+					}
+				}
+				compareGeneralizedEigenvalues(t, g.ar, g.ai, g.beta, ref.ar, ref.ai, ref.beta)
+				mats := [][2][]float64{{g.a, dggesTranspose(ref.a, n)}, {g.b, dggesTranspose(ref.b, n)}}
+				if vectors == "both" {
+					mats = append(mats, [2][]float64{g.q, dggesTranspose(ref.q, n)}, [2][]float64{g.z, dggesTranspose(ref.z, n)})
+				}
+				for k, m := range mats {
+					for i := range m[0] {
+						if math.Abs(m[0][i]-m[1][i]) > 1e-13 {
+							t.Fatalf("output %d entry %d: Go=%g Netlib=%g", k, i, m[0][i], m[1][i])
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestDtgsenNetlibRejectedSwap(t *testing.T) {
+	for _, tc := range dggesRejectedSwapFixtures() {
+		n := tc.n
+		for _, vectors := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s/vectors=%t", tc.name, vectors), func(t *testing.T) {
+				ga, gb := append([]float64(nil), tc.a...), append([]float64(nil), tc.b...)
+				na, nb := append([]float64(nil), tc.a...), append([]float64(nil), tc.b...)
+				gar, gai, gbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+				nar, nai, nbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+				gq, gz := identityData(n), identityData(n)
+				nq, nz := identityData(n), identityData(n)
+				work := make([]float64, 4*n+16)
+				iwork := make([]int, 1)
+				gm, _, _, _, gok := Implementation{}.Dtgsen(0, vectors, vectors, tc.selected, n,
+					ga, n, gb, n, gar, gai, gbeta, gq, n, gz, n, work, len(work), iwork, len(iwork))
+				nm, _, _, _, info := netlib.Dtgsen(0, vectors, vectors, tc.selected, n,
+					na, nb, nar, nai, nbeta, nq, nz)
+				if gok || info != 1 || gm != nm {
+					t.Fatalf("Go=(%d,%t), Netlib=(%d,info=%d), want info=1", gm, gok, nm, info)
+				}
+				compareGeneralizedEigenvalues(t, gar, gai, gbeta, nar, nai, nbeta)
+				for k, m := range [][2][]float64{{ga, na}, {gb, nb}, {gq, nq}, {gz, nz}} {
+					for i := range m[0] {
+						if math.Abs(m[0][i]-m[1][i]) > 1e-13 {
+							t.Fatalf("output %d entry %d: Go=%g Netlib=%g", k, i, m[0][i], m[1][i])
+						}
+					}
+				}
+			})
+		}
+	}
+}
