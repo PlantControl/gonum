@@ -83,6 +83,8 @@ const (
 	mNotN       = "lapack: m != n"
 	nLT1        = "lapack: n < 1"
 	nLTM        = "lapack: n < m"
+	nanA        = "lapack: A has NaN"
+	nonFiniteA  = "lapack: A has NaN or Inf"
 	nanCFrom    = "lapack: cfrom is NaN"
 	nanCTo      = "lapack: cto is NaN"
 	nbGTM       = "lapack: nb > m"

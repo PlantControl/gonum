@@ -93,7 +93,7 @@ func GemvT(m, n uintptr, alpha float64, a []float64, lda uintptr, x []float64, i
 	switch {
 	case beta == 0: // beta == 0 is special-cased to memclear
 		if incY == 1 {
-			for i := range y {
+			for i := range y[:n] {
 				y[i] = 0
 			}
 		} else {

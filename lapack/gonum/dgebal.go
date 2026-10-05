@@ -62,6 +62,12 @@ import (
 //
 // scale must have length equal to n, otherwise Dgebal will panic.
 //
+// If job is lapack.Scale or lapack.PermuteScale and the scaling stage
+// encounters a NaN in the rows and columns ilo to ihi, Dgebal panics instead
+// of iterating forever. This corresponds to INFO = -3 in reference LAPACK 3.12
+// DGEBAL. NaN elements outside that block, or with job == lapack.Permute, are
+// not detected.
+//
 // Dgebal is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dgebal(job lapack.BalanceJob, n int, a []float64, lda int, scale []float64) (ilo, ihi int) {
 	switch {
@@ -201,14 +207,13 @@ scaling:
 			if c == 0 || r == 0 {
 				continue
 			}
+			if math.IsNaN(c + ca + r + ra) {
+				panic(nanA)
+			}
 			g := r / sclfac
 			f := 1.0
 			s := c + r
 			for c < g && math.Max(f, math.Max(c, ca)) < sfmax2 && math.Min(r, math.Min(g, ra)) > sfmin2 {
-				if math.IsNaN(c + f + ca + r + g + ra) {
-					// Panic if NaN to avoid infinite loop.
-					panic("lapack: NaN")
-				}
 				f *= sclfac
 				c *= sclfac
 				ca *= sclfac
