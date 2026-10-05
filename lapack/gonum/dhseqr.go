@@ -238,26 +238,35 @@ func (impl Implementation) Dhseqr(job lapack.SchurJob, compz lapack.SchurComp, n
 		if unconverged > 0 {
 			// A rare Dlahqr failure! Dlaqr04 sometimes succeeds
 			// when Dlahqr fails.
-			kbot := unconverged
+			kbot := unconverged - 1
 			if n >= nl {
 				// Larger matrices have enough subdiagonal
 				// scratch space to call Dlaqr04 directly.
 				unconverged = impl.Dlaqr04(wantt, wantz, n, ilo, kbot, h, ldh,
-					wr[:ihi+1], wi[:ihi+1], ilo, ihi, z, ldz, work, lwork, 1)
+					wr[:kbot+1], wi[:kbot+1], ilo, ihi, z, ldz, work, lwork, 1)
 			} else {
 				// Tiny matrices don't have enough subdiagonal
 				// scratch space to benefit from Dlaqr04. Hence,
 				// tiny matrices must be copied into a larger
-				// array before calling Dlaqr04.
+				// array before calling Dlaqr04. Z is padded too
+				// because Dlaqr04 requires an nl×nl Z.
 				var hl [nl * nl]float64
 				impl.Dlacpy(blas.All, n, n, h, ldh, hl[:], nl)
 				impl.Dlaset(blas.All, nl, nl-n, 0, 0, hl[n:], nl)
+				var zl []float64
+				if wantz {
+					zl = make([]float64, nl*nl)
+					impl.Dlacpy(blas.All, n, n, z, ldz, zl, nl)
+				}
 				var workl [nl]float64
 				unconverged = impl.Dlaqr04(wantt, wantz, nl, ilo, kbot, hl[:], nl,
-					wr[:ihi+1], wi[:ihi+1], ilo, ihi, z, ldz, workl[:], nl, 1)
+					wr[:kbot+1], wi[:kbot+1], ilo, ihi, zl, nl, workl[:], nl, 1)
 				work[0] = workl[0]
 				if wantt || unconverged > 0 {
 					impl.Dlacpy(blas.All, n, n, hl[:], nl, h, ldh)
+				}
+				if wantz {
+					impl.Dlacpy(blas.All, n, n, zl, nl, z, ldz)
 				}
 			}
 		}

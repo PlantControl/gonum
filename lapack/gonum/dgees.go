@@ -81,6 +81,10 @@ import (
 // converged. In this case the eigenvalues in wr[0:n] and wi[0:n] are correct
 // for indices where they were computed, but T may not be in Schur form.
 //
+// Dgees does not check A for NaN or Inf. Like reference LAPACK 3.12 DGEES,
+// which returns INFO >= 0 for such input, Dgees then returns with ok false, or
+// with ok true and NaN in a, wr or wi; it does not panic.
+//
 // Dgees is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dgees(jobvs lapack.SchurComp, sort lapack.SchurSort, selctg func(wr, wi float64) bool, n int, a []float64, lda int, wr, wi []float64, vs []float64, ldvs int, work []float64, lwork int, bwork []bool) (sdim int, ok bool) {
 	wantvs := jobvs == lapack.SchurHess
