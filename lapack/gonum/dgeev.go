@@ -68,6 +68,10 @@ import (
 // Dgeev failed to compute all the eigenvalues, no eigenvectors have been
 // computed and wr[first:] and wi[first:] contain those eigenvalues which have
 // converged.
+//
+// Dgeev panics if A contains a NaN or an infinity. Reference LAPACK 3.12
+// DGEEV has no explicit check; NaN reaches DGEBAL, which fails with
+// INFO = -3, and an infinity becomes NaN when DLASCL scales A.
 func (impl Implementation) Dgeev(jobvl lapack.LeftEVJob, jobvr lapack.RightEVJob, n int, a []float64, lda int, wr, wi []float64, vl []float64, ldvl int, vr []float64, ldvr int, work []float64, lwork int) (first int) {
 	wantvl := jobvl == lapack.LeftEVCompute
 	wantvr := jobvr == lapack.RightEVCompute
@@ -147,6 +151,9 @@ func (impl Implementation) Dgeev(jobvl lapack.LeftEVJob, jobvr lapack.RightEVJob
 
 	// Scale A if max element outside range [smlnum,bignum].
 	anrm := impl.Dlange(lapack.MaxAbs, n, n, a, lda, nil)
+	if math.IsNaN(anrm) || math.IsInf(anrm, 0) {
+		panic(nonFiniteA)
+	}
 	var scalea bool
 	var cscale float64
 	if 0 < anrm && anrm < smlnum {
