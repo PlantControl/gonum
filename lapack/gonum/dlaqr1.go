@@ -16,7 +16,9 @@ import "math"
 //
 // n is the order of H and must be either 2 or 3. It must hold that either sr1 =
 // sr2 and si1 = -si2, or si1 = si2 = 0. The length of v must be equal to n. If
-// any of these conditions is not met, Dlaqr1 will panic.
+// any of these conditions is not met, Dlaqr1 will panic. NaN shifts, which QR
+// sweeps compute from a matrix containing NaN, are not rejected and give a NaN
+// v, as in reference LAPACK DLAQR1, which has no shift check.
 //
 // Dlaqr1 is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlaqr1(n int, h []float64, ldh int, sr1, si1, sr2, si2 float64, v []float64) {
@@ -27,7 +29,7 @@ func (impl Implementation) Dlaqr1(n int, h []float64, ldh int, sr1, si1, sr2, si
 		panic(badLdH)
 	case len(h) < (n-1)*ldh+n:
 		panic(shortH)
-	case !((sr1 == sr2 && si1 == -si2) || (si1 == 0 && si2 == 0)):
+	case !((sr1 == sr2 && si1 == -si2) || (si1 == 0 && si2 == 0)) && !math.IsNaN(sr1+si1+sr2+si2):
 		panic(badShifts)
 	case len(v) != n:
 		panic(shortV)

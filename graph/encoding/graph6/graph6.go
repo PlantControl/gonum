@@ -100,28 +100,36 @@ func bit6(b int64) byte {
 // IsValid returns whether the graph is a valid graph6 encoding. An invalid Graph
 // behaves as the null graph.
 func IsValid(g Graph) bool {
-	n := int(numberOf(g))
+	return orderOf(g) >= 0
+}
+
+// orderOf returns the number of nodes in g, or -1 if g is not a valid
+// graph6 encoding.
+func orderOf(g Graph) int64 {
+	n := numberOf(g)
 	if n < 0 {
-		return false
+		return -1
 	}
 	size := ((n*n-n)/2 + 5) / 6 // ceil(((n*n-n)/2) / 6)
+	var adj int
 	switch {
 	case g[0] != 126:
-		return len(g[1:]) == size
+		adj = len(g[1:])
 	case g[1] != 126:
-		return len(g[4:]) == size
+		adj = len(g[4:])
 	default:
-		return len(g[8:]) == size
+		adj = len(g[8:])
 	}
+	if int64(adj) != size {
+		return -1
+	}
+	return n
 }
 
 // Edge returns the edge from u to v, with IDs uid and vid, if such an edge
 // exists and nil otherwise. The node v must be directly reachable from u as
 // defined by the From method.
 func (g Graph) Edge(uid, vid int64) graph.Edge {
-	if !IsValid(g) {
-		return nil
-	}
 	if !g.HasEdgeBetween(uid, vid) {
 		return nil
 	}
@@ -136,28 +144,30 @@ func (g Graph) EdgeBetween(xid, yid int64) graph.Edge {
 // From returns all nodes that can be reached directly from the node with the
 // given ID.
 func (g Graph) From(id int64) graph.Nodes {
-	if !IsValid(g) {
+	n := orderOf(g)
+	if n < 0 {
 		return graph.Empty
 	}
-	if g.Node(id) == nil {
+	if id < 0 || n <= id {
 		return nil
 	}
-	return &g6Iterator{g: g, from: id, to: -1}
+	return &g6Iterator{g: g, n: n, from: id, to: -1}
 }
 
 // HasEdgeBetween returns whether an edge exists between nodes with IDs xid
 // and yid without considering direction.
 func (g Graph) HasEdgeBetween(xid, yid int64) bool {
-	if !IsValid(g) {
+	n := orderOf(g)
+	if n < 0 {
 		return false
 	}
 	if xid == yid {
 		return false
 	}
-	if xid < 0 || numberOf(g) <= xid {
+	if xid < 0 || n <= xid {
 		return false
 	}
-	if yid < 0 || numberOf(g) <= yid {
+	if yid < 0 || n <= yid {
 		return false
 	}
 	return isSet(bitFor(xid, yid), g)
@@ -166,10 +176,8 @@ func (g Graph) HasEdgeBetween(xid, yid int64) bool {
 // Node returns the node with the given ID if it exists in the graph, and nil
 // otherwise.
 func (g Graph) Node(id int64) graph.Node {
-	if !IsValid(g) {
-		return nil
-	}
-	if id < 0 || numberOf(g) <= id {
+	n := orderOf(g)
+	if n < 0 || id < 0 || n <= id {
 		return nil
 	}
 	return simple.Node(id)
@@ -177,15 +185,17 @@ func (g Graph) Node(id int64) graph.Node {
 
 // Nodes returns all the nodes in the graph.
 func (g Graph) Nodes() graph.Nodes {
-	if !IsValid(g) {
+	n := orderOf(g)
+	if n < 0 {
 		return graph.Empty
 	}
-	return iterator.NewImplicitNodes(0, int(numberOf(g)), func(id int) graph.Node { return simple.Node(id) })
+	return iterator.NewImplicitNodes(0, int(n), func(id int) graph.Node { return simple.Node(id) })
 }
 
 // g6Iterator is a graph.Nodes for graph6 graph edges.
 type g6Iterator struct {
 	g    Graph
+	n    int64
 	from int64
 	to   int64
 }
@@ -193,8 +203,7 @@ type g6Iterator struct {
 var _ graph.Nodes = (*g6Iterator)(nil)
 
 func (i *g6Iterator) Next() bool {
-	n := numberOf(i.g)
-	for i.to < n-1 {
+	for i.to < i.n-1 {
 		i.to++
 		if i.to != i.from && isSet(bitFor(i.from, i.to), i.g) {
 			return true
@@ -205,8 +214,7 @@ func (i *g6Iterator) Next() bool {
 
 func (i *g6Iterator) Len() int {
 	var cnt int
-	n := numberOf(i.g)
-	for to := i.to; to < n-1; {
+	for to := i.to; to < i.n-1; {
 		to++
 		if to != i.from && isSet(bitFor(i.from, to), i.g) {
 			cnt++

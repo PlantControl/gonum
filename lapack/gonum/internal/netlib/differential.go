@@ -112,6 +112,8 @@ extern void dtgex2_(int*, int*, int*, double*, int*, double*, int*, double*, int
 	double*, int*, int*, int*, int*, double*, int*, int*);
 extern void dgetc2_(int*, double*, int*, int*, int*, int*);
 extern void dlatdf_(int*, int*, double*, int*, double*, double*, double*, int*, int*);
+extern void dlanv2_(double*, double*, double*, double*, double*, double*,
+		double*, double*, double*, double*);
 extern void dtgsy2_(char*, int*, int*, int*, double*, int*, double*, int*,
 		double*, int*, double*, int*, double*, int*, double*, int*, double*,
 		double*, double*, int*, int*, int*);
@@ -356,6 +358,14 @@ func Dlatdf(job lapack.MaximizeNormXJob, n int, z, rhs []float64,
 	cinfo := C.run_dlatdf(C.int(job), C.int(n), (*C.double)(unsafe.Pointer(&z[0])),
 		(*C.double)(unsafe.Pointer(&rhs[0])), &csum, &cscale)
 	return float64(csum), float64(cscale), int(cinfo)
+}
+
+func Dlanv2(a, b, c, d float64) (aa, bb, cc, dd, rt1r, rt1i, rt2r, rt2i, cs, sn float64) {
+	ca, cb, cc_, cd := C.double(a), C.double(b), C.double(c), C.double(d)
+	var r1r, r1i, r2r, r2i, ccs, csn C.double
+	C.dlanv2_(&ca, &cb, &cc_, &cd, &r1r, &r1i, &r2r, &r2i, &ccs, &csn)
+	return float64(ca), float64(cb), float64(cc_), float64(cd),
+		float64(r1r), float64(r1i), float64(r2r), float64(r2i), float64(ccs), float64(csn)
 }
 
 func Dtgex2(n int, a, b []float64, j1, n1, n2 int) int {

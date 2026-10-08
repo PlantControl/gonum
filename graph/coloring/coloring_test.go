@@ -7,6 +7,7 @@ package coloring
 import (
 	"context"
 	"flag"
+	"maps"
 	"math/rand/v2"
 	"testing"
 	"time"
@@ -502,6 +503,31 @@ func TestDsaturExact(t *testing.T) {
 				} else {
 					t.Logf("test ran too long for %q", test.name)
 				}
+			}
+		}
+	}
+}
+
+// TestDsaturExactDeterministic checks that DsaturExact explores the same
+// search path on every run, including for graphs whose node and edge
+// iteration order is randomized. A map-ordered search made run time vary
+// widely and occasionally exceed the test timeout.
+func TestDsaturExactDeterministic(t *testing.T) {
+	for _, test := range coloringTests {
+		if test.long || test.name == "sudoku problem" || test.name == "queen7_7" {
+			continue
+		}
+		g := simple.NewUndirectedGraph()
+		graph.Copy(g, test.g)
+		_, want, err := DsaturExact(nil, g)
+		if err != nil {
+			t.Fatalf("unexpected error for %q: %v", test.name, err)
+		}
+		for range 2 {
+			_, got, _ := DsaturExact(nil, g)
+			if !maps.Equal(got, want) {
+				t.Errorf("nondeterministic coloring for %q:\ngot: %v\nwant:%v", test.name, got, want)
+				break
 			}
 		}
 	}

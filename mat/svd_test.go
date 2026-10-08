@@ -5,6 +5,8 @@
 package mat
 
 import (
+	"fmt"
+	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -210,6 +212,47 @@ func extractSVD(svd *SVD) (s []float64, u, v *Dense) {
 	v = &Dense{}
 	svd.VTo(v)
 	return svd.Values(nil), u, v
+}
+
+func TestSVDNonFinite(t *testing.T) {
+	t.Parallel()
+	kinds := []SVDKind{SVDNone, SVDThinU, SVDFullU, SVDThinV, SVDFullV, SVDThin, SVDFull}
+	for _, mn := range [][2]int{{1, 1}, {4, 4}, {3, 5}, {5, 3}, {12, 4}} {
+		m, n := mn[0], mn[1]
+		for _, p := range []int{0, m * n / 2, m*n - 1} {
+			for _, v := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+				for _, kind := range kinds {
+					name := fmt.Sprintf("m=%d,n=%d,pos=%d,v=%g,kind=%d", m, n, p, v, kind)
+					a := NewDense(m, n, nil)
+					for i := range m {
+						for j := range n {
+							a.Set(i, j, float64(((i*n+j)*7)%5)-1.5)
+						}
+					}
+					var svd SVD
+					if !svd.Factorize(a, kind) {
+						t.Fatalf("%s: finite factorization failed", name)
+					}
+					a.Set(p/n, p%n, v)
+					var ok bool
+					r, msg := panics(func() { ok = svd.Factorize(a, kind) })
+					if r {
+						t.Errorf("%s: unexpected panic %s", name, msg)
+						continue
+					}
+					if ok {
+						t.Errorf("%s: ok for non-finite input", name)
+					}
+					if svd.Kind() != -1 {
+						t.Errorf("%s: Kind()=%d after failed factorization", name, svd.Kind())
+					}
+					if c := Cond(a, 2); !math.IsInf(c, 1) {
+						t.Errorf("%s: Cond(a, 2)=%v, want +Inf", name, c)
+					}
+				}
+			}
+		}
+	}
 }
 
 func TestSVDSolveTo(t *testing.T) {

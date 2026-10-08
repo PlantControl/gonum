@@ -5,6 +5,8 @@
 package mat
 
 import (
+	"math"
+
 	"plantcontrol.org/v1/gonum/lapack"
 	"plantcontrol.org/v1/gonum/lapack/lapack64"
 )
@@ -254,6 +256,7 @@ func (e *Eigen) succFact() bool {
 //
 // Factorize returns whether the decomposition succeeded. If the decomposition
 // failed, methods that require a successful factorization will panic.
+// Factorize returns false if a contains a NaN or an infinity.
 func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	// kill previous factorization.
 	e.n = 0
@@ -265,6 +268,14 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	}
 	var sd Dense
 	sd.CloneFrom(a)
+	for i := range r {
+		for _, v := range sd.mat.Data[i*sd.mat.Stride : i*sd.mat.Stride+c] {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				e.values = nil
+				return false
+			}
+		}
+	}
 
 	left := kind&EigenLeft != 0
 	right := kind&EigenRight != 0

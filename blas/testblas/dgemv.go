@@ -5,6 +5,7 @@
 package testblas
 
 import (
+	"fmt"
 	"testing"
 
 	"plantcontrol.org/v1/gonum/blas"
@@ -636,6 +637,74 @@ func DgemvTest(t *testing.T, blasser Dgemver) {
 
 			// Test the bad inputs
 			dgemvbad(t, test, cas, i, blasser)
+		}
+	}
+	dgemvTail(t, blasser)
+}
+
+// dgemvTail checks that Dgemv writes only the lenY elements of y addressed by
+// incY and leaves the rest of a longer y slice unchanged.
+func dgemvTail(t *testing.T, blasser Dgemver) {
+	const tail = 5
+	for _, tA := range []blas.Transpose{blas.NoTrans, blas.Trans} {
+		for _, dims := range [][2]int{{1, 1}, {3, 2}, {2, 7}, {9, 13}, {17, 8}} {
+			m, n := dims[0], dims[1]
+			lenX, lenY := n, m
+			if tA != blas.NoTrans {
+				lenX, lenY = m, n
+			}
+			for _, incY := range []int{1, 2, -3} {
+				for _, alpha := range []float64{0, 1.5} {
+					for _, beta := range []float64{0, 1, -0.5} {
+						lda := n + 1
+						a := make([]float64, m*lda)
+						for i := range a {
+							a[i] = float64(i%7) - 2.5
+						}
+						x := make([]float64, lenX)
+						for i := range x {
+							x[i] = float64(i%5) + 0.5
+						}
+						aincY := max(incY, -incY)
+						yLen := (lenY-1)*aincY + 1
+						y := make([]float64, yLen+tail)
+						for i := range y {
+							y[i] = float64(1000 + i)
+						}
+						want := make([]float64, len(y))
+						copy(want, y)
+						for i := 0; i < lenY; i++ {
+							iy := i * aincY
+							if incY < 0 {
+								iy = (lenY - 1 - i) * aincY
+							}
+							var sum float64
+							for j := 0; j < lenX; j++ {
+								if tA == blas.NoTrans {
+									sum += a[i*lda+j] * x[j]
+								} else {
+									sum += a[j*lda+i] * x[j]
+								}
+							}
+							if beta == 0 {
+								want[iy] = alpha * sum
+							} else {
+								want[iy] = alpha*sum + beta*want[iy]
+							}
+						}
+						blasser.Dgemv(tA, m, n, alpha, a, lda, x, 1, beta, y, incY)
+						name := fmt.Sprintf("tA=%c,m=%d,n=%d,incY=%d,alpha=%g,beta=%g", tA, m, n, incY, alpha, beta)
+						for i := yLen; i < len(y); i++ {
+							if y[i] != want[i] {
+								t.Errorf("%s: y[%d] beyond vector modified: got %v, want %v", name, i, y[i], want[i])
+							}
+						}
+						if !dSliceTolEqual(y[:yLen], want[:yLen]) {
+							t.Errorf("%s: unexpected y: got %v, want %v", name, y[:yLen], want[:yLen])
+						}
+					}
+				}
+			}
 		}
 	}
 }

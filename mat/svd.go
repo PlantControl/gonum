@@ -5,6 +5,8 @@
 package mat
 
 import (
+	"math"
+
 	"plantcontrol.org/v1/gonum/blas/blas64"
 	"plantcontrol.org/v1/gonum/lapack"
 	"plantcontrol.org/v1/gonum/lapack/lapack64"
@@ -76,6 +78,7 @@ func (svd *SVD) succFact() bool {
 //
 // Factorize returns whether the decomposition succeeded. If the decomposition
 // failed, routines that require a successful factorization will panic.
+// Factorize returns false if a contains a NaN or an infinity.
 func (svd *SVD) Factorize(a Matrix, kind SVDKind) (ok bool) {
 	// kill previous factorization
 	svd.s = svd.s[:0]
@@ -130,6 +133,14 @@ func (svd *SVD) Factorize(a Matrix, kind SVDKind) (ok bool) {
 
 	// A is destroyed on call, so copy the matrix.
 	aCopy := DenseCopyOf(a)
+	for i := range m {
+		for _, v := range aCopy.mat.Data[i*aCopy.mat.Stride : i*aCopy.mat.Stride+n] {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				svd.kind = 0
+				return false
+			}
+		}
+	}
 	svd.kind = kind
 	svd.s = use(svd.s, min(m, n))
 

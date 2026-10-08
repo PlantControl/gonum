@@ -232,3 +232,22 @@ func TestEigenSym(t *testing.T) {
 		}
 	}
 }
+
+func TestEigenNonFinite(t *testing.T) {
+	t.Parallel()
+	for _, v := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		for _, kind := range []EigenKind{EigenNone, EigenLeft, EigenRight, EigenBoth} {
+			for pos := range 4 {
+				data := []float64{0, -2, 1, 3}
+				data[pos] = v
+				var e Eigen
+				if e.Factorize(NewDense(2, 2, data), kind) {
+					t.Errorf("v=%g,kind=%d,pos=%d: Factorize succeeded", v, kind, pos)
+				}
+				if e.Kind() != -1 {
+					t.Errorf("v=%g,kind=%d,pos=%d: Kind=%d after failure", v, kind, pos, e.Kind())
+				}
+			}
+		}
+	}
+}
