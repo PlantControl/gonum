@@ -601,13 +601,13 @@ func (v *VecDense) MulVec(a Matrix, b Vector) {
 	}
 
 	v.reuseAsNonZeroed(r)
-	var restore func()
+	var restore vecDenseRestore
 	if v == aU {
 		v, restore = v.isolatedWorkspace(aU.(*VecDense))
-		defer restore()
+		defer restore.run()
 	} else if v == b {
 		v, restore = v.isolatedWorkspace(b)
-		defer restore()
+		defer restore.run()
 	}
 
 	// TODO(kortschak): Improve the non-fast paths.
@@ -769,16 +769,23 @@ func (v *VecDense) IsEmpty() bool {
 	return v.mat.Inc == 0
 }
 
-func (v *VecDense) isolatedWorkspace(a Vector) (n *VecDense, restore func()) {
+func (v *VecDense) isolatedWorkspace(a Vector) (n *VecDense, restore vecDenseRestore) {
 	l := a.Len()
 	if l == 0 {
 		panic(ErrZeroLength)
 	}
 	n = getVecDenseWorkspace(l, false)
-	return n, func() {
-		v.CopyVec(n)
-		putVecDenseWorkspace(n)
-	}
+	return n, vecDenseRestore{dst: v, w: n}
+}
+
+// vecDenseRestore copies an isolated workspace back into its destination and returns
+// it to the pool. Deferring its run method, unlike a returned closure, does
+// not allocate.
+type vecDenseRestore struct{ dst, w *VecDense }
+
+func (r vecDenseRestore) run() {
+	r.dst.CopyVec(r.w)
+	putVecDenseWorkspace(r.w)
 }
 
 // asDense returns a Dense representation of the receiver with the same

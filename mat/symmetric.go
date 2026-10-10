@@ -233,16 +233,23 @@ func (s *SymDense) reuseAsZeroed(n int) {
 	s.Zero()
 }
 
-func (s *SymDense) isolatedWorkspace(a Symmetric) (w *SymDense, restore func()) {
+func (s *SymDense) isolatedWorkspace(a Symmetric) (w *SymDense, restore symDenseRestore) {
 	n := a.SymmetricDim()
 	if n == 0 {
 		panic(ErrZeroLength)
 	}
 	w = getSymDenseWorkspace(n, false)
-	return w, func() {
-		s.CopySym(w)
-		putSymDenseWorkspace(w)
-	}
+	return w, symDenseRestore{dst: s, w: w}
+}
+
+// symDenseRestore copies an isolated workspace back into its destination and returns
+// it to the pool. Deferring its run method, unlike a returned closure, does
+// not allocate.
+type symDenseRestore struct{ dst, w *SymDense }
+
+func (r symDenseRestore) run() {
+	r.dst.CopySym(r.w)
+	putSymDenseWorkspace(r.w)
 }
 
 // DiagView returns the diagonal as a matrix backed by the original data.
@@ -530,10 +537,10 @@ func (s *SymDense) SubsetSym(a Symmetric, set []int) {
 	n := len(set)
 	na := a.SymmetricDim()
 	s.reuseAsNonZeroed(n)
-	var restore func()
+	var restore symDenseRestore
 	if a == s {
 		s, restore = s.isolatedWorkspace(a)
-		defer restore()
+		defer restore.run()
 	}
 
 	if a, ok := a.(RawSymmetricer); ok {
