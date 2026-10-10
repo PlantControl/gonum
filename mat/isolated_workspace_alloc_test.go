@@ -38,3 +38,32 @@ func TestIsolatedWorkspaceNoAllocs(t *testing.T) {
 		}
 	}
 }
+
+func TestEigenFactorizeAllocs(t *testing.T) {
+	a := NewDense(4, 4, []float64{
+		1, 2, 0, 3,
+		-2, 1, 4, 0,
+		0, 1, 3, -1,
+		2, 0, 1, 5,
+	})
+	var e Eigen
+	for _, tc := range []struct {
+		kind EigenKind
+		want float64
+	}{
+		// values slice only.
+		{EigenNone, 1},
+		// values plus the retained complex right vectors.
+		{EigenRight, 3},
+	} {
+		op := func() {
+			if !e.Factorize(a, tc.kind) {
+				t.Fatal("Factorize failed")
+			}
+		}
+		op()
+		if allocs := testing.AllocsPerRun(20, op); allocs > tc.want {
+			t.Errorf("kind %d: allocs = %v, want <= %v", tc.kind, allocs, tc.want)
+		}
+	}
+}
