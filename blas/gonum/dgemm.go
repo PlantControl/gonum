@@ -7,6 +7,7 @@ package gonum
 import (
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"plantcontrol.org/v1/gonum/blas"
 	"plantcontrol.org/v1/gonum/internal/asm/f64"
@@ -205,59 +206,87 @@ func dgemmParallelBlocked(aTrans, bTrans bool, m, n, k int, a []float64, lda int
 }
 
 func dgemmParallelBlockedWorkers(aTrans, bTrans bool, m, n, k int, a []float64, lda int, b []float64, ldb int, c []float64, ldc int, alpha float64, workers int) {
-	maxKLen := k
-	parBlocks := blocks(m, blockSize) * blocks(n, blockSize)
+	job := &dgemmBlockJob{
+		aTrans: aTrans, bTrans: bTrans,
+		m: m, n: n, k: k,
+		a: a, lda: lda,
+		b: b, ldb: ldb,
+		c: c, ldc: ldc,
+		alpha:   alpha,
+		blocksN: blocks(n, blockSize),
+		total:   blocks(m, blockSize) * blocks(n, blockSize),
+	}
+	workers = max(1, min(workers, job.total))
+	job.wg.Add(workers)
+	for range workers {
+		go func() {
+			defer job.wg.Done()
+			job.run()
+		}()
+	}
+	job.wg.Wait()
+}
 
-	// workerLimit acts a number of maximum concurrent workers,
-	// with the limit set to the number of procs available.
-	workerLimit := make(chan struct{}, workers)
+// dgemmBlockJob is one parallel Dgemm call. Workers, including the caller,
+// claim C blocks from next until all are done; each block is computed
+// serially along k, so the result does not depend on which worker claims it.
+// Sharing one heap job keeps per-call allocations at one plus one closure per
+// extra worker, rather than two per block.
+type dgemmBlockJob struct {
+	aTrans, bTrans bool
+	m, n, k        int
+	a              []float64
+	lda            int
+	b              []float64
+	ldb            int
+	c              []float64
+	ldc            int
+	alpha          float64
+	blocksN, total int
+	next           atomic.Int64
+	wg             sync.WaitGroup
+}
 
-	// wg is used to wait for all
-	var wg sync.WaitGroup
-	wg.Add(parBlocks)
-	defer wg.Wait()
-
-	for i := 0; i < m; i += blockSize {
-		for j := 0; j < n; j += blockSize {
-			workerLimit <- struct{}{}
-			go func(i, j int) {
-				defer func() {
-					wg.Done()
-					<-workerLimit
-				}()
-
-				leni := blockSize
-				if i+leni > m {
-					leni = m - i
-				}
-				lenj := blockSize
-				if j+lenj > n {
-					lenj = n - j
-				}
-
-				cSub := sliceView64(c, ldc, i, j, leni, lenj)
-
-				// Compute A_ik B_kj for all k
-				for k := 0; k < maxKLen; k += blockSize {
-					lenk := blockSize
-					if k+lenk > maxKLen {
-						lenk = maxKLen - k
-					}
-					var aSub, bSub []float64
-					if aTrans {
-						aSub = sliceView64(a, lda, k, i, lenk, leni)
-					} else {
-						aSub = sliceView64(a, lda, i, k, leni, lenk)
-					}
-					if bTrans {
-						bSub = sliceView64(b, ldb, j, k, lenj, lenk)
-					} else {
-						bSub = sliceView64(b, ldb, k, j, lenk, lenj)
-					}
-					dgemmSerial(aTrans, bTrans, leni, lenj, lenk, aSub, lda, bSub, ldb, cSub, ldc, alpha)
-				}
-			}(i, j)
+func (job *dgemmBlockJob) run() {
+	for {
+		t := int(job.next.Add(1)) - 1
+		if t >= job.total {
+			return
 		}
+		job.block((t/job.blocksN)*blockSize, (t%job.blocksN)*blockSize)
+	}
+}
+
+func (job *dgemmBlockJob) block(i, j int) {
+	leni := blockSize
+	if i+leni > job.m {
+		leni = job.m - i
+	}
+	lenj := blockSize
+	if j+lenj > job.n {
+		lenj = job.n - j
+	}
+
+	cSub := sliceView64(job.c, job.ldc, i, j, leni, lenj)
+
+	// Compute A_ik B_kj for all k
+	for k := 0; k < job.k; k += blockSize {
+		lenk := blockSize
+		if k+lenk > job.k {
+			lenk = job.k - k
+		}
+		var aSub, bSub []float64
+		if job.aTrans {
+			aSub = sliceView64(job.a, job.lda, k, i, lenk, leni)
+		} else {
+			aSub = sliceView64(job.a, job.lda, i, k, leni, lenk)
+		}
+		if job.bTrans {
+			bSub = sliceView64(job.b, job.ldb, j, k, lenj, lenk)
+		} else {
+			bSub = sliceView64(job.b, job.ldb, k, j, lenk, lenj)
+		}
+		dgemmSerial(job.aTrans, job.bTrans, leni, lenj, lenk, aSub, job.lda, bSub, job.ldb, cSub, job.ldc, job.alpha)
 	}
 }
 
