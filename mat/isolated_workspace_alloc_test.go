@@ -2,14 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !race
+//go:build !race && !safe
 
 package mat
 
 import "testing"
 
-// Race mode drops sync.Pool items at random, so allocation counts are only
-// meaningful without it.
+// Race mode drops sync.Pool items at random, and the safe build's reflect-based
+// overlap checks allocate, so allocation counts are only meaningful without
+// either.
 func TestIsolatedWorkspaceNoAllocs(t *testing.T) {
 	eye := NewDense(3, 3, []float64{1, 0, 0, 0, 1, 0, 0, 0, 1})
 	a := NewDense(3, 3, []float64{1, 2, 3, 4, 5, 6, 7, 8, 10})
