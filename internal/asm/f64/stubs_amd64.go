@@ -13,6 +13,8 @@ package f64
 //		sum += math.Abs(v)
 //	}
 //	return sum
+//
+//go:noescape
 func L1Norm(x []float64) (sum float64)
 
 // L1NormInc is
@@ -21,6 +23,8 @@ func L1Norm(x []float64) (sum float64)
 //		sum += math.Abs(x[i])
 //	}
 //	return sum
+//
+//go:noescape
 func L1NormInc(x []float64, n, incX int) (sum float64)
 
 // AddConst is
@@ -28,6 +32,8 @@ func L1NormInc(x []float64, n, incX int) (sum float64)
 //	for i := range x {
 //		x[i] += alpha
 //	}
+//
+//go:noescape
 func AddConst(alpha float64, x []float64)
 
 // Add is
@@ -35,6 +41,8 @@ func AddConst(alpha float64, x []float64)
 //	for i, v := range s {
 //		dst[i] += v
 //	}
+//
+//go:noescape
 func Add(dst, s []float64)
 
 // AxpyUnitary is
@@ -42,6 +50,8 @@ func Add(dst, s []float64)
 //	for i, v := range x {
 //		y[i] += alpha * v
 //	}
+//
+//go:noescape
 func AxpyUnitary(alpha float64, x, y []float64)
 
 // AxpyUnitaryTo is
@@ -49,6 +59,8 @@ func AxpyUnitary(alpha float64, x, y []float64)
 //	for i, v := range x {
 //		dst[i] = alpha*v + y[i]
 //	}
+//
+//go:noescape
 func AxpyUnitaryTo(dst []float64, alpha float64, x, y []float64)
 
 // AxpyInc is
@@ -58,6 +70,8 @@ func AxpyUnitaryTo(dst []float64, alpha float64, x, y []float64)
 //		ix += incX
 //		iy += incY
 //	}
+//
+//go:noescape
 func AxpyInc(alpha float64, x, y []float64, n, incX, incY, ix, iy uintptr)
 
 // AxpyIncTo is
@@ -68,6 +82,8 @@ func AxpyInc(alpha float64, x, y []float64, n, incX, incY, ix, iy uintptr)
 //		iy += incY
 //		idst += incDst
 //	}
+//
+//go:noescape
 func AxpyIncTo(dst []float64, incDst, idst uintptr, alpha float64, x, y []float64, n, incX, incY, ix, iy uintptr)
 
 // CumSum is
@@ -80,6 +96,8 @@ func AxpyIncTo(dst []float64, incDst, idst uintptr, alpha float64, x, y []float6
 //		dst[i+1] = dst[i] + v
 //	}
 //	return dst
+//
+//go:noescape
 func CumSum(dst, s []float64) []float64
 
 // CumProd is
@@ -92,6 +110,8 @@ func CumSum(dst, s []float64) []float64
 //		dst[i+1] = dst[i] * v
 //	}
 //	return dst
+//
+//go:noescape
 func CumProd(dst, s []float64) []float64
 
 // Div is
@@ -99,6 +119,8 @@ func CumProd(dst, s []float64) []float64
 //	for i, v := range s {
 //		dst[i] /= v
 //	}
+//
+//go:noescape
 func Div(dst, s []float64)
 
 // DivTo is
@@ -107,6 +129,8 @@ func Div(dst, s []float64)
 //		dst[i] = v / t[i]
 //	}
 //	return dst
+//
+//go:noescape
 func DivTo(dst, x, y []float64) []float64
 
 // DotUnitary is
@@ -115,6 +139,8 @@ func DivTo(dst, x, y []float64) []float64
 //		sum += y[i] * v
 //	}
 //	return sum
+//
+//go:noescape
 func DotUnitary(x, y []float64) (sum float64)
 
 // DotInc is
@@ -125,6 +151,8 @@ func DotUnitary(x, y []float64) (sum float64)
 //		iy += incY
 //	}
 //	return sum
+//
+//go:noescape
 func DotInc(x, y []float64, n, incX, incY, ix, iy uintptr) (sum float64)
 
 // L1Dist is
@@ -134,6 +162,8 @@ func DotInc(x, y []float64, n, incX, incY, ix, iy uintptr) (sum float64)
 //		norm += math.Abs(t[i] - v)
 //	}
 //	return norm
+//
+//go:noescape
 func L1Dist(s, t []float64) float64
 
 // LinfDist is
@@ -150,6 +180,8 @@ func L1Dist(s, t []float64) float64
 //		}
 //	}
 //	return norm
+//
+//go:noescape
 func LinfDist(s, t []float64) float64
 
 // ScalUnitary is
@@ -157,6 +189,8 @@ func LinfDist(s, t []float64) float64
 //	for i := range x {
 //		x[i] *= alpha
 //	}
+//
+//go:noescape
 func ScalUnitary(alpha float64, x []float64)
 
 // ScalUnitaryTo is
@@ -164,6 +198,8 @@ func ScalUnitary(alpha float64, x []float64)
 //	for i, v := range x {
 //		dst[i] = alpha * v
 //	}
+//
+//go:noescape
 func ScalUnitaryTo(dst []float64, alpha float64, x []float64)
 
 // ScalInc is
@@ -173,6 +209,8 @@ func ScalUnitaryTo(dst []float64, alpha float64, x []float64)
 //		x[ix] *= alpha
 //		ix += incX
 //	}
+//
+//go:noescape
 func ScalInc(alpha float64, x []float64, n, incX uintptr)
 
 // ScalIncTo is
@@ -183,6 +221,8 @@ func ScalInc(alpha float64, x []float64, n, incX uintptr)
 //		ix += incX
 //		idst += incDst
 //	}
+//
+//go:noescape
 func ScalIncTo(dst []float64, incDst uintptr, alpha float64, x []float64, n, incX uintptr)
 
 // Sum is
@@ -191,6 +231,8 @@ func ScalIncTo(dst []float64, incDst uintptr, alpha float64, x []float64, n, inc
 //	for i := range x {
 //	    sum += x[i]
 //	}
+//
+//go:noescape
 func Sum(x []float64) float64
 
 // L2NormUnitary returns the L2-norm of x.
@@ -218,6 +260,8 @@ func Sum(x []float64) float64
 //		  	}
 //	  }
 //	  return scale * math.Sqrt(sumSquares)
+//
+//go:noescape
 func L2NormUnitary(x []float64) (norm float64)
 
 // L2NormInc returns the L2-norm of x.
@@ -246,6 +290,8 @@ func L2NormUnitary(x []float64) (norm float64)
 //		return math.Inf(1)
 //	}
 //	return scale * math.Sqrt(sumSquares)
+//
+//go:noescape
 func L2NormInc(x []float64, n, incX uintptr) (norm float64)
 
 // L2DistanceUnitary returns the L2-norm of x-y.
@@ -274,4 +320,6 @@ func L2NormInc(x []float64, n, incX uintptr) (norm float64)
 //		return math.Inf(1)
 //	}
 //	return scale * math.Sqrt(sumSquares)
+//
+//go:noescape
 func L2DistanceUnitary(x, y []float64) (norm float64)

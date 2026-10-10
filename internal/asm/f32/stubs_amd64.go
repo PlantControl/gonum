@@ -12,6 +12,8 @@ package f32
 //	for i, v := range x {
 //		y[i] += alpha * v
 //	}
+//
+//go:noescape
 func AxpyUnitary(alpha float32, x, y []float32)
 
 // AxpyUnitaryTo is
@@ -19,6 +21,8 @@ func AxpyUnitary(alpha float32, x, y []float32)
 //	for i, v := range x {
 //		dst[i] = alpha*v + y[i]
 //	}
+//
+//go:noescape
 func AxpyUnitaryTo(dst []float32, alpha float32, x, y []float32)
 
 // AxpyInc is
@@ -28,6 +32,8 @@ func AxpyUnitaryTo(dst []float32, alpha float32, x, y []float32)
 //		ix += incX
 //		iy += incY
 //	}
+//
+//go:noescape
 func AxpyInc(alpha float32, x, y []float32, n, incX, incY, ix, iy uintptr)
 
 // AxpyIncTo is
@@ -38,6 +44,8 @@ func AxpyInc(alpha float32, x, y []float32, n, incX, incY, ix, iy uintptr)
 //		iy += incY
 //		idst += incDst
 //	}
+//
+//go:noescape
 func AxpyIncTo(dst []float32, incDst, idst uintptr, alpha float32, x, y []float32, n, incX, incY, ix, iy uintptr)
 
 // DdotUnitary is
@@ -46,6 +54,8 @@ func AxpyIncTo(dst []float32, incDst, idst uintptr, alpha float32, x, y []float3
 //		sum += float64(y[i]) * float64(v)
 //	}
 //	return
+//
+//go:noescape
 func DdotUnitary(x, y []float32) (sum float64)
 
 // DdotInc is
@@ -56,6 +66,8 @@ func DdotUnitary(x, y []float32) (sum float64)
 //		iy += incY
 //	}
 //	return
+//
+//go:noescape
 func DdotInc(x, y []float32, n, incX, incY, ix, iy uintptr) (sum float64)
 
 // DotUnitary is
@@ -64,6 +76,8 @@ func DdotInc(x, y []float32, n, incX, incY, ix, iy uintptr) (sum float64)
 //		sum += y[i] * v
 //	}
 //	return sum
+//
+//go:noescape
 func DotUnitary(x, y []float32) (sum float32)
 
 // DotInc is
@@ -74,6 +88,8 @@ func DotUnitary(x, y []float32) (sum float32)
 //		iy += incY
 //	}
 //	return sum
+//
+//go:noescape
 func DotInc(x, y []float32, n, incX, incY, ix, iy uintptr) (sum float32)
 
 // Sum is
@@ -83,4 +99,6 @@ func DotInc(x, y []float32, n, incX, incY, ix, iy uintptr) (sum float32)
 //			sum += v
 //	 }
 //	 return sum
+//
+//go:noescape
 func Sum(x []float32) float32
