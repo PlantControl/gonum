@@ -64,13 +64,22 @@ func (impl Implementation) Dlarfx(side blas.Side, m, n int, v []float64, tau flo
 		return
 	}
 
+	if nh > 10 {
+		impl.Dlarf(side, m, n, v, 1, tau, c, ldc, work)
+		return
+	}
+	dlarfxSmall(side, m, n, v, tau, c, ldc)
+}
+
+// dlarfxSmall applies H of order at most 10 without calling BLAS, so v and c
+// do not escape to the heap.
+func dlarfxSmall(side blas.Side, m, n int, v []float64, tau float64, c []float64, ldc int) {
+	if tau == 0 {
+		return
+	}
 	if side == blas.Left {
 		// Form H * C, where H has order m.
 		switch m {
-		default: // Code for general m.
-			impl.Dlarf(side, m, n, v, 1, tau, c, ldc, work)
-			return
-
 		case 0: // No-op for zero size matrix.
 			return
 
@@ -306,10 +315,6 @@ func (impl Implementation) Dlarfx(side blas.Side, m, n int, v []float64, tau flo
 
 	// Form C * H, where H has order n.
 	switch n {
-	default: // Code for general n.
-		impl.Dlarf(side, m, n, v, 1, tau, c, ldc, work)
-		return
-
 	case 0: // No-op for zero size matrix.
 		return
 

@@ -7,7 +7,7 @@ package gonum
 import (
 	"math"
 
-	"plantcontrol.org/v1/gonum/blas/blas64"
+	blasgonum "plantcontrol.org/v1/gonum/blas/gonum"
 )
 
 // Dlasy2 solves the Sylvester matrix equation where the matrices are of order 1
@@ -111,8 +111,7 @@ func (impl Implementation) Dlasy2(tranl, tranr bool, isgn, n1, n2 int, tl []floa
 		// Solve 2×2 system using complete pivoting.
 		// Set pivots less than smin to smin.
 
-		bi := blas64.Implementation()
-		ipiv := bi.Idamax(len(tmp), tmp[:], 1)
+		ipiv := blasgonum.Implementation{}.Idamax(len(tmp), tmp[:], 1)
 		// Compute the upper triangular matrix [u11 u12].
 		//                                     [  0 u22]
 		u11 := tmp[ipiv]

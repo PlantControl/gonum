@@ -367,7 +367,7 @@ func (impl Implementation) Dlaqr5(wantt, wantz bool, kacc22 int, n, ktop, kbot, 
 						impl.Dlaqr1(3, h[(k+1)*ldh+k+1:], ldh,
 							sr[2*m], si[2*m], sr[2*m+1], si[2*m+1],
 							vt[:])
-						_, vt[0] = impl.Dlarfg(3, vt[0], vt[1:3], 1)
+						_, vt[0] = impl.dlarfgNative(3, vt[0], vt[1:3], 1)
 						t1 = vt[0]
 						t2 = t1 * vt[1]
 						t3 = t1 * vt[2]

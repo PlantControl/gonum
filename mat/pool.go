@@ -46,6 +46,11 @@ var (
 
 	// poolInts is the []int equivalent of poolDense.
 	poolInts [63]sync.Pool
+
+	// float64sHeaders and intsHeaders recycle the slice headers boxed
+	// into poolFloat64s and poolInts so that put does not allocate.
+	float64sHeaders sync.Pool
+	intsHeaders     sync.Pool
 )
 
 func init() {
@@ -224,8 +229,10 @@ func putCDenseWorkspace(w *CDense) {
 // getFloat64s returns a []float64 of length l and a cap that is
 // less than 2*l. If clear is true, the slice visible is zeroed.
 func getFloat64s(l int, clear bool) []float64 {
-	w := *poolFloat64s[poolFor(uint(l))].Get().(*[]float64)
-	w = w[:l]
+	p := poolFloat64s[poolFor(uint(l))].Get().(*[]float64)
+	w := (*p)[:l]
+	*p = nil
+	float64sHeaders.Put(p)
 	if clear {
 		zero(w)
 	}
@@ -236,14 +243,21 @@ func getFloat64s(l int, clear bool) []float64 {
 // workspace pool. putFloat64s must not be called with a slice
 // where references to the underlying data have been kept.
 func putFloat64s(w []float64) {
-	poolFloat64s[poolFor(uint(cap(w)))].Put(&w)
+	p, _ := float64sHeaders.Get().(*[]float64)
+	if p == nil {
+		p = new([]float64)
+	}
+	*p = w
+	poolFloat64s[poolFor(uint(cap(w)))].Put(p)
 }
 
 // getInts returns a []int of length l and a cap that is
 // less than 2*l. If clear is true, the slice visible is zeroed.
 func getInts(l int, clear bool) []int {
-	w := *poolInts[poolFor(uint(l))].Get().(*[]int)
-	w = w[:l]
+	p := poolInts[poolFor(uint(l))].Get().(*[]int)
+	w := (*p)[:l]
+	*p = nil
+	intsHeaders.Put(p)
 	if clear {
 		for i := range w {
 			w[i] = 0
@@ -256,5 +270,10 @@ func getInts(l int, clear bool) []int {
 // workspace pool. putInts must not be called with a slice
 // where references to the underlying data have been kept.
 func putInts(w []int) {
-	poolInts[poolFor(uint(cap(w)))].Put(&w)
+	p, _ := intsHeaders.Get().(*[]int)
+	if p == nil {
+		p = new([]int)
+	}
+	*p = w
+	poolInts[poolFor(uint(cap(w)))].Put(p)
 }

@@ -12,6 +12,8 @@ package c128
 //	for i, v := range x {
 //		y[i] += alpha * v
 //	}
+//
+//go:noescape
 func AxpyUnitary(alpha complex128, x, y []complex128)
 
 // AxpyUnitaryTo is
@@ -19,6 +21,8 @@ func AxpyUnitary(alpha complex128, x, y []complex128)
 //	for i, v := range x {
 //		dst[i] = alpha*v + y[i]
 //	}
+//
+//go:noescape
 func AxpyUnitaryTo(dst []complex128, alpha complex128, x, y []complex128)
 
 // AxpyInc is
@@ -28,6 +32,8 @@ func AxpyUnitaryTo(dst []complex128, alpha complex128, x, y []complex128)
 //		ix += incX
 //		iy += incY
 //	}
+//
+//go:noescape
 func AxpyInc(alpha complex128, x, y []complex128, n, incX, incY, ix, iy uintptr)
 
 // AxpyIncTo is
@@ -38,6 +44,8 @@ func AxpyInc(alpha complex128, x, y []complex128, n, incX, incY, ix, iy uintptr)
 //		iy += incY
 //		idst += incDst
 //	}
+//
+//go:noescape
 func AxpyIncTo(dst []complex128, incDst, idst uintptr, alpha complex128, x, y []complex128, n, incX, incY, ix, iy uintptr)
 
 // DscalUnitary is
@@ -45,6 +53,8 @@ func AxpyIncTo(dst []complex128, incDst, idst uintptr, alpha complex128, x, y []
 //	for i, v := range x {
 //		x[i] = complex(real(v)*alpha, imag(v)*alpha)
 //	}
+//
+//go:noescape
 func DscalUnitary(alpha float64, x []complex128)
 
 // DscalInc is
@@ -54,6 +64,8 @@ func DscalUnitary(alpha float64, x []complex128)
 //		x[ix] = complex(real(x[ix])*alpha, imag(x[ix])*alpha)
 //		ix += inc
 //	}
+//
+//go:noescape
 func DscalInc(alpha float64, x []complex128, n, inc uintptr)
 
 // ScalInc is
@@ -63,6 +75,8 @@ func DscalInc(alpha float64, x []complex128, n, inc uintptr)
 //		x[ix] *= alpha
 //		ix += incX
 //	}
+//
+//go:noescape
 func ScalInc(alpha complex128, x []complex128, n, inc uintptr)
 
 // ScalUnitary is
@@ -70,6 +84,8 @@ func ScalInc(alpha complex128, x []complex128, n, inc uintptr)
 //	for i := range x {
 //		x[i] *= alpha
 //	}
+//
+//go:noescape
 func ScalUnitary(alpha complex128, x []complex128)
 
 // DotcUnitary is
@@ -78,6 +94,8 @@ func ScalUnitary(alpha complex128, x []complex128)
 //		sum += y[i] * cmplx.Conj(v)
 //	}
 //	return sum
+//
+//go:noescape
 func DotcUnitary(x, y []complex128) (sum complex128)
 
 // DotcInc is
@@ -88,6 +106,8 @@ func DotcUnitary(x, y []complex128) (sum complex128)
 //		iy += incY
 //	}
 //	return sum
+//
+//go:noescape
 func DotcInc(x, y []complex128, n, incX, incY, ix, iy uintptr) (sum complex128)
 
 // DotuUnitary is
@@ -96,6 +116,8 @@ func DotcInc(x, y []complex128, n, incX, incY, ix, iy uintptr) (sum complex128)
 //		sum += y[i] * v
 //	}
 //	return sum
+//
+//go:noescape
 func DotuUnitary(x, y []complex128) (sum complex128)
 
 // DotuInc is
@@ -106,4 +128,6 @@ func DotuUnitary(x, y []complex128) (sum complex128)
 //		iy += incY
 //	}
 //	return sum
+//
+//go:noescape
 func DotuInc(x, y []complex128, n, incX, incY, ix, iy uintptr) (sum complex128)
