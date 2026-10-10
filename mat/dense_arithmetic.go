@@ -45,13 +45,13 @@ func (m *Dense) Add(a, b Matrix) {
 
 	m.checkOverlapMatrix(aU)
 	m.checkOverlapMatrix(bU)
-	var restore func()
+	var restore denseRestore
 	if aTrans && m == aU {
 		m, restore = m.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	} else if bTrans && m == bU {
 		m, restore = m.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	}
 
 	for r := 0; r < ar; r++ {
@@ -94,13 +94,13 @@ func (m *Dense) Sub(a, b Matrix) {
 
 	m.checkOverlapMatrix(aU)
 	m.checkOverlapMatrix(bU)
-	var restore func()
+	var restore denseRestore
 	if aTrans && m == aU {
 		m, restore = m.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	} else if bTrans && m == bU {
 		m, restore = m.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	}
 
 	for r := 0; r < ar; r++ {
@@ -144,13 +144,13 @@ func (m *Dense) MulElem(a, b Matrix) {
 
 	m.checkOverlapMatrix(aU)
 	m.checkOverlapMatrix(bU)
-	var restore func()
+	var restore denseRestore
 	if aTrans && m == aU {
 		m, restore = m.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	} else if bTrans && m == bU {
 		m, restore = m.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	}
 
 	for r := 0; r < ar; r++ {
@@ -194,13 +194,13 @@ func (m *Dense) DivElem(a, b Matrix) {
 
 	m.checkOverlapMatrix(aU)
 	m.checkOverlapMatrix(bU)
-	var restore func()
+	var restore denseRestore
 	if aTrans && m == aU {
 		m, restore = m.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	} else if bTrans && m == bU {
 		m, restore = m.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	}
 
 	for r := 0; r < ar; r++ {
@@ -286,13 +286,13 @@ func (m *Dense) Mul(a, b Matrix) {
 	aU, aTrans := untransposeExtract(a)
 	bU, bTrans := untransposeExtract(b)
 	m.reuseAsNonZeroed(ar, bc)
-	var restore func()
+	var restore denseRestore
 	if m == aU {
 		m, restore = m.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	} else if m == bU {
 		m, restore = m.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	}
 	aT := blas.NoTrans
 	if aTrans {
@@ -308,12 +308,12 @@ func (m *Dense) Mul(a, b Matrix) {
 	// C = Aᵀ * B = (Bᵀ * A)ᵀ
 	// Cᵀ = Bᵀ * A.
 	if aU, ok := aU.(*Dense); ok {
-		if restore == nil {
+		if restore.w == nil {
 			m.checkOverlap(aU.mat)
 		}
 		switch bU := bU.(type) {
 		case *Dense:
-			if restore == nil {
+			if restore.w == nil {
 				m.checkOverlap(bU.mat)
 			}
 			blas64.Gemm(aT, bT, 1, aU.mat, bU.mat, 0, m.mat)
@@ -374,7 +374,7 @@ func (m *Dense) Mul(a, b Matrix) {
 		}
 	}
 	if bU, ok := bU.(*Dense); ok {
-		if restore == nil {
+		if restore.w == nil {
 			m.checkOverlap(bU.mat)
 		}
 		switch aU := aU.(type) {
@@ -706,9 +706,9 @@ func (m *Dense) Scale(f float64, a Matrix) {
 	if rm, ok := aU.(*Dense); ok {
 		amat := rm.mat
 		if m == aU || m.checkOverlap(amat) {
-			var restore func()
+			var restore denseRestore
 			m, restore = m.isolatedWorkspace(a)
-			defer restore()
+			defer restore.run()
 		}
 		if !aTrans {
 			for ja, jm := 0, 0; ja < ar*amat.Stride; ja, jm = ja+amat.Stride, jm+m.mat.Stride {
@@ -746,9 +746,9 @@ func (m *Dense) Apply(fn func(i, j int, v float64) float64, a Matrix) {
 	if rm, ok := aU.(*Dense); ok {
 		amat := rm.mat
 		if m == aU || m.checkOverlap(amat) {
-			var restore func()
+			var restore denseRestore
 			m, restore = m.isolatedWorkspace(a)
-			defer restore()
+			defer restore.run()
 		}
 		if !aTrans {
 			for j, ja, jm := 0, 0, 0; ja < ar*amat.Stride; j, ja, jm = j+1, ja+amat.Stride, jm+m.mat.Stride {

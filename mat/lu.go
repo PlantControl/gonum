@@ -408,9 +408,9 @@ func (lu *LU) SolveTo(dst *Dense, trans bool, b Matrix) error {
 	dst.reuseAsNonZeroed(n, bc)
 	bU, _ := untranspose(b)
 	if dst == bU {
-		var restore func()
+		var restore denseRestore
 		dst, restore = dst.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	} else if rm, ok := bU.(RawMatrixer); ok {
 		dst.checkOverlap(rm.RawMatrix())
 	}
@@ -462,10 +462,10 @@ func (lu *LU) SolveVecTo(dst *VecDense, trans bool, b Vector) error {
 		}
 
 		dst.reuseAsNonZeroed(n)
-		var restore func()
+		var restore vecDenseRestore
 		if dst == b {
 			dst, restore = dst.isolatedWorkspace(b)
-			defer restore()
+			defer restore.run()
 		}
 		dst.CopyVec(b)
 		vMat := blas64.General{

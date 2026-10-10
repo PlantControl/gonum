@@ -70,9 +70,9 @@ func (m *CDense) Conj(a CMatrix) {
 		// Only make workspace if the destination is transposed
 		// with respect to the source and they are the same
 		// matrix.
-		var restore func()
+		var restore cdenseRestore
 		m, restore = m.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	}
 
 	for r := 0; r < ar; r++ {
@@ -221,16 +221,23 @@ func (m *CDense) reuseAsZeroed(r, c int) {
 // isolatedWorkspace returns a new dense matrix w with the size of a and
 // returns a callback to defer which performs cleanup at the return of the call.
 // This should be used when a method receiver is the same pointer as an input argument.
-func (m *CDense) isolatedWorkspace(a CMatrix) (w *CDense, restore func()) {
+func (m *CDense) isolatedWorkspace(a CMatrix) (w *CDense, restore cdenseRestore) {
 	r, c := a.Dims()
 	if r == 0 || c == 0 {
 		panic(ErrZeroLength)
 	}
 	w = getCDenseWorkspace(r, c, false)
-	return w, func() {
-		m.Copy(w)
-		putCDenseWorkspace(w)
-	}
+	return w, cdenseRestore{dst: m, w: w}
+}
+
+// cdenseRestore copies an isolated workspace back into its destination and returns
+// it to the pool. Deferring its run method, unlike a returned closure, does
+// not allocate.
+type cdenseRestore struct{ dst, w *CDense }
+
+func (r cdenseRestore) run() {
+	r.dst.Copy(r.w)
+	putCDenseWorkspace(r.w)
 }
 
 // Reset zeros the dimensions of the matrix so that it can be reused as the

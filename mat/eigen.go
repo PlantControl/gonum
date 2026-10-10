@@ -7,6 +7,7 @@ package mat
 import (
 	"math"
 
+	"plantcontrol.org/v1/gonum/blas/blas64"
 	"plantcontrol.org/v1/gonum/lapack"
 	"plantcontrol.org/v1/gonum/lapack/lapack64"
 )
@@ -266,8 +267,9 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	if r != c {
 		panic(ErrShape)
 	}
-	var sd Dense
-	sd.CloneFrom(a)
+	sd := getDenseWorkspace(r, c, false)
+	defer putDenseWorkspace(sd)
+	sd.Copy(a)
 	for i := range r {
 		for _, v := range sd.mat.Data[i*sd.mat.Stride : i*sd.mat.Stride+c] {
 			if math.IsNaN(v) || math.IsInf(v, 0) {
@@ -280,15 +282,19 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	left := kind&EigenLeft != 0
 	right := kind&EigenRight != 0
 
-	var vl, vr Dense
+	var vl, vr blas64.General
 	jobvl := lapack.LeftEVNone
 	jobvr := lapack.RightEVNone
 	if left {
-		vl = *NewDense(r, r, nil)
+		w := getDenseWorkspace(r, r, true)
+		defer putDenseWorkspace(w)
+		vl = w.mat
 		jobvl = lapack.LeftEVCompute
 	}
 	if right {
-		vr = *NewDense(c, c, nil)
+		w := getDenseWorkspace(c, c, true)
+		defer putDenseWorkspace(w)
+		vr = w.mat
 		jobvr = lapack.RightEVCompute
 	}
 
@@ -297,10 +303,11 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	wi := getFloat64s(c, false)
 	defer putFloat64s(wi)
 
-	work := []float64{0}
-	lapack64.Geev(jobvl, jobvr, sd.mat, wr, wi, vl.mat, vr.mat, work, -1)
-	work = getFloat64s(int(work[0]), false)
-	first := lapack64.Geev(jobvl, jobvr, sd.mat, wr, wi, vl.mat, vr.mat, work, len(work))
+	query := getFloat64s(1, false)
+	lapack64.Geev(jobvl, jobvr, sd.mat, wr, wi, vl, vr, query, -1)
+	work := getFloat64s(int(query[0]), false)
+	putFloat64s(query)
+	first := lapack64.Geev(jobvl, jobvr, sd.mat, wr, wi, vl, vr, work, len(work))
 	putFloat64s(work)
 
 	if first != 0 {
@@ -318,18 +325,17 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	e.values = values
 
 	// Construct complex eigenvectors from float64 data.
-	var cvl, cvr CDense
 	if left {
-		cvl = *NewCDense(r, r, nil)
-		e.complexEigenTo(&cvl, &vl)
-		e.lVectors = &cvl
+		cvl := NewCDense(r, r, nil)
+		e.complexEigenTo(cvl, &Dense{mat: vl, capRows: r, capCols: r})
+		e.lVectors = cvl
 	} else {
 		e.lVectors = nil
 	}
 	if right {
-		cvr = *NewCDense(c, c, nil)
-		e.complexEigenTo(&cvr, &vr)
-		e.rVectors = &cvr
+		cvr := NewCDense(c, c, nil)
+		e.complexEigenTo(cvr, &Dense{mat: vr, capRows: c, capCols: c})
+		e.rVectors = cvr
 	} else {
 		e.rVectors = nil
 	}

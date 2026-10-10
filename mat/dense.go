@@ -161,16 +161,23 @@ func (m *Dense) Zero() {
 // isolatedWorkspace returns a new dense matrix w with the size of a and
 // returns a callback to defer which performs cleanup at the return of the call.
 // This should be used when a method receiver is the same pointer as an input argument.
-func (m *Dense) isolatedWorkspace(a Matrix) (w *Dense, restore func()) {
+func (m *Dense) isolatedWorkspace(a Matrix) (w *Dense, restore denseRestore) {
 	r, c := a.Dims()
 	if r == 0 || c == 0 {
 		panic(ErrZeroLength)
 	}
 	w = getDenseWorkspace(r, c, false)
-	return w, func() {
-		m.Copy(w)
-		putDenseWorkspace(w)
-	}
+	return w, denseRestore{dst: m, w: w}
+}
+
+// denseRestore copies an isolated workspace back into its destination and returns
+// it to the pool. Deferring its run method, unlike a returned closure, does
+// not allocate.
+type denseRestore struct{ dst, w *Dense }
+
+func (r denseRestore) run() {
+	r.dst.Copy(r.w)
+	putDenseWorkspace(r.w)
 }
 
 // Reset empties the matrix so that it can be reused as the

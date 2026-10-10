@@ -361,16 +361,23 @@ func (t *TriDense) reuseAsZeroed(n int, kind TriKind) {
 // isolatedWorkspace returns a new TriDense matrix w with the size of a and
 // returns a callback to defer which performs cleanup at the return of the call.
 // This should be used when a method receiver is the same pointer as an input argument.
-func (t *TriDense) isolatedWorkspace(a Triangular) (w *TriDense, restore func()) {
+func (t *TriDense) isolatedWorkspace(a Triangular) (w *TriDense, restore triDenseRestore) {
 	n, kind := a.Triangle()
 	if n == 0 {
 		panic(ErrZeroLength)
 	}
 	w = getTriDenseWorkspace(n, kind, false)
-	return w, func() {
-		t.Copy(w)
-		putTriWorkspace(w)
-	}
+	return w, triDenseRestore{dst: t, w: w}
+}
+
+// triDenseRestore copies an isolated workspace back into its destination and returns
+// it to the pool. Deferring its run method, unlike a returned closure, does
+// not allocate.
+type triDenseRestore struct{ dst, w *TriDense }
+
+func (r triDenseRestore) run() {
+	r.dst.Copy(r.w)
+	putTriWorkspace(r.w)
 }
 
 // DiagView returns the diagonal as a matrix backed by the original data.
@@ -495,13 +502,13 @@ func (t *TriDense) MulTri(a, b Triangular) {
 	t.checkOverlapMatrix(bU)
 	t.checkOverlapMatrix(aU)
 	t.reuseAsNonZeroed(n, kind)
-	var restore func()
+	var restore triDenseRestore
 	if t == aU {
 		t, restore = t.isolatedWorkspace(aU)
-		defer restore()
+		defer restore.run()
 	} else if t == bU {
 		t, restore = t.isolatedWorkspace(bU)
-		defer restore()
+		defer restore.run()
 	}
 
 	// Inspect types here, helps keep the loops later clean(er).
