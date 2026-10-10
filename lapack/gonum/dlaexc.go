@@ -135,8 +135,8 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		t11 := t[j1*ldt+j1]
 
 		// Perform swap provisionally on diagonal block in d.
-		impl.Dlarfx(blas.Left, 3, 3, u[:], tau, d[:], ldd, work)
-		impl.Dlarfx(blas.Right, 3, 3, u[:], tau, d[:], ldd, work)
+		dlarfxSmall(blas.Left, 3, 3, u[:], tau, d[:], ldd)
+		dlarfxSmall(blas.Right, 3, 3, u[:], tau, d[:], ldd)
 
 		// Test whether to reject swap.
 		if math.Max(math.Abs(d[2*ldd]), math.Max(math.Abs(d[2*ldd+1]), math.Abs(d[2*ldd+2]-t11))) > thresh {
@@ -144,8 +144,8 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		}
 
 		// Accept swap: apply transformation to the entire matrix T.
-		impl.Dlarfx(blas.Left, 3, n-j1, u[:], tau, t[j1*ldt+j1:], ldt, work)
-		impl.Dlarfx(blas.Right, j2+1, 3, u[:], tau, t[j1:], ldt, work)
+		dlarfxSmall(blas.Left, 3, n-j1, u[:], tau, t[j1*ldt+j1:], ldt)
+		dlarfxSmall(blas.Right, j2+1, 3, u[:], tau, t[j1:], ldt)
 
 		t[j3*ldt+j1] = 0
 		t[j3*ldt+j2] = 0
@@ -153,7 +153,7 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 
 		if wantq {
 			// Accumulate transformation in the matrix Q.
-			impl.Dlarfx(blas.Right, n, 3, u[:], tau, q[j1:], ldq, work)
+			dlarfxSmall(blas.Right, n, 3, u[:], tau, q[j1:], ldq)
 		}
 
 	case n1 == 2 && n2 == 1:
@@ -166,8 +166,8 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		t33 := t[j3*ldt+j3]
 
 		// Perform swap provisionally on diagonal block in D.
-		impl.Dlarfx(blas.Left, 3, 3, u[:], tau, d[:], ldd, work)
-		impl.Dlarfx(blas.Right, 3, 3, u[:], tau, d[:], ldd, work)
+		dlarfxSmall(blas.Left, 3, 3, u[:], tau, d[:], ldd)
+		dlarfxSmall(blas.Right, 3, 3, u[:], tau, d[:], ldd)
 
 		// Test whether to reject swap.
 		if math.Max(math.Abs(d[ldd]), math.Max(math.Abs(d[2*ldd]), math.Abs(d[0]-t33))) > thresh {
@@ -175,8 +175,8 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		}
 
 		// Accept swap: apply transformation to the entire matrix T.
-		impl.Dlarfx(blas.Right, j3+1, 3, u[:], tau, t[j1:], ldt, work)
-		impl.Dlarfx(blas.Left, 3, n-j1-1, u[:], tau, t[j1*ldt+j2:], ldt, work)
+		dlarfxSmall(blas.Right, j3+1, 3, u[:], tau, t[j1:], ldt)
+		dlarfxSmall(blas.Left, 3, n-j1-1, u[:], tau, t[j1*ldt+j2:], ldt)
 
 		t[j1*ldt+j1] = t33
 		t[j2*ldt+j1] = 0
@@ -184,7 +184,7 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 
 		if wantq {
 			// Accumulate transformation in the matrix Q.
-			impl.Dlarfx(blas.Right, n, 3, u[:], tau, q[j1:], ldq, work)
+			dlarfxSmall(blas.Right, n, 3, u[:], tau, q[j1:], ldq)
 		}
 
 	default: // n1 == 2 && n2 == 2
@@ -201,10 +201,10 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		_, tau2 := impl.Dlarfg(3, -temp*u1[1]-x[ldx+1], u2[1:], 1)
 
 		// Perform swap provisionally on diagonal block in D.
-		impl.Dlarfx(blas.Left, 3, 4, u1[:], tau1, d[:], ldd, work)
-		impl.Dlarfx(blas.Right, 4, 3, u1[:], tau1, d[:], ldd, work)
-		impl.Dlarfx(blas.Left, 3, 4, u2[:], tau2, d[ldd:], ldd, work)
-		impl.Dlarfx(blas.Right, 4, 3, u2[:], tau2, d[1:], ldd, work)
+		dlarfxSmall(blas.Left, 3, 4, u1[:], tau1, d[:], ldd)
+		dlarfxSmall(blas.Right, 4, 3, u1[:], tau1, d[:], ldd)
+		dlarfxSmall(blas.Left, 3, 4, u2[:], tau2, d[ldd:], ldd)
+		dlarfxSmall(blas.Right, 4, 3, u2[:], tau2, d[1:], ldd)
 
 		// Test whether to reject swap.
 		m1 := math.Max(math.Abs(d[2*ldd]), math.Abs(d[2*ldd+1]))
@@ -215,10 +215,10 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 
 		// Accept swap: apply transformation to the entire matrix T.
 		j4 := j1 + 3
-		impl.Dlarfx(blas.Left, 3, n-j1, u1[:], tau1, t[j1*ldt+j1:], ldt, work)
-		impl.Dlarfx(blas.Right, j4+1, 3, u1[:], tau1, t[j1:], ldt, work)
-		impl.Dlarfx(blas.Left, 3, n-j1, u2[:], tau2, t[j2*ldt+j1:], ldt, work)
-		impl.Dlarfx(blas.Right, j4+1, 3, u2[:], tau2, t[j2:], ldt, work)
+		dlarfxSmall(blas.Left, 3, n-j1, u1[:], tau1, t[j1*ldt+j1:], ldt)
+		dlarfxSmall(blas.Right, j4+1, 3, u1[:], tau1, t[j1:], ldt)
+		dlarfxSmall(blas.Left, 3, n-j1, u2[:], tau2, t[j2*ldt+j1:], ldt)
+		dlarfxSmall(blas.Right, j4+1, 3, u2[:], tau2, t[j2:], ldt)
 
 		t[j3*ldt+j1] = 0
 		t[j3*ldt+j2] = 0
@@ -227,8 +227,8 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 
 		if wantq {
 			// Accumulate transformation in the matrix Q.
-			impl.Dlarfx(blas.Right, n, 3, u1[:], tau1, q[j1:], ldq, work)
-			impl.Dlarfx(blas.Right, n, 3, u2[:], tau2, q[j2:], ldq, work)
+			dlarfxSmall(blas.Right, n, 3, u1[:], tau1, q[j1:], ldq)
+			dlarfxSmall(blas.Right, n, 3, u2[:], tau2, q[j2:], ldq)
 		}
 	}
 
