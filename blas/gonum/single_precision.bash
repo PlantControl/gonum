@@ -202,6 +202,7 @@ cat dgemm.go \
 | gofmt -r 'dgemmSerialTransNot -> sgemmSerialTransNot' \
 | gofmt -r 'dgemmSerialNotTrans -> sgemmSerialNotTrans' \
 | gofmt -r 'dgemmSerialTransTrans -> sgemmSerialTransTrans' \
+| gofmt -r 'dgemmBlockJob -> sgemmBlockJob' \
 \
 | gofmt -r 'f64.AxpyInc -> f32.AxpyInc' \
 | gofmt -r 'f64.AxpyUnitary -> f32.AxpyUnitary' \
