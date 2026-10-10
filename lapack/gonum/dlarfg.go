@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"plantcontrol.org/v1/gonum/blas/blas64"
+	blasgonum "plantcontrol.org/v1/gonum/blas/gonum"
 )
 
 // Dlarfg generates an elementary reflector for a Householder matrix. It creates
@@ -43,6 +44,45 @@ func (impl Implementation) Dlarfg(n int, alpha float64, x []float64, incX int) (
 	}
 
 	bi := blas64.Implementation()
+
+	xnorm := bi.Dnrm2(n-1, x, incX)
+	if xnorm == 0 {
+		return alpha, 0
+	}
+	beta = -math.Copysign(impl.Dlapy2(alpha, xnorm), alpha)
+	safmin := dlamchS / dlamchE
+	knt := 0
+	if math.Abs(beta) < safmin {
+		// xnorm and beta may be inaccurate, scale x and recompute.
+		rsafmn := 1 / safmin
+		for {
+			knt++
+			bi.Dscal(n-1, rsafmn, x, incX)
+			beta *= rsafmn
+			alpha *= rsafmn
+			if math.Abs(beta) >= safmin {
+				break
+			}
+		}
+		xnorm = bi.Dnrm2(n-1, x, incX)
+		beta = -math.Copysign(impl.Dlapy2(alpha, xnorm), alpha)
+	}
+	tau = (beta - alpha) / beta
+	bi.Dscal(n-1, 1/(alpha-beta), x, incX)
+	for j := 0; j < knt; j++ {
+		beta *= safmin
+	}
+	return beta, tau
+}
+
+// dlarfgNative is Dlarfg for short fixed-size scratch vectors. It calls the
+// native gonum BLAS directly so that x does not escape to the heap through the
+// blas64 interface.
+func (impl Implementation) dlarfgNative(n int, alpha float64, x []float64, incX int) (beta, tau float64) {
+	if n <= 1 {
+		return alpha, 0
+	}
+	var bi blasgonum.Implementation
 
 	xnorm := bi.Dnrm2(n-1, x, incX)
 	if xnorm == 0 {

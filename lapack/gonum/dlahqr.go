@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"plantcontrol.org/v1/gonum/blas/blas64"
+	blasgonum "plantcontrol.org/v1/gonum/blas/gonum"
 )
 
 // Dlahqr computes the eigenvalues and Schur factorization of a block of an n×n
@@ -324,10 +325,10 @@ func (impl Implementation) Dlahqr(wantt, wantz bool, n, ilo, ihi int, h []float6
 
 				nr := min(3, i-k+1)
 				if k > m {
-					bi.Dcopy(nr, h[k*ldh+k-1:], ldh, v[:], 1)
+					blasgonum.Implementation{}.Dcopy(nr, h[k*ldh+k-1:], ldh, v[:], 1)
 				}
 				var t0 float64
-				v[0], t0 = impl.Dlarfg(nr, v[0], v[1:], 1)
+				v[0], t0 = impl.dlarfgNative(nr, v[0], v[1:], 1)
 				if k > m {
 					h[k*ldh+k-1] = v[0]
 					h[(k+1)*ldh+k-1] = 0

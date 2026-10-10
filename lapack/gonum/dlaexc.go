@@ -131,7 +131,7 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		// Generate elementary reflector H so that
 		//  ( scale, X11, X12 ) H = ( 0, 0, * )
 		u := [3]float64{scale, x[0], 1}
-		_, tau := impl.Dlarfg(3, x[1], u[:2], 1)
+		_, tau := impl.dlarfgNative(3, x[1], u[:2], 1)
 		t11 := t[j1*ldt+j1]
 
 		// Perform swap provisionally on diagonal block in d.
@@ -162,7 +162,7 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		//     (  -X21 ) = ( 0 )
 		//     ( scale ) = ( 0 )
 		u := [3]float64{1, -x[ldx], scale}
-		_, tau := impl.Dlarfg(3, -x[0], u[1:], 1)
+		_, tau := impl.dlarfgNative(3, -x[0], u[1:], 1)
 		t33 := t[j3*ldt+j3]
 
 		// Perform swap provisionally on diagonal block in D.
@@ -194,11 +194,11 @@ func (impl Implementation) Dlaexc(wantq bool, n int, t []float64, ldt int, q []f
 		//          ( scale    0  )   (  0  0 )
 		//          (    0  scale )   (  0  0 )
 		u1 := [3]float64{1, -x[ldx], scale}
-		_, tau1 := impl.Dlarfg(3, -x[0], u1[1:], 1)
+		_, tau1 := impl.dlarfgNative(3, -x[0], u1[1:], 1)
 
 		temp := -tau1 * (x[1] + u1[1]*x[ldx+1])
 		u2 := [3]float64{1, -temp * u1[2], scale}
-		_, tau2 := impl.Dlarfg(3, -temp*u1[1]-x[ldx+1], u2[1:], 1)
+		_, tau2 := impl.dlarfgNative(3, -temp*u1[1]-x[ldx+1], u2[1:], 1)
 
 		// Perform swap provisionally on diagonal block in D.
 		dlarfxSmall(blas.Left, 3, 4, u1[:], tau1, d[:], ldd)
