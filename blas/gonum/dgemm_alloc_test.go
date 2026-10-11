@@ -18,8 +18,9 @@ func TestDgemmParallelBlockedAllocs(t *testing.T) {
 		dgemmParallelBlockedWorkers(false, false, n, n, n, a, n, b, n, c, n, 1, workers)
 	}
 	op()
-	// One shared job plus one closure per worker, independent of the 16 blocks.
-	if allocs := testing.AllocsPerRun(20, op); allocs > workers+1 {
-		t.Errorf("allocs = %v, want <= %d", allocs, workers+1)
+	// One shared job plus one closure per spawned worker (the caller runs
+	// inline), independent of the 16 blocks.
+	if allocs := testing.AllocsPerRun(20, op); allocs > workers {
+		t.Errorf("allocs = %v, want <= %d", allocs, workers)
 	}
 }

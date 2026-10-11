@@ -217,13 +217,14 @@ func dgemmParallelBlockedWorkers(aTrans, bTrans bool, m, n, k int, a []float64, 
 		total:   blocks(m, blockSize) * blocks(n, blockSize),
 	}
 	workers = max(1, min(workers, job.total))
-	job.wg.Add(workers)
-	for range workers {
+	job.wg.Add(workers - 1)
+	for range workers - 1 {
 		go func() {
 			defer job.wg.Done()
 			job.run()
 		}()
 	}
+	job.run()
 	job.wg.Wait()
 }
 
