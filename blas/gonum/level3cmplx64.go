@@ -1467,10 +1467,10 @@ func (Implementation) Ctrmm(side blas.Side, uplo blas.Uplo, trans blas.Transpose
 				for i := 0; i < m; i++ {
 					bi := b[i*ldb : i*ldb+n]
 					for k := n - 1; k >= 0; k-- {
-						abik := alpha * bi[k]
-						if abik == 0 {
+						if bi[k] == 0 {
 							continue
 						}
+						abik := alpha * bi[k]
 						bi[k] = abik
 						if noUnit {
 							bi[k] *= a[k*lda+k]
@@ -1482,10 +1482,10 @@ func (Implementation) Ctrmm(side blas.Side, uplo blas.Uplo, trans blas.Transpose
 				for i := 0; i < m; i++ {
 					bi := b[i*ldb : i*ldb+n]
 					for k := 0; k < n; k++ {
-						abik := alpha * bi[k]
-						if abik == 0 {
+						if bi[k] == 0 {
 							continue
 						}
+						abik := alpha * bi[k]
 						bi[k] = abik
 						if noUnit {
 							bi[k] *= a[k*lda+k]

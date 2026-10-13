@@ -867,10 +867,10 @@ func (Implementation) Strmm(s blas.Side, ul blas.Uplo, tA blas.Transpose, d blas
 			for i := 0; i < m; i++ {
 				btmp := b[i*ldb : i*ldb+n]
 				for k := n - 1; k >= 0; k-- {
-					tmp := alpha * btmp[k]
-					if tmp == 0 {
+					if btmp[k] == 0 {
 						continue
 					}
+					tmp := alpha * btmp[k]
 					btmp[k] = tmp
 					if nonUnit {
 						btmp[k] *= a[k*lda+k]
@@ -883,10 +883,10 @@ func (Implementation) Strmm(s blas.Side, ul blas.Uplo, tA blas.Transpose, d blas
 		for i := 0; i < m; i++ {
 			btmp := b[i*ldb : i*ldb+n]
 			for k := 0; k < n; k++ {
-				tmp := alpha * btmp[k]
-				if tmp == 0 {
+				if btmp[k] == 0 {
 					continue
 				}
+				tmp := alpha * btmp[k]
 				btmp[k] = tmp
 				if nonUnit {
 					btmp[k] *= a[k*lda+k]
