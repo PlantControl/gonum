@@ -8,6 +8,8 @@ PlantControl fork of Gonum. Module `plantcontrol.org/v1/gonum`. Everything after
 - SIMD work (ARM64 and AMD64) lives on `simd`; `main` stays portable until Go SIMD is GA. Build and test SIMD with `GOEXPERIMENT=simd` on Go 1.27+.
 - Branch for SIMD changes from `simd` and open PRs against it. Merge `main` into `simd` regularly.
 - Other packages get maintenance only. Don't port upstream churn unless asked.
+- Never offer or open PRs to upstream gonum/gonum. Upstream rejects AI-generated code.
+- Upstream issues only for bugs whose fix is already merged here: include a repro and link the fork PR.
 
 ## Commands
 
