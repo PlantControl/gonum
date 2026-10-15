@@ -25,6 +25,9 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 	for cas, test := range []struct {
 		m, p, n, lda, ldb, ldu, ldv, ldq int
 
+		dupA, dupB bool // Set column 1 equal to column 0.
+		wantL      int  // Checked if positive.
+
 		ok bool
 	}{
 		{m: 3, p: 3, n: 5, lda: 0, ldb: 0, ldu: 0, ldv: 0, ldq: 0, ok: true},
@@ -46,6 +49,12 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 		{m: 10, p: 5, n: 5, lda: 10, ldb: 10, ldu: 20, ldv: 10, ldq: 10, ok: true},
 		{m: 10, p: 10, n: 10, lda: 20, ldb: 20, ldu: 20, ldv: 20, ldq: 20, ok: true},
 		{m: 10, p: 10, n: 10, lda: 20, ldb: 20, ldu: 20, ldv: 20, ldq: 20, ok: true},
+		// Rank-deficient pairs from https://github.com/gonum/gonum/issues/2127.
+		{m: 4, p: 2, n: 5, dupA: true, dupB: true, wantL: 2, ok: true},
+		{m: 4, p: 3, n: 3, dupB: true, wantL: 2, ok: true},
+		{m: 6, p: 4, n: 6, lda: 8, ldb: 8, ldu: 8, ldv: 8, ldq: 8, dupA: true, dupB: true, wantL: 4, ok: true},
+		{m: 3, p: 2, n: 7, ok: true},
+		{m: 3, p: 2, n: 7, dupA: true, dupB: true, wantL: 2, ok: true},
 	} {
 		m := test.m
 		p := test.p
@@ -72,8 +81,14 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 		}
 
 		a := randomGeneral(m, n, lda, rnd)
+		if test.dupA {
+			duplicateColumn(a, 0, 1)
+		}
 		aCopy := cloneGeneral(a)
 		b := randomGeneral(p, n, ldb, rnd)
+		if test.dupB {
+			duplicateColumn(b, 0, 1)
+		}
 		bCopy := cloneGeneral(b)
 
 		alpha := make([]float64, n)
@@ -114,6 +129,10 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 				t.Errorf("test %d unexpectedly did not converge", cas)
 			}
 			continue
+		}
+
+		if test.wantL > 0 && l != test.wantL {
+			t.Errorf("Case %v: unexpected l: got %d, want %d", cas, l, test.wantL)
 		}
 
 		// Check orthogonality of U, V and Q.
