@@ -247,9 +247,9 @@ func DggesLargeAlpha(n int, a, b []float64, ar, ai, beta, vsl, vsr []float64) (s
 }
 
 // Dggsvp3 calls LAPACKE_dggsvp3 with row-major, contiguous a, b, u, v and q.
-func Dggsvp3(m, p, n int, a, b []float64, tola, tolb float64, u, v, q []float64) (k, l, info int) {
+func Dggsvp3(jobu, jobv, jobq byte, m, p, n int, a, b []float64, tola, tolb float64, u, v, q []float64) (k, l, info int) {
 	var ck, cl C.lapack_int
-	cinfo := C.LAPACKE_dggsvp3(C.LAPACK_ROW_MAJOR, 'U', 'V', 'Q',
+	cinfo := C.LAPACKE_dggsvp3(C.LAPACK_ROW_MAJOR, C.char(jobu), C.char(jobv), C.char(jobq),
 		C.lapack_int(m), C.lapack_int(p), C.lapack_int(n),
 		(*C.double)(unsafe.Pointer(&a[0])), C.lapack_int(n),
 		(*C.double)(unsafe.Pointer(&b[0])), C.lapack_int(n),
