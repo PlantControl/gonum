@@ -113,6 +113,58 @@ func TestGSVD(t *testing.T) {
 	}
 }
 
+// Rank-deficient pairs from https://github.com/gonum/gonum/issues/2127.
+func TestGSVDRankDeficient(t *testing.T) {
+	t.Parallel()
+
+	const tol = 1e-13
+	for _, test := range []struct {
+		m, p, n    int
+		dupA, dupB bool // Set column 1 equal to column 0.
+	}{
+		{m: 4, p: 2, n: 5, dupA: true, dupB: true},
+		{m: 4, p: 3, n: 3, dupB: true},
+		{m: 3, p: 2, n: 7, dupA: true, dupB: true},
+	} {
+		rnd := rand.New(rand.NewPCG(1, 1))
+		a := NewDense(test.m, test.n, nil)
+		for i := range a.mat.Data {
+			a.mat.Data[i] = rnd.NormFloat64()
+		}
+		b := NewDense(test.p, test.n, nil)
+		for i := range b.mat.Data {
+			b.mat.Data[i] = rnd.NormFloat64()
+		}
+		if test.dupA {
+			a.SetCol(1, Col(nil, 0, a))
+		}
+		if test.dupB {
+			b.SetCol(1, Col(nil, 0, b))
+		}
+
+		var gsvd GSVD
+		if !gsvd.Factorize(a, b, GSVDU|GSVDV|GSVDQ) {
+			t.Errorf("%+v: GSVD factorization failed", test)
+			continue
+		}
+		_, _, sigma1, sigma2, zeroR, u, v, q := extractGSVD(&gsvd)
+		var qtq Dense
+		qtq.Mul(q.T(), q)
+		if !EqualApprox(&qtq, eye(test.n), tol) {
+			t.Errorf("%+v: Q not orthogonal", test)
+		}
+		var recA, recB Dense
+		recA.Product(u, sigma1, zeroR, q.T())
+		recB.Product(v, sigma2, zeroR, q.T())
+		if !EqualApprox(&recA, a, tol) {
+			t.Errorf("%+v: U*Σ₁*[ 0 R ]*Qᵀ != A", test)
+		}
+		if !EqualApprox(&recB, b, tol) {
+			t.Errorf("%+v: V*Σ₂*[ 0 R ]*Qᵀ != B", test)
+		}
+	}
+}
+
 func extractGSVD(gsvd *GSVD) (c, s []float64, s1, s2, zR, u, v, q *Dense) {
 	s1 = &Dense{}
 	s2 = &Dense{}

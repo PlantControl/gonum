@@ -1272,6 +1272,13 @@ func constructGSVDresults(n, p, m, k, l int, a, b blas64.General, alpha, beta []
 	return zeroR, d1, d2
 }
 
+// duplicateColumn copies column src of a into column dst.
+func duplicateColumn(a blas64.General, src, dst int) {
+	for i := 0; i < a.Rows; i++ {
+		a.Data[i*a.Stride+dst] = a.Data[i*a.Stride+src]
+	}
+}
+
 func constructGSVPresults(n, p, m, k, l int, a, b blas64.General) (zeroA, zeroB blas64.General) {
 	zeroA = zeros(m, n, n)
 	dst := zeroA
