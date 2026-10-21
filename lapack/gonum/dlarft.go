@@ -110,7 +110,7 @@ func (Implementation) Dlarft(direct lapack.Direct, store lapack.StoreV, n, k int
 			}
 			bi.Dtrmv(blas.Upper, blas.NoTrans, blas.NonUnit, i, t, ldt, t[i:], ldt)
 			t[i*ldt+i] = tau[i]
-			if i > 1 {
+			if i > 0 {
 				prevlastv = max(prevlastv, lastv)
 			} else {
 				prevlastv = lastv
