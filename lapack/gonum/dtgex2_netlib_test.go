@@ -163,3 +163,59 @@ func TestDtgex2NetlibEmbeddedBlocks(t *testing.T) {
 		})
 	}
 }
+
+// TestDtgex2NetlibBorderlineAcceptance pins the 2×2/2×2 swap from the
+// Riccati pencil in gonum ergo ZHGFWA. Netlib accepts this exact input with
+// BQRA21 at 0.98 of THRESHA, so acceptance is decided by rounding; Gonum and
+// Netlib must accept relative perturbations at the same rate.
+func TestDtgex2NetlibBorderlineAcceptance(t *testing.T) {
+	const n = 4
+	s0 := []float64{
+		-1.24393017849882703e+01, -1.15957338125495760e-01, -1.33648429888031549e-19, -4.84484799880933280e-19,
+		9.28837014591931786e-05, -3.79046077665266541e-04, -2.32263680132544724e-14, 2.40403471231674990e-14,
+		0, 0, -9.92128366985719157e-01, 1.25225011168894979e-01,
+		0, 0, -1.25225011168895006e-01, -9.92128366985719379e-01,
+	}
+	t0 := []float64{
+		9.99999999999999889e-01, 0, -9.03918484410455235e-16, -9.65194924956767279e-17,
+		0, 3.09749244897807347e-05, -6.06970289936176144e+01, -5.74151430673537675e+01,
+		0, 0, 1.38810358328641961e+01, 0,
+		0, 0, 0, 1.09912427393938792e+01,
+	}
+	rnd := rand.New(rand.NewPCG(7, 9))
+	impl := Implementation{}
+	work := make([]float64, 2*n*n)
+	const trials = 4000
+	for _, rel := range []float64{1e-15, 1e-13} {
+		var gonumOK, netlibOK int
+		for range trials {
+			a, b := append([]float64(nil), s0...), append([]float64(nil), t0...)
+			for i := range a {
+				a[i] *= 1 + rel*rnd.NormFloat64()
+				b[i] *= 1 + rel*rnd.NormFloat64()
+			}
+			ga, gb := append([]float64(nil), a...), append([]float64(nil), b...)
+			gok := impl.Dtgex2(false, false, n, ga, n, gb, n, nil, 1, nil, 1, 0, 2, 2, work, len(work))
+			nok := netlib.Dtgex2(n, a, b, 0, 2, 2) == 0
+			if gok {
+				gonumOK++
+			}
+			if nok {
+				netlibOK++
+			}
+			if gok && nok {
+				for _, off := range []int{0, 2} {
+					gar, gai, gbet := schurBlockEigenvalues(ga, gb, n, off, 2)
+					nar, nai, nbet := schurBlockEigenvalues(a, b, n, off, 2)
+					compareGeneralizedEigenvalues(t, gar, gai, gbet, nar, nai, nbet)
+				}
+			}
+		}
+		if netlibOK == 0 || netlibOK == trials {
+			t.Fatalf("rel=%g: Netlib accepted %d of %d, fixture not borderline", rel, netlibOK, trials)
+		}
+		if d := gonumOK - netlibOK; d > trials/20 || -d > trials/20 {
+			t.Errorf("rel=%g: Gonum accepted %d, Netlib %d of %d", rel, gonumOK, netlibOK, trials)
+		}
+	}
+}
