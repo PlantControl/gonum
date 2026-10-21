@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/lapack"
 )
 
 func TestDlahqrNoAllocs(t *testing.T) {
@@ -160,4 +161,53 @@ func TestDlarfxSmallMatchesDlarf(t *testing.T) {
 
 func sameFloat(a, b float64) bool {
 	return a == b || (math.IsNaN(a) && math.IsNaN(b))
+}
+
+func TestDlasrtNoAllocs(t *testing.T) {
+	d := make([]float64, 64)
+	rnd := rand.New(rand.NewPCG(1, 1))
+	for _, s := range []lapack.Sort{lapack.SortIncreasing, lapack.SortDecreasing} {
+		allocs := testing.AllocsPerRun(5, func() {
+			for i := range d {
+				d[i] = rnd.NormFloat64()
+			}
+			Implementation{}.Dlasrt(s, len(d), d)
+		})
+		if allocs != 0 {
+			t.Errorf("Dlasrt(%c) allocs = %v, want 0", s, allocs)
+		}
+	}
+}
+
+func TestDlasrtDecreasingNaN(t *testing.T) {
+	nan := math.NaN()
+	d := []float64{1, nan, -2, math.Inf(1), 3, nan, math.Inf(-1)}
+	Implementation{}.Dlasrt(lapack.SortDecreasing, len(d), d)
+	want := []float64{math.Inf(1), 3, 1, -2, math.Inf(-1)}
+	for i, w := range want {
+		if d[i] != w {
+			t.Fatalf("d = %v, want prefix %v then NaNs", d, want)
+		}
+	}
+	if !math.IsNaN(d[5]) || !math.IsNaN(d[6]) {
+		t.Errorf("d = %v, want NaNs last", d)
+	}
+}
+
+func BenchmarkDlasrt(b *testing.B) {
+	rnd := rand.New(rand.NewPCG(1, 1))
+	d0 := make([]float64, 16)
+	for i := range d0 {
+		d0[i] = rnd.NormFloat64()
+	}
+	d := make([]float64, len(d0))
+	for _, s := range []lapack.Sort{lapack.SortIncreasing, lapack.SortDecreasing} {
+		b.Run(string(rune(s)), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				copy(d, d0)
+				Implementation{}.Dlasrt(s, len(d), d)
+			}
+		})
+	}
 }
