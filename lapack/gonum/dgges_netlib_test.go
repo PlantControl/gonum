@@ -648,3 +648,43 @@ func TestDtgsenNetlibRejectedSwap(t *testing.T) {
 		}
 	}
 }
+
+// TestDggesNetlibRiccatiCostScale pins the extended Riccati pencil at cost
+// scale 2⁵⁴ from gonum ergo RCIDXK. QZ converges in both Gonum and Netlib;
+// the sorted solve fails in both because the 2×2/2×2 swap of the
+// eigenvalue pairs with |λ| ≈ 223 and 0.0045 is rejected (Netlib INFO=N+2).
+func TestDggesNetlibRiccatiCostScale(t *testing.T) {
+	const n = 6
+	a := []float64{
+		8.77031250750518581e+01, -2.04988907649971054e+02, 7.80113578005842072e+01, 0, 0, 0,
+		5.65552668980218840e+01, 8.43652797029940160e+01, -5.34335942820415752e+01, 0, 0, 0,
+		-5.11833253052858694e-13, -2.20333969767074049e-13, 3.50612373056808111e-13, 1, 0, 0,
+		-2.20333969767074049e-13, -2.25999906258348489e-13, 2.26484157692003314e-13, 0, 1, 0,
+		3.50612373056808111e-13, 2.26484157692003314e-13, -3.22519151361301128e-13, 0, 0, 1,
+		-1.03910936104220752e+02, -1.60417022489841159e+01, 8.36217707423286356e+01, 0, 0, 0,
+	}
+	b := []float64{
+		-1.49952453045870293e-01, 9.86711541687295912e-01, 1.91743199436692109e-03, 1.68595377176533642e+10, 3.65270360750869989e+09, -5.27059693319038868e+08,
+		2.16370947131673992e-02, 1.91743199436692109e-03, 9.99723327916112958e-01, -2.43271388368348122e+09, -5.27059693319038868e+08, 7.60510433287044913e+07,
+		0, 0, 0, -1.52297270953031358e+02, 6.56232578689160562e+01, 5.97412379727810148e+01,
+		0, 0, 0, -3.17890810748492214e+00, -2.08397583085852830e+02, 8.48571278305472276e+01,
+		0, 0, 0, 1.09291410495414965e+02, 9.57800129850653263e+01, -5.59974874851399207e+01,
+		7.05697168449934131e-01, 6.25373390955576008e-02, -9.02370252460042363e-03, 1.90248205527637634e+11, 4.12182301965028381e+10, -5.94750357567044830e+09,
+	}
+	compareDggesWithNetlib(t, a, b, n, false, true)
+
+	w := netlib.NewDggesWorkspace(n, 'N', 'V', 2)
+	na, nb := make([]float64, n*n), make([]float64, n*n)
+	for i := range n {
+		for j := range n {
+			na[j*n+i], nb[j*n+i] = a[i*n+j], b[i*n+j]
+		}
+	}
+	ar, ai, beta := make([]float64, n), make([]float64, n), make([]float64, n)
+	z := make([]float64, n*n)
+	_, info := w.Run(na, nb, ar, ai, beta, make([]float64, 1), z)
+	if info == n+1 {
+		t.Errorf("Netlib QZ failed: INFO=%d", info)
+	}
+	t.Logf("Netlib sorted INFO=%d", info)
+}

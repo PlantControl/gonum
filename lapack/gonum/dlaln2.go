@@ -286,8 +286,8 @@ func (impl Implementation) Dlaln2(trans bool, na, nw int, smin, ca float64, a []
 		temp := scale / smini
 		x[0] = temp * b[0]
 		x[1] = temp * b[1]
-		x[ldb] = temp * b[ldb]
-		x[ldb+1] = temp * b[ldb+1]
+		x[ldx] = temp * b[ldb]
+		x[ldx+1] = temp * b[ldb+1]
 		xnorm = temp * bnorm
 		ok = false
 
