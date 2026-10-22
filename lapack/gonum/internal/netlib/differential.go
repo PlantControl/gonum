@@ -213,6 +213,18 @@ static lapack_int run_dtgexc(lapack_int n, double *a, double *b, lapack_int *ifs
 	free(ac); free(bc); free(q); free(z); free(work);
 	return info;
 }
+static lapack_int run_dtgevc(char side, char howmny, const lapack_int *sel, lapack_int n,
+		double *s, double *p, double *vl, double *vr, lapack_int mm, lapack_int *m) {
+	lapack_logical *select = NULL;
+	if (howmny == 'S') {
+		select = malloc((size_t)n*sizeof(lapack_logical));
+		for (lapack_int i = 0; i < n; i++) select[i] = sel[i];
+	}
+	lapack_int info = LAPACKE_dtgevc(LAPACK_ROW_MAJOR, side, howmny, select, n,
+		s, n, p, n, vl, mm, vr, mm, mm, m);
+	free(select);
+	return info;
+}
 */
 import "C"
 
@@ -455,4 +467,37 @@ func (w *DggesWorkspace) run(a, b, ar, ai, beta, q, z []float64, lwork int) (sdi
 		(*C.double)(unsafe.Pointer(&q[0])), (*C.double)(unsafe.Pointer(&z[0])),
 		(*C.double)(unsafe.Pointer(&w.work[0])), C.lapack_int(lwork), &w.bwork[0])
 	return int(w.sdim[0]), int(result)
+}
+
+// Dtgevc calls LAPACKE_dtgevc with row-major, contiguous s and p (n×n) and
+// vl and vr (n×mm). selected is used only when howmny is 'S'.
+func Dtgevc(side, howmny byte, selected []bool, n int, s, p, vl, vr []float64, mm int) (m, info int) {
+	sel := make([]C.lapack_int, max(1, n))
+	for i, v := range selected {
+		sel[i] = C.lapack_int(boolInt(v))
+	}
+	var cm C.lapack_int
+	dummy := []float64{0}
+	if vl == nil {
+		vl = dummy
+	}
+	if vr == nil {
+		vr = dummy
+	}
+	cinfo := C.run_dtgevc(C.char(side), C.char(howmny), &sel[0], C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&s[0])), (*C.double)(unsafe.Pointer(&p[0])),
+		(*C.double)(unsafe.Pointer(&vl[0])), (*C.double)(unsafe.Pointer(&vr[0])),
+		C.lapack_int(mm), &cm)
+	return int(cm), int(cinfo)
+}
+
+// Dggev calls LAPACKE_dggev with row-major, contiguous n×n matrices.
+func Dggev(jobvl, jobvr byte, n int, a, b, ar, ai, beta, vl, vr []float64) int {
+	return int(C.LAPACKE_dggev(C.LAPACK_ROW_MAJOR, C.char(jobvl), C.char(jobvr), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&a[0])), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&b[0])), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&ar[0])), (*C.double)(unsafe.Pointer(&ai[0])),
+		(*C.double)(unsafe.Pointer(&beta[0])),
+		(*C.double)(unsafe.Pointer(&vl[0])), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&vr[0])), C.lapack_int(n)))
 }

@@ -14,18 +14,24 @@ import (
 
 // Dtgevc computes some or all of the right and/or left eigenvectors of a pair
 // of real matrices (S, P), where S is a quasi-triangular matrix and P is upper
-// triangular.
+// triangular. Matrix pairs of this type are produced by the generalized Schur
+// factorization of a matrix pair (A,B):
+//
+//	A = Q * S * Zᵀ,  B = Q * P * Zᵀ
+//
+// as computed by Dgghrd + Dhgeqz.
 //
 // The right eigenvector x and the left eigenvector y of (S, P) corresponding to
-// an eigenvalue λ are defined by:
+// an eigenvalue w are defined by:
 //
-//	S * x = λ * P * x
-//	y^H * S = λ * y^H * P
+//	S * x = w * P * x
+//	yᴴ * S = w * yᴴ * P
 //
 // The eigenvalues are not input to this routine but are determined from the
-// diagonal blocks of S and P. For real eigenvalues (1x1 blocks), the eigenvector
-// is real. For complex eigenvalue pairs (2x2 blocks), the eigenvectors are
-// complex conjugate pairs stored as two consecutive real vectors.
+// diagonal blocks of S and P. For real eigenvalues (1×1 blocks), the
+// eigenvector is real. For a complex conjugate pair (2×2 block), the
+// eigenvector of the eigenvalue with positive imaginary part is stored as two
+// consecutive columns holding its real and imaginary parts.
 //
 // side specifies which eigenvectors to compute:
 //
@@ -35,29 +41,29 @@ import (
 //
 // howmny specifies how many eigenvectors to compute:
 //
-//	lapack.EVAll: all eigenvectors
-//	lapack.EVAllMulQ: all eigenvectors, multiplied by input matrices
+//	lapack.EVAll: all eigenvectors of (S, P)
+//	lapack.EVAllMulQ: all eigenvectors, back-transformed by the matrices
+//	                  supplied in vl (Q) and vr (Z) on entry
 //	lapack.EVSelected: selected eigenvectors (indicated by selected[])
 //
 // selected must have length n when howmny is lapack.EVSelected. If selected[j]
 // is true, the eigenvector corresponding to the j-th eigenvalue is computed.
-// For complex pairs, only the first element of the pair needs to be selected.
+// A complex pair is computed if either of its two elements is selected.
 //
-// n is the order of the matrices S and P.
+// S must have standardized 2×2 diagonal blocks (no adjacent blocks) and, for
+// each 2×2 block of S, the corresponding diagonal block of P must be diagonal
+// with nonzero diagonal, otherwise Dtgevc will panic.
 //
-// S is an n×n quasi-upper triangular matrix. P is an n×n upper triangular matrix.
+// vl and vr are n×mm matrices. mm must be at least m, the number of columns
+// required to store the requested eigenvectors.
 //
-// vl and vr are the computed left and right eigenvector matrices.
-// If howmny is lapack.EVAllMulQ, on entry vl/vr should contain matrices to
-// multiply the eigenvectors by.
-//
-// mm is the number of columns in vl and/or vr. mm >= m (the number of
-// eigenvectors to compute).
+// Each eigenvector is scaled so the largest component has
+// abs(real part)+abs(imag part) = 1.
 //
 // work must have length at least 6*n.
 //
-// The return value m is the number of eigenvectors computed.
-// ok is false if the eigenvector computation failed.
+// The return value m is the number of columns used to store the eigenvectors.
+// ok is false if a 2×2 block of (S, P) has real eigenvalues.
 //
 // Dtgevc is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dtgevc(side lapack.EVSide, howmny lapack.EVHowMany, selected []bool, n int,
@@ -66,8 +72,8 @@ func (impl Implementation) Dtgevc(side lapack.EVSide, howmny lapack.EVHowMany, s
 
 	compl := side == lapack.EVLeft || side == lapack.EVBoth
 	compr := side == lapack.EVRight || side == lapack.EVBoth
-	over := howmny == lapack.EVAllMulQ
-	somev := howmny == lapack.EVSelected
+	ilback := howmny == lapack.EVAllMulQ
+	ilall := howmny != lapack.EVSelected
 
 	switch {
 	case side != lapack.EVRight && side != lapack.EVLeft && side != lapack.EVBoth:
@@ -80,9 +86,9 @@ func (impl Implementation) Dtgevc(side lapack.EVSide, howmny lapack.EVHowMany, s
 		panic(badLdA)
 	case ldp < max(1, n):
 		panic(badLdB)
-	case compl && ldvl < max(1, n):
+	case ldvl < 1:
 		panic(badLdVL)
-	case compr && ldvr < max(1, n):
+	case ldvr < 1:
 		panic(badLdVR)
 	}
 
@@ -95,449 +101,535 @@ func (impl Implementation) Dtgevc(side lapack.EVSide, howmny lapack.EVHowMany, s
 		panic(shortA)
 	case len(p) < (n-1)*ldp+n:
 		panic(shortB)
-	case somev && len(selected) < n:
-		panic("lapack: insufficient length of selected")
+	case !ilall && len(selected) < n:
+		panic(badLenSelected)
 	case len(work) < 6*n:
 		panic(shortWork)
 	}
 
-	// Count the number of eigenvectors to compute.
-	if somev {
+	if ilall {
+		m = n
+	} else {
 		m = 0
 		for j := 0; j < n; j++ {
+			if j < n-1 && s[(j+1)*lds+j] != 0 {
+				if selected[j] || selected[j+1] {
+					m += 2
+				}
+				j++
+				continue
+			}
 			if selected[j] {
 				m++
 			}
 		}
-	} else {
-		m = n
+	}
+
+	for j := 0; j < n-1; j++ {
+		if s[(j+1)*lds+j] == 0 {
+			continue
+		}
+		if p[j*ldp+j] == 0 || p[(j+1)*ldp+j+1] == 0 || p[j*ldp+j+1] != 0 {
+			panic("lapack: P has a non-diagonal block under a 2×2 block of S")
+		}
+		if j < n-2 && s[(j+2)*lds+j+1] != 0 {
+			panic("lapack: S has adjacent 2×2 blocks")
+		}
 	}
 
 	switch {
 	case mm < m:
-		panic("lapack: mm < m")
+		panic(badMm)
+	case compl && ldvl < mm:
+		panic(badLdVL)
+	case compr && ldvr < mm:
+		panic(badLdVR)
 	case compl && len(vl) < (n-1)*ldvl+mm:
 		panic(shortVL)
 	case compr && len(vr) < (n-1)*ldvr+mm:
 		panic(shortVR)
 	}
 
-	if m == 0 {
-		return 0, true
-	}
-
-	bi := blas64.Implementation()
-
-	// Machine constants.
+	const safety = 100
 	safmin := dlamchS
-	ulp := dlamchE
+	ulp := dlamchP
 	small := safmin * float64(n) / ulp
 	big := 1 / small
 	bignum := 1 / (safmin * float64(n))
 
-	// Compute right eigenvectors.
-	if compr {
-		im := m - 1
-		for je := n - 1; je >= 0; {
-			if somev && !selected[je] {
-				je--
-				continue
-			}
+	// work[0:n] and work[n:2n] hold the 1-norms of the strictly upper
+	// triangular parts of the columns of S and P, excluding diagonal blocks.
+	anorm := math.Abs(s[0])
+	if n > 1 {
+		anorm += math.Abs(s[lds])
+	}
+	bnorm := math.Abs(p[0])
+	work[0] = 0
+	work[n] = 0
+	for j := 1; j < n; j++ {
+		var temp, temp2 float64
+		iend := j
+		if s[j*lds+j-1] != 0 {
+			iend = j - 1
+		}
+		for i := 0; i < iend; i++ {
+			temp += math.Abs(s[i*lds+j])
+			temp2 += math.Abs(p[i*ldp+j])
+		}
+		work[j] = temp
+		work[n+j] = temp2
+		for i := iend; i < min(j+2, n); i++ {
+			temp += math.Abs(s[i*lds+j])
+			temp2 += math.Abs(p[i*ldp+j])
+		}
+		anorm = math.Max(anorm, temp)
+		bnorm = math.Max(bnorm, temp2)
+	}
+	ascale := 1 / math.Max(anorm, safmin)
+	bscale := 1 / math.Max(bnorm, safmin)
 
-			// Detect 2x2 block.
-			nw := 1
-			if je > 0 && s[je*lds+je-1] != 0 {
-				nw = 2
-			}
+	bi := blas64.Implementation()
+	var (
+		bdiag [2]float64
+		sum   [4]float64
+		sums  [4]float64
+		sump  [4]float64
+		rhs   [4]float64
+	)
 
-			if nw == 1 {
-				// Real eigenvalue.
-				// Compute coefficients a and b in (aS - bP)x = 0.
-				acoef := 1.0
-				bcoef := 1.0
-				if math.Abs(s[je*lds+je]) > safmin {
-					acoef = 1.0
-					bcoef = s[je*lds+je] / p[je*ldp+je]
-				} else if math.Abs(p[je*ldp+je]) > safmin {
-					acoef = p[je*ldp+je] / s[je*lds+je]
-					bcoef = 1.0
-				}
-
-				// Initialize eigenvector.
-				for i := 0; i < n; i++ {
-					work[i] = 0
-					work[n+i] = 0
-				}
-				work[je] = 1
-
-				// Back-substitute.
-				for i := je - 1; i >= 0; i-- {
-					if i > 0 && s[i*lds+i-1] != 0 {
-						// Skip first row of 2x2 block (handle together).
-						continue
-					}
-
-					na := 1
-					if i < je-1 && i < n-1 && s[(i+1)*lds+i] != 0 {
-						na = 2
-					}
-
-					// Compute right-hand side.
-					if na == 1 {
-						work[i] = -acoef * bi.Ddot(je-i, s[i*lds+i+1:], 1, work[i+1:], 1)
-						work[i] += bcoef * bi.Ddot(je-i, p[i*ldp+i+1:], 1, work[i+1:], 1)
-					} else {
-						work[i] = -acoef * bi.Ddot(je-i, s[i*lds+i+1:], 1, work[i+1:], 1)
-						work[i] += bcoef * bi.Ddot(je-i, p[i*ldp+i+1:], 1, work[i+1:], 1)
-						work[i+1] = -acoef * bi.Ddot(je-i-1, s[(i+1)*lds+i+2:], 1, work[i+2:], 1)
-						work[i+1] += bcoef * bi.Ddot(je-i-1, p[(i+1)*ldp+i+2:], 1, work[i+2:], 1)
-					}
-
-					// Solve the system.
-					if na == 1 {
-						denom := acoef*s[i*lds+i] - bcoef*p[i*ldp+i]
-						if math.Abs(denom) < safmin {
-							denom = safmin
-						}
-						work[i] /= denom
-					} else {
-						// 2x2 system: use Dlaln2.
-						a2x2 := [4]float64{s[i*lds+i], s[i*lds+i+1], s[(i+1)*lds+i], s[(i+1)*lds+i+1]}
-						b2x2 := [2]float64{work[i], work[i+1]}
-						var x2x2 [2]float64
-						scale, _, _ := impl.Dlaln2(false, 2, 1, small, acoef, a2x2[:], 2,
-							bcoef*p[i*ldp+i], bcoef*p[(i+1)*ldp+i+1], b2x2[:], 1, bcoef, 0, x2x2[:], 1)
-						work[i] = x2x2[0] / scale
-						work[i+1] = x2x2[1] / scale
-						i--
-					}
-				}
-
-				// Copy to output and normalize.
-				if over {
-					bi.Dgemv(blas.NoTrans, n, je+1, 1, vr, ldvr, work[:je+1], 1, 0, work[2*n:], 1)
-					for i := 0; i < n; i++ {
-						vr[i*ldvr+im] = work[2*n+i]
-					}
-				} else {
-					for i := 0; i < n; i++ {
-						vr[i*ldvr+im] = work[i]
-					}
-				}
-
-				// Normalize.
-				xmax := 0.0
-				for i := 0; i < n; i++ {
-					xmax = math.Max(xmax, math.Abs(vr[i*ldvr+im]))
-				}
-				if xmax > safmin {
-					bi.Dscal(n, 1/xmax, vr[im:], ldvr)
-				}
-
-				im--
-				je--
+	realCoef := func(je int) (acoef, bcoefr float64) {
+		temp := 1 / math.Max(math.Max(math.Abs(s[je*lds+je])*ascale, math.Abs(p[je*ldp+je])*bscale), safmin)
+		salfar := (temp * s[je*lds+je]) * ascale
+		sbeta := (temp * p[je*ldp+je]) * bscale
+		acoef = sbeta * ascale
+		bcoefr = salfar * bscale
+		scale := 1.0
+		lsa := math.Abs(sbeta) >= safmin && math.Abs(acoef) < small
+		lsb := math.Abs(salfar) >= safmin && math.Abs(bcoefr) < small
+		if lsa {
+			scale = (small / math.Abs(sbeta)) * math.Min(anorm, big)
+		}
+		if lsb {
+			scale = math.Max(scale, (small/math.Abs(salfar))*math.Min(bnorm, big))
+		}
+		if lsa || lsb {
+			scale = math.Min(scale, 1/(safmin*math.Max(1, math.Max(math.Abs(acoef), math.Abs(bcoefr)))))
+			if lsa {
+				acoef = ascale * (scale * sbeta)
 			} else {
-				// Complex eigenvalue pair.
-				// Get eigenvalue from 2x2 block using Dlag2.
-				_, _, acoefr, _, bcoefi := impl.Dlag2(s[(je-1)*lds+je-1:], lds, p[(je-1)*ldp+je-1:], ldp)
-				acoef := 1.0
-				bcoefr := acoefr
-				if math.Abs(acoefr) > safmin || math.Abs(bcoefi) > safmin {
-					scale := 1 / math.Max(math.Abs(acoefr), math.Abs(bcoefi))
-					acoef = scale
-					bcoefr = acoefr * scale
-					bcoefi = bcoefi * scale
-				}
-
-				// Initialize eigenvector.
-				for i := 0; i < n; i++ {
-					work[i] = 0
-					work[n+i] = 0
-				}
-				work[je-1] = 1
-				work[n+je] = 1
-
-				// Back-substitute for complex pair.
-				for i := je - 2; i >= 0; i-- {
-					if i > 0 && s[i*lds+i-1] != 0 {
-						continue
-					}
-
-					na := 1
-					if i < je-2 && i < n-1 && s[(i+1)*lds+i] != 0 {
-						na = 2
-					}
-
-					// Compute RHS for real and imaginary parts.
-					sumr := -acoef * bi.Ddot(je-1-i, s[i*lds+i+1:], 1, work[i+1:], 1)
-					sumr += bcoefr * bi.Ddot(je-1-i, p[i*ldp+i+1:], 1, work[i+1:], 1)
-					sumr -= bcoefi * bi.Ddot(je-1-i, p[i*ldp+i+1:], 1, work[n+i+1:], 1)
-
-					sumi := -acoef * bi.Ddot(je-1-i, s[i*lds+i+1:], 1, work[n+i+1:], 1)
-					sumi += bcoefr * bi.Ddot(je-1-i, p[i*ldp+i+1:], 1, work[n+i+1:], 1)
-					sumi += bcoefi * bi.Ddot(je-1-i, p[i*ldp+i+1:], 1, work[i+1:], 1)
-
-					if na == 1 {
-						// 1x1 block with complex shift.
-						a1x1 := [1]float64{s[i*lds+i]}
-						b1x1 := [2]float64{sumr, sumi}
-						var x1x1 [2]float64
-						scale, _, _ := impl.Dlaln2(false, 1, 2, small, acoef, a1x1[:], 1,
-							bcoefr*p[i*ldp+i], 0, b1x1[:], 2, bcoefr, bcoefi, x1x1[:], 2)
-						work[i] = x1x1[0] / scale
-						work[n+i] = x1x1[1] / scale
-					} else {
-						// 2x2 block with complex shift.
-						sumr2 := -acoef * bi.Ddot(je-2-i, s[(i+1)*lds+i+2:], 1, work[i+2:], 1)
-						sumr2 += bcoefr * bi.Ddot(je-2-i, p[(i+1)*ldp+i+2:], 1, work[i+2:], 1)
-						sumr2 -= bcoefi * bi.Ddot(je-2-i, p[(i+1)*ldp+i+2:], 1, work[n+i+2:], 1)
-
-						sumi2 := -acoef * bi.Ddot(je-2-i, s[(i+1)*lds+i+2:], 1, work[n+i+2:], 1)
-						sumi2 += bcoefr * bi.Ddot(je-2-i, p[(i+1)*ldp+i+2:], 1, work[n+i+2:], 1)
-						sumi2 += bcoefi * bi.Ddot(je-2-i, p[(i+1)*ldp+i+2:], 1, work[i+2:], 1)
-
-						a2x2 := [4]float64{s[i*lds+i], s[i*lds+i+1], s[(i+1)*lds+i], s[(i+1)*lds+i+1]}
-						b2x2 := [4]float64{sumr, sumi, sumr2, sumi2}
-						var x2x2 [4]float64
-						scale, _, _ := impl.Dlaln2(false, 2, 2, small, acoef, a2x2[:], 2,
-							bcoefr*p[i*ldp+i], bcoefr*p[(i+1)*ldp+i+1], b2x2[:], 2, bcoefr, bcoefi, x2x2[:], 2)
-						work[i] = x2x2[0] / scale
-						work[n+i] = x2x2[1] / scale
-						work[i+1] = x2x2[2] / scale
-						work[n+i+1] = x2x2[3] / scale
-						i--
-					}
-				}
-
-				// Copy to output.
-				if over {
-					bi.Dgemv(blas.NoTrans, n, je, 1, vr, ldvr, work[:je], 1, 0, work[2*n:], 1)
-					bi.Dgemv(blas.NoTrans, n, je, 1, vr, ldvr, work[n:n+je], 1, 0, work[3*n:], 1)
-					for i := 0; i < n; i++ {
-						vr[i*ldvr+im-1] = work[2*n+i]
-						vr[i*ldvr+im] = work[3*n+i]
-					}
-				} else {
-					for i := 0; i < n; i++ {
-						vr[i*ldvr+im-1] = work[i]
-						vr[i*ldvr+im] = work[n+i]
-					}
-				}
-
-				// Normalize.
-				xmax := 0.0
-				for i := 0; i < n; i++ {
-					xmax = math.Max(xmax, math.Abs(vr[i*ldvr+im-1])+math.Abs(vr[i*ldvr+im]))
-				}
-				if xmax > safmin {
-					bi.Dscal(n, 1/xmax, vr[im-1:], ldvr)
-					bi.Dscal(n, 1/xmax, vr[im:], ldvr)
-				}
-
-				im -= 2
-				je -= 2
+				acoef *= scale
+			}
+			if lsb {
+				bcoefr = bscale * (scale * salfar)
+			} else {
+				bcoefr *= scale
 			}
 		}
+		return acoef, bcoefr
 	}
 
-	// Compute left eigenvectors.
+	scaleComplexCoef := func(acoef, bcoefr, bcoefi float64) (float64, float64, float64) {
+		acoefa := math.Abs(acoef)
+		bcoefa := math.Abs(bcoefr) + math.Abs(bcoefi)
+		scale := 1.0
+		if acoefa*ulp < safmin && acoefa >= safmin {
+			scale = (safmin / ulp) / acoefa
+		}
+		if bcoefa*ulp < safmin && bcoefa >= safmin {
+			scale = math.Max(scale, (safmin/ulp)/bcoefa)
+		}
+		if safmin*acoefa > ascale {
+			scale = ascale / (safmin * acoefa)
+		}
+		if safmin*bcoefa > bscale {
+			scale = math.Min(scale, bscale/(safmin*bcoefa))
+		}
+		if scale != 1 {
+			acoef *= scale
+			bcoefr *= scale
+			bcoefi *= scale
+		}
+		return acoef, bcoefr, bcoefi
+	}
+
 	if compl {
-		im := 0
-		for je := 0; je < n; {
-			if somev && !selected[je] {
-				je++
+		ieig := 0
+		for je := 0; je < n; je++ {
+			nw := 1
+			ilcplx := je < n-1 && s[(je+1)*lds+je] != 0
+			if ilcplx {
+				nw = 2
+			}
+			ilcomp := ilall
+			if !ilall {
+				ilcomp = selected[je] || (ilcplx && selected[je+1])
+			}
+			if !ilcomp {
+				if ilcplx {
+					je++
+				}
 				continue
 			}
 
-			// Detect 2x2 block.
-			nw := 1
-			if je < n-1 && s[(je+1)*lds+je] != 0 {
-				nw = 2
+			if !ilcplx && math.Abs(s[je*lds+je]) <= safmin && math.Abs(p[je*ldp+je]) <= safmin {
+				// Singular pencil: unit eigenvector, not back-transformed (as Netlib).
+				for jr := 0; jr < n; jr++ {
+					vl[jr*ldvl+ieig] = 0
+				}
+				vl[ieig*ldvl+ieig] = 1
+				ieig++
+				continue
 			}
 
-			if nw == 1 {
-				// Real eigenvalue.
-				acoef := 1.0
-				bcoef := 1.0
-				if math.Abs(s[je*lds+je]) > safmin {
-					acoef = 1.0
-					bcoef = s[je*lds+je] / p[je*ldp+je]
-				} else if math.Abs(p[je*ldp+je]) > safmin {
-					acoef = p[je*ldp+je] / s[je*lds+je]
-					bcoef = 1.0
-				}
+			for jr := 0; jr < nw*n; jr++ {
+				work[2*n+jr] = 0
+			}
 
-				// Initialize eigenvector.
-				for i := 0; i < n; i++ {
-					work[i] = 0
-				}
-				work[je] = 1
-
-				// Forward-substitute.
-				for i := je + 1; i < n; i++ {
-					if i < n-1 && s[(i+1)*lds+i] != 0 {
-						continue
-					}
-
-					na := 1
-					if i > je+1 && s[i*lds+i-1] != 0 {
-						na = 2
-						i--
-					}
-
-					if na == 1 {
-						work[i] = -acoef * bi.Ddot(i-je, s[je*lds+je:], 1, work[je:], 1)
-						work[i] += bcoef * bi.Ddot(i-je, p[je*ldp+je:], 1, work[je:], 1)
-
-						denom := acoef*s[i*lds+i] - bcoef*p[i*ldp+i]
-						if math.Abs(denom) < safmin {
-							denom = safmin
-						}
-						work[i] /= denom
-					} else {
-						work[i] = -acoef * bi.Ddot(i-je, s[je*lds+je:], 1, work[je:], 1)
-						work[i] += bcoef * bi.Ddot(i-je, p[je*ldp+je:], 1, work[je:], 1)
-						work[i+1] = -acoef * bi.Ddot(i+1-je, s[je*lds+je:], 1, work[je:], 1)
-						work[i+1] += bcoef * bi.Ddot(i+1-je, p[je*ldp+je:], 1, work[je:], 1)
-
-						a2x2 := [4]float64{s[i*lds+i], s[(i+1)*lds+i], s[i*lds+i+1], s[(i+1)*lds+i+1]}
-						b2x2 := [2]float64{work[i], work[i+1]}
-						var x2x2 [2]float64
-						scale, _, _ := impl.Dlaln2(true, 2, 1, small, acoef, a2x2[:], 2,
-							bcoef*p[i*ldp+i], bcoef*p[(i+1)*ldp+i+1], b2x2[:], 1, bcoef, 0, x2x2[:], 1)
-						work[i] = x2x2[0] / scale
-						work[i+1] = x2x2[1] / scale
-						i++
-					}
-				}
-
-				// Copy to output.
-				if over {
-					bi.Dgemv(blas.NoTrans, n, n-je, 1, vl[je:], ldvl, work[je:], 1, 0, work[2*n:], 1)
-					for i := 0; i < n; i++ {
-						vl[i*ldvl+im] = work[2*n+i]
-					}
-				} else {
-					for i := 0; i < n; i++ {
-						vl[i*ldvl+im] = work[i]
-					}
-				}
-
-				// Normalize.
-				xmax := 0.0
-				for i := 0; i < n; i++ {
-					xmax = math.Max(xmax, math.Abs(vl[i*ldvl+im]))
-				}
-				if xmax > safmin {
-					bi.Dscal(n, 1/xmax, vl[im:], ldvl)
-				}
-
-				im++
-				je++
+			var acoef, bcoefr, bcoefi, xmax float64
+			if !ilcplx {
+				acoef, bcoefr = realCoef(je)
+				work[2*n+je] = 1
+				xmax = 1
 			} else {
-				// Complex eigenvalue pair.
-				_, _, acoefr, _, bcoefi := impl.Dlag2(s[je*lds+je:], lds, p[je*ldp+je:], ldp)
-				acoef := 1.0
-				bcoefr := acoefr
-				if math.Abs(acoefr) > safmin || math.Abs(bcoefi) > safmin {
-					scale := 1 / math.Max(math.Abs(acoefr), math.Abs(bcoefi))
-					acoef = scale
-					bcoefr = acoefr * scale
-					bcoefi = bcoefi * scale
+				acoef, _, bcoefr, _, bcoefi = impl.dlag2(s[je*lds+je:], lds, p[je*ldp+je:], ldp, safmin*safety)
+				bcoefi = -bcoefi
+				if bcoefi == 0 {
+					return m, false
 				}
+				acoef, bcoefr, bcoefi = scaleComplexCoef(acoef, bcoefr, bcoefi)
 
-				// Initialize eigenvector.
-				for i := 0; i < n; i++ {
-					work[i] = 0
-					work[n+i] = 0
-				}
-				work[je] = 1
-				work[n+je+1] = 1
-
-				// Forward-substitute for complex pair.
-				for i := je + 2; i < n; i++ {
-					if i < n-1 && s[(i+1)*lds+i] != 0 {
-						continue
-					}
-
-					na := 1
-					if i > je+2 && s[i*lds+i-1] != 0 {
-						na = 2
-						i--
-					}
-
-					sumr := -acoef * bi.Ddot(i-je, s[je*lds+je:], 1, work[je:], 1)
-					sumr += bcoefr * bi.Ddot(i-je, p[je*ldp+je:], 1, work[je:], 1)
-					sumr += bcoefi * bi.Ddot(i-je, p[je*ldp+je:], 1, work[n+je:], 1)
-
-					sumi := -acoef * bi.Ddot(i-je, s[je*lds+je:], 1, work[n+je:], 1)
-					sumi += bcoefr * bi.Ddot(i-je, p[je*ldp+je:], 1, work[n+je:], 1)
-					sumi -= bcoefi * bi.Ddot(i-je, p[je*ldp+je:], 1, work[je:], 1)
-
-					if na == 1 {
-						a1x1 := [1]float64{s[i*lds+i]}
-						b1x1 := [2]float64{sumr, sumi}
-						var x1x1 [2]float64
-						scale, _, _ := impl.Dlaln2(true, 1, 2, small, acoef, a1x1[:], 1,
-							bcoefr*p[i*ldp+i], 0, b1x1[:], 2, bcoefr, bcoefi, x1x1[:], 2)
-						work[i] = x1x1[0] / scale
-						work[n+i] = x1x1[1] / scale
-					} else {
-						sumr2 := -acoef * bi.Ddot(i+1-je, s[je*lds+je:], 1, work[je:], 1)
-						sumr2 += bcoefr * bi.Ddot(i+1-je, p[je*ldp+je:], 1, work[je:], 1)
-						sumr2 += bcoefi * bi.Ddot(i+1-je, p[je*ldp+je:], 1, work[n+je:], 1)
-
-						sumi2 := -acoef * bi.Ddot(i+1-je, s[je*lds+je:], 1, work[n+je:], 1)
-						sumi2 += bcoefr * bi.Ddot(i+1-je, p[je*ldp+je:], 1, work[n+je:], 1)
-						sumi2 -= bcoefi * bi.Ddot(i+1-je, p[je*ldp+je:], 1, work[je:], 1)
-
-						a2x2 := [4]float64{s[i*lds+i], s[(i+1)*lds+i], s[i*lds+i+1], s[(i+1)*lds+i+1]}
-						b2x2 := [4]float64{sumr, sumi, sumr2, sumi2}
-						var x2x2 [4]float64
-						scale, _, _ := impl.Dlaln2(true, 2, 2, small, acoef, a2x2[:], 2,
-							bcoefr*p[i*ldp+i], bcoefr*p[(i+1)*ldp+i+1], b2x2[:], 2, bcoefr, bcoefi, x2x2[:], 2)
-						work[i] = x2x2[0] / scale
-						work[n+i] = x2x2[1] / scale
-						work[i+1] = x2x2[2] / scale
-						work[n+i+1] = x2x2[3] / scale
-						i++
-					}
-				}
-
-				// Copy to output.
-				if over {
-					bi.Dgemv(blas.NoTrans, n, n-je, 1, vl[je:], ldvl, work[je:], 1, 0, work[2*n:], 1)
-					bi.Dgemv(blas.NoTrans, n, n-je, 1, vl[je:], ldvl, work[n+je:], 1, 0, work[3*n:], 1)
-					for i := 0; i < n; i++ {
-						vl[i*ldvl+im] = work[2*n+i]
-						vl[i*ldvl+im+1] = work[3*n+i]
-					}
+				temp := acoef * s[(je+1)*lds+je]
+				temp2r := acoef*s[je*lds+je] - bcoefr*p[je*ldp+je]
+				temp2i := -bcoefi * p[je*ldp+je]
+				if math.Abs(temp) > math.Abs(temp2r)+math.Abs(temp2i) {
+					work[2*n+je] = 1
+					work[3*n+je] = 0
+					work[2*n+je+1] = -temp2r / temp
+					work[3*n+je+1] = -temp2i / temp
 				} else {
-					for i := 0; i < n; i++ {
-						vl[i*ldvl+im] = work[i]
-						vl[i*ldvl+im+1] = work[n+i]
+					work[2*n+je+1] = 1
+					work[3*n+je+1] = 0
+					temp = acoef * s[je*lds+je+1]
+					work[2*n+je] = (bcoefr*p[(je+1)*ldp+je+1] - acoef*s[(je+1)*lds+je+1]) / temp
+					work[3*n+je] = bcoefi * p[(je+1)*ldp+je+1] / temp
+				}
+				xmax = math.Max(math.Abs(work[2*n+je])+math.Abs(work[3*n+je]),
+					math.Abs(work[2*n+je+1])+math.Abs(work[3*n+je+1]))
+			}
+			acoefa := math.Abs(acoef)
+			bcoefa := math.Abs(bcoefr) + math.Abs(bcoefi)
+			dmin := math.Max(math.Max(ulp*acoefa*anorm, ulp*bcoefa*bnorm), safmin)
+
+			// Triangular solve of (a S - b P)ᵀ y = 0, rowwise in (a S - b P)ᵀ.
+			for j := je + nw; j < n; j++ {
+				na := 1
+				bdiag[0] = p[j*ldp+j]
+				if j < n-1 && s[(j+1)*lds+j] != 0 {
+					bdiag[1] = p[(j+1)*ldp+j+1]
+					na = 2
+				}
+
+				xscale := 1 / math.Max(1, xmax)
+				temp := math.Max(math.Max(work[j], work[n+j]), acoefa*work[j]+bcoefa*work[n+j])
+				if na == 2 {
+					temp = math.Max(temp, math.Max(math.Max(work[j+1], work[n+j+1]), acoefa*work[j+1]+bcoefa*work[n+j+1]))
+				}
+				if temp > bignum*xscale {
+					for jw := 0; jw < nw; jw++ {
+						for jr := je; jr < j; jr++ {
+							work[(jw+2)*n+jr] *= xscale
+						}
+					}
+					xmax *= xscale
+				}
+
+				for jw := 0; jw < nw; jw++ {
+					for ja := 0; ja < na; ja++ {
+						var ss, sp float64
+						for jr := je; jr < j; jr++ {
+							x := work[(jw+2)*n+jr]
+							ss += s[jr*lds+j+ja] * x
+							sp += p[jr*ldp+j+ja] * x
+						}
+						sums[ja*2+jw] = ss
+						sump[ja*2+jw] = sp
+					}
+				}
+				for ja := 0; ja < na; ja++ {
+					if ilcplx {
+						sum[ja*2] = -acoef*sums[ja*2] + bcoefr*sump[ja*2] - bcoefi*sump[ja*2+1]
+						sum[ja*2+1] = -acoef*sums[ja*2+1] + bcoefr*sump[ja*2+1] + bcoefi*sump[ja*2]
+					} else {
+						sum[ja*2] = -acoef*sums[ja*2] + bcoefr*sump[ja*2]
 					}
 				}
 
-				// Normalize.
-				xmax := 0.0
-				for i := 0; i < n; i++ {
-					xmax = math.Max(xmax, math.Abs(vl[i*ldvl+im])+math.Abs(vl[i*ldvl+im+1]))
+				scale, xnorm, _ := impl.Dlaln2(true, na, nw, dmin, acoef, s[j*lds+j:], lds,
+					bdiag[0], bdiag[1], sum[:], 2, bcoefr, bcoefi, rhs[:], 2)
+				for jw := 0; jw < nw; jw++ {
+					for ja := 0; ja < na; ja++ {
+						work[(jw+2)*n+j+ja] = rhs[ja*2+jw]
+					}
 				}
-				if xmax > safmin {
-					bi.Dscal(n, 1/xmax, vl[im:], ldvl)
-					bi.Dscal(n, 1/xmax, vl[im+1:], ldvl)
+				if scale < 1 {
+					for jw := 0; jw < nw; jw++ {
+						for jr := je; jr < j; jr++ {
+							work[(jw+2)*n+jr] *= scale
+						}
+					}
+					xmax *= scale
 				}
+				xmax = math.Max(xmax, xnorm)
+				if na == 2 {
+					j++
+				}
+			}
 
-				im += 2
-				je += 2
+			ibeg := je
+			if ilback {
+				for jw := 0; jw < nw; jw++ {
+					bi.Dgemv(blas.NoTrans, n, n-je, 1, vl[je:], ldvl,
+						work[(jw+2)*n+je:], 1, 0, work[(jw+4)*n:], 1)
+				}
+				for jw := 0; jw < nw; jw++ {
+					for jr := 0; jr < n; jr++ {
+						vl[jr*ldvl+ieig+jw] = work[(jw+4)*n+jr]
+					}
+				}
+				ibeg = 0
+			} else {
+				for jw := 0; jw < nw; jw++ {
+					for jr := 0; jr < n; jr++ {
+						vl[jr*ldvl+ieig+jw] = work[(jw+2)*n+jr]
+					}
+				}
+			}
+
+			xmax = 0
+			for jr := ibeg; jr < n; jr++ {
+				v := math.Abs(vl[jr*ldvl+ieig])
+				if ilcplx {
+					v += math.Abs(vl[jr*ldvl+ieig+1])
+				}
+				xmax = math.Max(xmax, v)
+			}
+			if xmax > safmin {
+				xscale := 1 / xmax
+				for jw := 0; jw < nw; jw++ {
+					for jr := ibeg; jr < n; jr++ {
+						vl[jr*ldvl+ieig+jw] *= xscale
+					}
+				}
+			}
+			ieig += nw
+			if ilcplx {
+				je++
 			}
 		}
 	}
 
-	_ = big
-	_ = bignum
-	_ = ulp
+	if compr {
+		ieig := m
+		for je := n - 1; je >= 0; je-- {
+			nw := 1
+			ilcplx := je > 0 && s[je*lds+je-1] != 0
+			if ilcplx {
+				nw = 2
+			}
+			ilcomp := ilall
+			if !ilall {
+				ilcomp = selected[je] || (ilcplx && selected[je-1])
+			}
+			if !ilcomp {
+				if ilcplx {
+					je--
+				}
+				continue
+			}
+
+			if !ilcplx && math.Abs(s[je*lds+je]) <= safmin && math.Abs(p[je*ldp+je]) <= safmin {
+				// Singular pencil: unit eigenvector, not back-transformed (as Netlib).
+				ieig--
+				for jr := 0; jr < n; jr++ {
+					vr[jr*ldvr+ieig] = 0
+				}
+				vr[ieig*ldvr+ieig] = 1
+				continue
+			}
+
+			for jr := 0; jr < nw*n; jr++ {
+				work[2*n+jr] = 0
+			}
+
+			var acoef, bcoefr, bcoefi, xmax float64
+			if !ilcplx {
+				acoef, bcoefr = realCoef(je)
+				work[2*n+je] = 1
+				xmax = 1
+				for jr := 0; jr < je; jr++ {
+					work[2*n+jr] = bcoefr*p[jr*ldp+je] - acoef*s[jr*lds+je]
+				}
+			} else {
+				acoef, _, bcoefr, _, bcoefi = impl.dlag2(s[(je-1)*lds+je-1:], lds, p[(je-1)*ldp+je-1:], ldp, safmin*safety)
+				if bcoefi == 0 {
+					return m, false
+				}
+				acoef, bcoefr, bcoefi = scaleComplexCoef(acoef, bcoefr, bcoefi)
+
+				temp := acoef * s[je*lds+je-1]
+				temp2r := acoef*s[je*lds+je] - bcoefr*p[je*ldp+je]
+				temp2i := -bcoefi * p[je*ldp+je]
+				if math.Abs(temp) >= math.Abs(temp2r)+math.Abs(temp2i) {
+					work[2*n+je] = 1
+					work[3*n+je] = 0
+					work[2*n+je-1] = -temp2r / temp
+					work[3*n+je-1] = -temp2i / temp
+				} else {
+					work[2*n+je-1] = 1
+					work[3*n+je-1] = 0
+					temp = acoef * s[(je-1)*lds+je]
+					work[2*n+je] = (bcoefr*p[(je-1)*ldp+je-1] - acoef*s[(je-1)*lds+je-1]) / temp
+					work[3*n+je] = bcoefi * p[(je-1)*ldp+je-1] / temp
+				}
+				xmax = math.Max(math.Abs(work[2*n+je])+math.Abs(work[3*n+je]),
+					math.Abs(work[2*n+je-1])+math.Abs(work[3*n+je-1]))
+
+				creala := acoef * work[2*n+je-1]
+				cimaga := acoef * work[3*n+je-1]
+				crealb := bcoefr*work[2*n+je-1] - bcoefi*work[3*n+je-1]
+				cimagb := bcoefi*work[2*n+je-1] + bcoefr*work[3*n+je-1]
+				cre2a := acoef * work[2*n+je]
+				cim2a := acoef * work[3*n+je]
+				cre2b := bcoefr*work[2*n+je] - bcoefi*work[3*n+je]
+				cim2b := bcoefi*work[2*n+je] + bcoefr*work[3*n+je]
+				for jr := 0; jr < je-1; jr++ {
+					work[2*n+jr] = -creala*s[jr*lds+je-1] + crealb*p[jr*ldp+je-1] -
+						cre2a*s[jr*lds+je] + cre2b*p[jr*ldp+je]
+					work[3*n+jr] = -cimaga*s[jr*lds+je-1] + cimagb*p[jr*ldp+je-1] -
+						cim2a*s[jr*lds+je] + cim2b*p[jr*ldp+je]
+				}
+			}
+			acoefa := math.Abs(acoef)
+			bcoefa := math.Abs(bcoefr) + math.Abs(bcoefi)
+			dmin := math.Max(math.Max(ulp*acoefa*anorm, ulp*bcoefa*bnorm), safmin)
+
+			// Columnwise triangular solve of (a S - b P) x = 0.
+			il2by2 := false
+			for j := je - nw; j >= 0; j-- {
+				// A 2×2 block in rows j-1:j is solved on the next
+				// iteration, as rows j:j+1.
+				if !il2by2 && j > 0 && s[j*lds+j-1] != 0 {
+					il2by2 = true
+					continue
+				}
+				bdiag[0] = p[j*ldp+j]
+				na := 1
+				if il2by2 {
+					na = 2
+					bdiag[1] = p[(j+1)*ldp+j+1]
+				}
+
+				for jw := 0; jw < nw; jw++ {
+					for ja := 0; ja < na; ja++ {
+						rhs[ja*2+jw] = work[(jw+2)*n+j+ja]
+					}
+				}
+				scale, xnorm, _ := impl.Dlaln2(false, na, nw, dmin, acoef, s[j*lds+j:], lds,
+					bdiag[0], bdiag[1], rhs[:], 2, bcoefr, bcoefi, sum[:], 2)
+				if scale < 1 {
+					for jw := 0; jw < nw; jw++ {
+						for jr := 0; jr <= je; jr++ {
+							work[(jw+2)*n+jr] *= scale
+						}
+					}
+				}
+				xmax = math.Max(scale*xmax, xnorm)
+				for jw := 0; jw < nw; jw++ {
+					for ja := 0; ja < na; ja++ {
+						work[(jw+2)*n+j+ja] = sum[ja*2+jw]
+					}
+				}
+
+				if j > 0 {
+					xscale := 1 / math.Max(1, xmax)
+					temp := acoefa*work[j] + bcoefa*work[n+j]
+					if il2by2 {
+						temp = math.Max(temp, acoefa*work[j+1]+bcoefa*work[n+j+1])
+					}
+					temp = math.Max(temp, math.Max(acoefa, bcoefa))
+					if temp > bignum*xscale {
+						for jw := 0; jw < nw; jw++ {
+							for jr := 0; jr <= je; jr++ {
+								work[(jw+2)*n+jr] *= xscale
+							}
+						}
+						xmax *= xscale
+					}
+
+					for ja := 0; ja < na; ja++ {
+						if ilcplx {
+							creala := acoef * work[2*n+j+ja]
+							cimaga := acoef * work[3*n+j+ja]
+							crealb := bcoefr*work[2*n+j+ja] - bcoefi*work[3*n+j+ja]
+							cimagb := bcoefi*work[2*n+j+ja] + bcoefr*work[3*n+j+ja]
+							for jr := 0; jr < j; jr++ {
+								work[2*n+jr] += -creala*s[jr*lds+j+ja] + crealb*p[jr*ldp+j+ja]
+								work[3*n+jr] += -cimaga*s[jr*lds+j+ja] + cimagb*p[jr*ldp+j+ja]
+							}
+						} else {
+							creala := acoef * work[2*n+j+ja]
+							crealb := bcoefr * work[2*n+j+ja]
+							for jr := 0; jr < j; jr++ {
+								work[2*n+jr] += -creala*s[jr*lds+j+ja] + crealb*p[jr*ldp+j+ja]
+							}
+						}
+					}
+				}
+				il2by2 = false
+			}
+
+			ieig -= nw
+			iend := je + 1
+			if ilback {
+				for jw := 0; jw < nw; jw++ {
+					bi.Dgemv(blas.NoTrans, n, je+1, 1, vr, ldvr,
+						work[(jw+2)*n:], 1, 0, work[(jw+4)*n:], 1)
+				}
+				for jw := 0; jw < nw; jw++ {
+					for jr := 0; jr < n; jr++ {
+						vr[jr*ldvr+ieig+jw] = work[(jw+4)*n+jr]
+					}
+				}
+				iend = n
+			} else {
+				for jw := 0; jw < nw; jw++ {
+					for jr := 0; jr < n; jr++ {
+						vr[jr*ldvr+ieig+jw] = work[(jw+2)*n+jr]
+					}
+				}
+			}
+
+			xmax = 0
+			for jr := 0; jr < iend; jr++ {
+				v := math.Abs(vr[jr*ldvr+ieig])
+				if ilcplx {
+					v += math.Abs(vr[jr*ldvr+ieig+1])
+				}
+				xmax = math.Max(xmax, v)
+			}
+			if xmax > safmin {
+				xscale := 1 / xmax
+				for jw := 0; jw < nw; jw++ {
+					for jr := 0; jr < iend; jr++ {
+						vr[jr*ldvr+ieig+jw] *= xscale
+					}
+				}
+			}
+			if ilcplx {
+				je--
+			}
+		}
+	}
 
 	return m, true
 }
