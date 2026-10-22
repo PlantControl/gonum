@@ -5,9 +5,13 @@
 package testlapack
 
 import (
+	"fmt"
 	"math"
+	"math/cmplx"
+	"math/rand/v2"
 	"testing"
 
+	"plantcontrol.org/v1/gonum/blas/blas64"
 	"plantcontrol.org/v1/gonum/lapack"
 )
 
@@ -30,6 +34,7 @@ func DggevTest(t *testing.T, impl Dggever) {
 
 	testDggevEigenvaluesOnly(t, impl)
 	testDggevEigenvectors(t, impl)
+	testDggevEigenvectorResiduals(t, impl)
 	testDggevComplexEigenvalues(t, impl)
 	testDggevSingularPencil(t, impl)
 	testDggevExtremeScaleEigenvalueRepresentation(t, impl)
@@ -486,6 +491,132 @@ func checkDggevNormalization(t *testing.T, alphai, v []float64, ldv int) {
 		}
 		if math.Abs(vmax-1) > 1e-14 {
 			t.Errorf("eigenvector %d normalization=%v, want 1", j, vmax)
+		}
+	}
+}
+
+func testDggevEigenvectorResiduals(t *testing.T, impl Dggever) {
+	fromRows := func(n, stride int, rows []float64) blas64.General {
+		m := nanGeneral(n, n, stride)
+		for i := 0; i < n; i++ {
+			copy(m.Data[i*stride:i*stride+n], rows[i*n:i*n+n])
+		}
+		return m
+	}
+	for _, stride := range []int{3, 5} {
+		testDggevResidualCase(t, impl, "upper-triangular", fromRows(3, stride,
+			[]float64{1, 2, 0, 0, 3, 5, 0, 0, 7}), fromRows(3, stride,
+			[]float64{1, 0, 0, 0, 1, 0, 0, 0, 1}), stride)
+		testDggevResidualCase(t, impl, "complex-pair", fromRows(3, stride,
+			[]float64{0, 1, 0, -2, -1, 3, 1, 0, 0.5}), fromRows(3, stride,
+			[]float64{1, 0.2, 0, 0, 2, 0.1, 0.3, 0, 1}), stride)
+	}
+
+	rnd := rand.New(rand.NewPCG(1, 1))
+	for n := 1; n <= 10; n++ {
+		for _, extra := range []int{0, 3} {
+			stride := n + extra
+			for trial := 0; trial < 10; trial++ {
+				a := randomGeneral(n, n, stride, rnd)
+				b := randomGeneral(n, n, stride, rnd)
+				if trial == 9 && n > 1 {
+					// Singular B gives an infinite eigenvalue.
+					for i := 0; i < n; i++ {
+						b.Data[i*stride+n-1] = 0
+					}
+				}
+				name := fmt.Sprintf("random n=%d stride=%d trial=%d", n, stride, trial)
+				testDggevResidualCase(t, impl, name, a, b, stride)
+			}
+		}
+	}
+}
+
+func testDggevResidualCase(t *testing.T, impl Dggever, name string, aOrig, bOrig blas64.General, ldv int) {
+	t.Helper()
+	n := aOrig.Rows
+	a := cloneGeneral(aOrig)
+	b := cloneGeneral(bOrig)
+	alphar := make([]float64, n)
+	alphai := make([]float64, n)
+	beta := make([]float64, n)
+	vl := nanGeneral(n, n, ldv)
+	vr := nanGeneral(n, n, ldv)
+	work := make([]float64, 1)
+	impl.Dggev(lapack.LeftEVCompute, lapack.RightEVCompute, n, nil, a.Stride, nil, b.Stride,
+		nil, nil, nil, nil, ldv, nil, ldv, work, -1)
+	work = make([]float64, int(work[0]))
+	if !impl.Dggev(lapack.LeftEVCompute, lapack.RightEVCompute, n, a.Data, a.Stride, b.Data, b.Stride,
+		alphar, alphai, beta, vl.Data, ldv, vr.Data, ldv, work, len(work)) {
+		t.Errorf("%s: Dggev did not converge", name)
+		return
+	}
+	checkGeneralizedEigenvectorResiduals(t, name+" left", aOrig, bOrig, alphar, alphai, beta, vl.Data, ldv, true)
+	checkGeneralizedEigenvectorResiduals(t, name+" right", aOrig, bOrig, alphar, alphai, beta, vr.Data, ldv, false)
+	checkDggevNormalization(t, alphai, vl.Data, ldv)
+	checkDggevNormalization(t, alphai, vr.Data, ldv)
+}
+
+// generalizedEigenvector returns the complex eigenvector of eigenvalue j
+// stored in v, with a complex pair stored as (re, im) in columns j, j+1.
+func generalizedEigenvector(n int, alphai, v []float64, ldv, j int) []complex128 {
+	x := make([]complex128, n)
+	for i := 0; i < n; i++ {
+		switch {
+		case alphai[j] == 0:
+			x[i] = complex(v[i*ldv+j], 0)
+		case alphai[j] > 0:
+			x[i] = complex(v[i*ldv+j], v[i*ldv+j+1])
+		default:
+			x[i] = complex(v[i*ldv+j-1], -v[i*ldv+j])
+		}
+	}
+	return x
+}
+
+// checkGeneralizedEigenvectorResiduals checks the normalized residuals
+//
+//	|(beta*A - alpha*B) x| / ((|beta|*|A| + |alpha|*|B|) * |x|)     right,
+//	|yᴴ (beta*A - alpha*B)| / ((|beta|*|A| + |alpha|*|B|) * |y|)    left,
+//
+// for each eigenvalue alpha/beta, using max-abs vector norms and Frobenius
+// matrix norms.
+func checkGeneralizedEigenvectorResiduals(t *testing.T, name string, a, b blas64.General,
+	alphar, alphai, beta, v []float64, ldv int, left bool) {
+	t.Helper()
+	n := a.Rows
+	anorm := dlange(lapack.Frobenius, n, n, a.Data, a.Stride)
+	bnorm := dlange(lapack.Frobenius, n, n, b.Data, b.Stride)
+	tol := float64(max(n, 1)) * 100 * dlamchE
+	for j := 0; j < n; j++ {
+		alpha := complex(alphar[j], alphai[j])
+		bet := complex(beta[j], 0)
+		x := generalizedEigenvector(n, alphai, v, ldv, j)
+		var xnorm, rnorm float64
+		for _, xi := range x {
+			xnorm = math.Max(xnorm, cmplx.Abs(xi))
+		}
+		for i := 0; i < n; i++ {
+			var r complex128
+			for k := 0; k < n; k++ {
+				if left {
+					r += (bet*complex(a.Data[k*a.Stride+i], 0) - alpha*complex(b.Data[k*b.Stride+i], 0)) * cmplx.Conj(x[k])
+				} else {
+					r += (bet*complex(a.Data[i*a.Stride+k], 0) - alpha*complex(b.Data[i*b.Stride+k], 0)) * x[k]
+				}
+			}
+			rnorm = math.Max(rnorm, cmplx.Abs(r))
+		}
+		denom := (math.Abs(beta[j])*anorm + cmplx.Abs(alpha)*bnorm) * xnorm
+		if xnorm == 0 || math.IsNaN(rnorm) {
+			t.Errorf("%s: eigenvector %d is zero or NaN (|x|=%g, residual=%g)", name, j, xnorm, rnorm)
+			continue
+		}
+		if rnorm == 0 {
+			continue
+		}
+		if res := rnorm / denom; res > tol {
+			t.Errorf("%s: eigenvector %d (alpha=%v, beta=%v) residual=%g, want <= %g", name, j, alpha, beta[j], res, tol)
 		}
 	}
 }
