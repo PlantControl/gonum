@@ -353,3 +353,27 @@ func compareDhgeqzInOrder(t *testing.T, job lapack.SchurJob, compq, compz lapack
 		}
 	}
 }
+
+// TestDhgeqzNetlibNaNTrailingDiagonal checks that a NaN T(j,j) outside the
+// active block is not sign-normalized, since DHGEQZ negates only when
+// T(j,j) < 0.
+func TestDhgeqzNetlibNaNTrailingDiagonal(t *testing.T) {
+	const n = 3
+	h := []float64{1, 2, 3, 4, 5, 6, 0, 0, 7}
+	tt := []float64{2, 1, -1, 0, 3, 2, 0, 0, math.NaN()}
+	gh, gt := append([]float64(nil), h...), append([]float64(nil), tt...)
+	nh, nt := append([]float64(nil), h...), append([]float64(nil), tt...)
+	gar, gai, gbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+	nar, nai, nbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+	gq, gz := make([]float64, n*n), make([]float64, n*n)
+	nq, nz := make([]float64, n*n), make([]float64, n*n)
+	work := make([]float64, n)
+	Implementation{}.Dhgeqz(lapack.EigenvaluesAndSchur, lapack.SchurHess, lapack.SchurHess, n, 0, 1,
+		gh, n, gt, n, gar, gai, gbeta, gq, n, gz, n, work, len(work))
+	netlib.Dhgeqz(byte(lapack.EigenvaluesAndSchur), byte(lapack.SchurHess), byte(lapack.SchurHess), n, 0, 1,
+		nh, nt, nar, nai, nbeta, nq, nz)
+	for i := range n {
+		checkCloseNetlib(t, fmt.Sprintf("H[%d,2]", i), gh[i*n+2], nh[i*n+2])
+		checkCloseNetlib(t, fmt.Sprintf("Z[%d,2]", i), gz[i*n+2], nz[i*n+2])
+	}
+}
