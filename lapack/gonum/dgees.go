@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"plantcontrol.org/v1/gonum/blas"
+	"plantcontrol.org/v1/gonum/blas/blas64"
 	"plantcontrol.org/v1/gonum/lapack"
 )
 
@@ -76,10 +77,14 @@ import (
 // On return, sdim contains the number of eigenvalues (after sorting) for which
 // selctg is true. If sort is lapack.SortNone, sdim will be 0.
 //
-// On return, ok reports whether all eigenvalues have been computed. If ok is
-// false, a has been partially reduced and some eigenvalues may not have
-// converged. In this case the eigenvalues in wr[0:n] and wi[0:n] are correct
-// for indices where they were computed, but T may not be in Schur form.
+// On return, ok reports whether all eigenvalues have been computed and, if
+// sort is lapack.SortSelected, whether the reordering succeeded and the
+// selection still holds after it. If the QR iteration failed, a has been
+// partially reduced and the eigenvalues in wr and wi are correct only for
+// indices where they were computed. If sorting failed because two eigenvalues
+// were too close to swap, or because rounding after reordering changed which
+// eigenvalues satisfy selctg (LAPACK INFO = N+1 or N+2), ok is false but the
+// Schur form and vectors are valid.
 //
 // Dgees does not check A for NaN or Inf. Like reference LAPACK 3.12 DGEES,
 // which returns INFO >= 0 for such input, Dgees then returns with ok false, or
@@ -208,45 +213,21 @@ func (impl Implementation) Dgees(jobvs lapack.SchurComp, sort lapack.SchurSort, 
 	}
 	ieval := impl.Dhseqr(lapack.EigenvaluesAndSchur, compz, n, ilo, ihi,
 		a, lda, wr, wi, vs, ldvs, work[iwrk:], lwork-iwrk)
-	if ieval > 0 {
-		ok = false
-	} else {
-		ok = true
-	}
+	ok = ieval == 0
 
 	// Sort eigenvalues if desired.
 	sdim = 0
-	if ok && wantst {
-		// Populate bwork[] using selctg callback.
-		for i := 0; i < n; {
-			if i < n-1 && wi[i] != 0 {
-				// Complex conjugate pair at positions i and i+1.
-				// Both must be selected if either is selected.
-				sel1 := selctg(wr[i], wi[i])
-				sel2 := selctg(wr[i+1], wi[i+1])
-				bwork[i] = sel1 || sel2
-				bwork[i+1] = sel1 || sel2
-				i += 2
-			} else {
-				// Real eigenvalue.
-				bwork[i] = selctg(wr[i], wi[i])
-				i++
-			}
+	if wantst && ok {
+		if scalea {
+			impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wr, 1)
+			impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wi, 1)
 		}
-
-		// Call Dtrsen to reorder eigenvalues.
-		liwork := 1
-		iwork := make([]int, liwork)
-
-		var trsenM int
-		var trsenOk bool
-		trsenM, _, _, trsenOk = impl.Dtrsen(0, wantvs, bwork, n,
-			a, lda, vs, ldvs, wr, wi, work[iwrk:], lwork-iwrk, iwork, liwork)
-
-		if !trsenOk {
-			ok = false
+		for i := range n {
+			bwork[i] = selctg(wr[i], wi[i])
 		}
-		sdim = trsenM
+		var iwork [1]int
+		sdim, _, _, ok = impl.Dtrsen(0, wantvs, bwork, n,
+			a, lda, vs, ldvs, wr, wi, work[iwrk:], lwork-iwrk, iwork[:], 1)
 	}
 
 	if wantvs {
@@ -256,9 +237,89 @@ func (impl Implementation) Dgees(jobvs lapack.SchurComp, sort lapack.SchurSort, 
 
 	if scalea {
 		// Undo scaling for the Schur form of A.
-		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, n, a, lda)
-		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wr, 1)
-		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n, 1, wi, 1)
+		impl.Dlascl(lapack.UpperHessenberg, 0, 0, cscale, anrm, n, n, a, lda)
+		for i := range n {
+			wr[i] = a[i*lda+i]
+		}
+		if cscale == smlnum {
+			// If scaling back towards underflow, adjust wi if an off-diagonal
+			// element of a 2×2 block in the Schur form underflows.
+			var i1, i2 int
+			switch {
+			case ieval > 0:
+				i1, i2 = ieval, ihi-1
+				impl.Dlascl(lapack.General, 0, 0, cscale, anrm, ilo, 1, wi, 1)
+			case wantst:
+				i1, i2 = 0, n-2
+			default:
+				i1, i2 = ilo, ihi-1
+			}
+			bi := blas64.Implementation()
+			inxt := i1 - 1
+			for i := i1; i <= i2; i++ {
+				if i < inxt {
+					continue
+				}
+				if wi[i] == 0 {
+					inxt = i + 1
+					continue
+				}
+				if a[(i+1)*lda+i] == 0 {
+					wi[i], wi[i+1] = 0, 0
+				} else if a[i*lda+i+1] == 0 {
+					wi[i], wi[i+1] = 0, 0
+					if i > 0 {
+						bi.Dswap(i, a[i:], lda, a[i+1:], lda)
+					}
+					if n > i+2 {
+						bi.Dswap(n-i-2, a[i*lda+i+2:], 1, a[(i+1)*lda+i+2:], 1)
+					}
+					if wantvs {
+						bi.Dswap(n, vs[i:], ldvs, vs[i+1:], ldvs)
+					}
+					a[i*lda+i+1] = a[(i+1)*lda+i]
+					a[(i+1)*lda+i] = 0
+				}
+				inxt = i + 2
+			}
+		}
+		// Undo scaling for the imaginary part of the eigenvalues.
+		impl.Dlascl(lapack.General, 0, 0, cscale, anrm, n-ieval, 1, wi[ieval:], 1)
+	}
+
+	if wantst && ok {
+		// Check if reordering was successful.
+		lastsl, lst2sl := true, true
+		sdim = 0
+		ip := 0
+		for i := range n {
+			cursl := selctg(wr[i], wi[i])
+			if wi[i] == 0 {
+				if cursl {
+					sdim++
+				}
+				ip = 0
+				if cursl && !lastsl {
+					ok = false
+				}
+			} else if ip == 1 {
+				// Last eigenvalue of conjugate pair.
+				cursl = cursl || lastsl
+				lastsl = cursl
+				if cursl {
+					sdim += 2
+				}
+				ip = -1
+				if cursl && !lst2sl {
+					ok = false
+				}
+			} else {
+				// First eigenvalue of conjugate pair.
+				ip = 1
+			}
+			lst2sl = lastsl
+			lastsl = cursl
+		}
 	}
 
 	work[0] = float64(maxwrk)

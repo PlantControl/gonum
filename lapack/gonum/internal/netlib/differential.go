@@ -101,6 +101,38 @@ static lapack_int run_dggev_work(char jobvl, char jobvr, lapack_int n,
 	return info;
 }
 
+static lapack_int run_dtrsen(char job, char compq, lapack_logical *sel, lapack_int n, double *t, double *q,
+		double *wr, double *wi, lapack_int *m, double *s, double *sep) {
+	lapack_int ld = n > 0 ? n : 1, info = 0;
+	lapack_int lwork = 2*n*n + n + 1, liwork = n*n + 1;
+	double *tc = malloc((size_t)ld*ld*sizeof(double));
+	double *qc = malloc((size_t)ld*ld*sizeof(double));
+	double *work = malloc((size_t)lwork*sizeof(double));
+	lapack_int *iwork = malloc((size_t)liwork*sizeof(lapack_int));
+	row_to_col(n, t, tc);
+	row_to_col(n, q, qc);
+	LAPACK_dtrsen(&job, &compq, sel, &n, tc, &ld, qc, &ld, wr, wi, m, s, sep,
+		work, &lwork, iwork, &liwork, &info);
+	col_to_row(n, tc, t);
+	col_to_row(n, qc, q);
+	free(tc); free(qc); free(work); free(iwork);
+	return info;
+}
+
+static double dgees_threshold;
+
+static lapack_logical select_wr_below(const double *wr, const double *wi) {
+	(void)wi;
+	return *wr < dgees_threshold;
+}
+
+static lapack_int run_dgees(char jobvs, lapack_int sort, double threshold, lapack_int n,
+		double *a, lapack_int *sdim, double *wr, double *wi, double *vs) {
+	dgees_threshold = threshold;
+	return LAPACKE_dgees(LAPACK_ROW_MAJOR, jobvs, sort ? 'S' : 'N',
+		sort ? select_wr_below : NULL, n, a, n, sdim, wr, wi, vs, n);
+}
+
 static lapack_int run_dtgsen_singular(void) {
 	lapack_logical select[2] = {1, 0};
 	double a[4] = {1, 0, 0, 1};
@@ -527,4 +559,38 @@ func DggevWork(jobvl, jobvr byte, n int, a, b, ar, ai, beta, vl, vr []float64) i
 		(*C.double)(unsafe.Pointer(&ar[0])), (*C.double)(unsafe.Pointer(&ai[0])),
 		(*C.double)(unsafe.Pointer(&beta[0])),
 		(*C.double)(unsafe.Pointer(&vl[0])), (*C.double)(unsafe.Pointer(&vr[0]))))
+}
+
+// Dgees calls LAPACKE_dgees with row-major, contiguous n×n matrices, selecting
+// eigenvalues with real part below threshold when sort is true.
+func Dgees(jobvs byte, sort bool, threshold float64, n int, a, wr, wi, vs []float64) (sdim, info int) {
+	var csdim C.lapack_int
+	cinfo := C.run_dgees(C.char(jobvs), C.lapack_int(boolInt(sort)), C.double(threshold), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&a[0])), &csdim,
+		(*C.double)(unsafe.Pointer(&wr[0])), (*C.double)(unsafe.Pointer(&wi[0])),
+		(*C.double)(unsafe.Pointer(&vs[0])))
+	return int(csdim), int(cinfo)
+}
+
+// Dtrsyl calls LAPACKE_dtrsyl_work with row-major, contiguous matrices.
+func Dtrsyl(trana, tranb byte, isgn, m, n int, a, b, c []float64) (scale float64, info int) {
+	var cscale C.double
+	cinfo := C.LAPACKE_dtrsyl_work(C.LAPACK_ROW_MAJOR, C.char(trana), C.char(tranb), C.lapack_int(isgn),
+		C.lapack_int(m), C.lapack_int(n), (*C.double)(unsafe.Pointer(&a[0])), C.lapack_int(m),
+		(*C.double)(unsafe.Pointer(&b[0])), C.lapack_int(n), (*C.double)(unsafe.Pointer(&c[0])), C.lapack_int(n), &cscale)
+	return float64(cscale), int(cinfo)
+}
+
+// Dtrsen calls the Fortran DTRSEN with row-major, contiguous n×n matrices.
+func Dtrsen(job, compq byte, selected []bool, n int, t, q, wr, wi []float64) (m int, s, sep float64, info int) {
+	sel := make([]C.lapack_logical, n)
+	for i, v := range selected {
+		sel[i] = C.lapack_logical(boolInt(v))
+	}
+	var cm C.lapack_int
+	var cs, csep C.double
+	cinfo := C.run_dtrsen(C.char(job), C.char(compq), &sel[0], C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&t[0])), (*C.double)(unsafe.Pointer(&q[0])),
+		(*C.double)(unsafe.Pointer(&wr[0])), (*C.double)(unsafe.Pointer(&wi[0])), &cm, &cs, &csep)
+	return int(cm), float64(cs), float64(csep), int(cinfo)
 }

@@ -77,7 +77,8 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 	notrnb := tranb == blas.NoTrans
 
 	eps := dlamchP
-	smlnum := dlamchS / eps
+	smlnum := dlamchS * float64(m*n) / eps
+	bignum := 1 / smlnum
 	sgn := float64(isgn)
 
 	bi := blas64.Implementation()
@@ -160,9 +161,9 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 					vec1 := c[k1*ldc+l2] - (suml + sgn*sumr)
 
 					var vec, x [2]float64
-					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(false, false, isgn, 1, 2,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 2, x[:], 2)
+					vec[0], vec[1] = sgn*vec0, sgn*vec1
+					scaloc, _, ierr := impl.Dlaln2(true, 2, 1, smin, 1, b[l1*ldb+l1:], ldb,
+						1, 1, vec[:], 1, -sgn*a[k1*lda+k1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -195,8 +196,8 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 
 					var vec, x [2]float64
 					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(false, false, isgn, 2, 1,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 1, x[:], 1)
+					scaloc, _, ierr := impl.Dlaln2(false, 2, 1, smin, 1, a[k1*lda+k1:], lda,
+						1, 1, vec[:], 1, -sgn*b[l1*ldb+l1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -343,9 +344,9 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 					vec1 := c[k1*ldc+l2] - (suml + sgn*sumr)
 
 					var vec, x [2]float64
-					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(true, false, isgn, 1, 2,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 2, x[:], 2)
+					vec[0], vec[1] = sgn*vec0, sgn*vec1
+					scaloc, _, ierr := impl.Dlaln2(true, 2, 1, smin, 1, b[l1*ldb+l1:], ldb,
+						1, 1, vec[:], 1, -sgn*a[k1*lda+k1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -378,8 +379,8 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 
 					var vec, x [2]float64
 					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(true, false, isgn, 2, 1,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 1, x[:], 1)
+					scaloc, _, ierr := impl.Dlaln2(true, 2, 1, smin, 1, a[k1*lda+k1:], lda,
+						1, 1, vec[:], 1, -sgn*b[l1*ldb+l1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -526,9 +527,9 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 					vec1 := c[k1*ldc+l2] - (suml + sgn*sumr)
 
 					var vec, x [2]float64
-					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(false, true, isgn, 1, 2,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 2, x[:], 2)
+					vec[0], vec[1] = sgn*vec0, sgn*vec1
+					scaloc, _, ierr := impl.Dlaln2(false, 2, 1, smin, 1, b[l1*ldb+l1:], ldb,
+						1, 1, vec[:], 1, -sgn*a[k1*lda+k1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -561,8 +562,8 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 
 					var vec, x [2]float64
 					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(false, true, isgn, 2, 1,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 1, x[:], 1)
+					scaloc, _, ierr := impl.Dlaln2(false, 2, 1, smin, 1, a[k1*lda+k1:], lda,
+						1, 1, vec[:], 1, -sgn*b[l1*ldb+l1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -709,9 +710,9 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 					vec1 := c[k1*ldc+l2] - (suml + sgn*sumr)
 
 					var vec, x [2]float64
-					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(true, true, isgn, 1, 2,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 2, x[:], 2)
+					vec[0], vec[1] = sgn*vec0, sgn*vec1
+					scaloc, _, ierr := impl.Dlaln2(false, 2, 1, smin, 1, b[l1*ldb+l1:], ldb,
+						1, 1, vec[:], 1, -sgn*a[k1*lda+k1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -744,8 +745,8 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 
 					var vec, x [2]float64
 					vec[0], vec[1] = vec0, vec1
-					scaloc, _, ierr := impl.Dlasy2(true, true, isgn, 2, 1,
-						a[k1*lda+k1:], lda, b[l1*ldb+l1:], ldb, vec[:], 1, x[:], 1)
+					scaloc, _, ierr := impl.Dlaln2(true, 2, 1, smin, 1, a[k1*lda+k1:], lda,
+						1, 1, vec[:], 1, -sgn*b[l1*ldb+l1], 0, x[:], 1)
 					if !ierr {
 						ok = false
 					}
@@ -822,5 +823,3 @@ func (impl Implementation) Dtrsyl(trana, tranb blas.Transpose, isgn, m, n int, a
 
 	return scale, ok
 }
-
-const bignum = 1 / dlamchS

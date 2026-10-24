@@ -21,6 +21,7 @@ type Dtrsyler interface {
 }
 
 func DtrsylTest(t *testing.T, impl Dtrsyler) {
+	testDtrsylNetlibConstants(t, impl)
 	rnd := rand.New(rand.NewPCG(1, 1))
 
 	for _, m := range []int{0, 1, 2, 3, 4, 5, 10, 20} {
@@ -254,4 +255,30 @@ func generalEqual(a, b blas64.General) bool {
 		}
 	}
 	return true
+}
+
+// testDtrsylNetlibConstants checks the overflow threshold and the
+// perturbation of near-singular 2×1 and 1×2 blocks with DTRSYL's
+// SMLNUM = safmin*m*n/eps and global SMIN.
+func testDtrsylNetlibConstants(t *testing.T, impl Dtrsyler) {
+	c := []float64{1e290}
+	scale, ok := impl.Dtrsyl(blas.NoTrans, blas.NoTrans, 1, 1, 1, []float64{1}, 1, []float64{-(1 - 1e-10)}, 1, c, 1)
+	if !ok || math.Abs(scale-1e-290) > 1e-300 || math.Abs(c[0]-1e10)/1e10 > 1e-5 {
+		t.Errorf("overflow: scale=%g X=%g ok=%v, want scale=1e-290 X≈1e10", scale, c[0], ok)
+	}
+	a := []float64{1e10, 0, 0, 0, 1, 1, 0, -1e-7, 1}
+	for _, tc := range []struct {
+		name string
+		m, n int
+		a, b []float64
+	}{
+		{"2x1", 3, 1, a, []float64{-1}},
+		{"1x2", 1, 3, []float64{-1}, a},
+	} {
+		x := []float64{1, 2, 3}
+		_, ok := impl.Dtrsyl(blas.NoTrans, blas.NoTrans, 1, tc.m, tc.n, tc.a, tc.m, tc.b, tc.n, x, tc.n)
+		if ok {
+			t.Errorf("%s: near-singular block not perturbed with the global smin", tc.name)
+		}
+	}
 }
