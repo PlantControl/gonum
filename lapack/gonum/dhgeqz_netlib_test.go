@@ -235,3 +235,121 @@ func compareDhgeqzWithNetlib(t *testing.T, job lapack.SchurJob, compq, compz lap
 		checkGeneralizedSchurResult(t, "Netlib DHGEQZ", h, tt, nh, nt, nq, nz, n)
 	}
 }
+
+// TestDhgeqzNetlibZeroDiagonalT compares Dhgeqz with Netlib on pencils with
+// exactly zero or negative diagonal elements of T, which exercise the
+// infinite-eigenvalue chases (DHGEQZ labels 40, 50 and 70), the ILAZR2 test,
+// and the sign normalization of T outside and inside the active block.
+func TestDhgeqzNetlibZeroDiagonalT(t *testing.T) {
+	rnd := rand.New(rand.NewPCG(31, 31))
+	for n := 2; n <= 8; n++ {
+		for k := 0; k < 60; k++ {
+			h := make([]float64, n*n)
+			tt := make([]float64, n*n)
+			for i := range n {
+				for j := max(0, i-1); j < n; j++ {
+					h[i*n+j] = rnd.NormFloat64()
+				}
+				for j := i; j < n; j++ {
+					tt[i*n+j] = rnd.NormFloat64()
+				}
+			}
+			ilo, ihi := 0, n-1
+			if k%4 == 3 && n > 2 {
+				ilo, ihi = 1, n-2
+				h[ilo*n+ilo-1] = 0
+				h[(ihi+1)*n+ihi] = 0
+			}
+			j := ilo + rnd.IntN(ihi-ilo+1)
+			switch k % 6 {
+			case 0:
+				tt[ilo*n+ilo] = 0
+			case 1:
+				tt[ihi*n+ihi] = 0
+			case 2:
+				tt[j*n+j] = 0
+			case 3:
+				tt[j*n+j] = 0
+				if j < ihi {
+					tt[(j+1)*n+j+1] = 0
+				}
+			case 4:
+				if j < ihi {
+					tt[(j+1)*n+j+1] = 0
+					if j+2 <= ihi {
+						h[(j+2)*n+j+1] = 1e-18
+					}
+				}
+			case 5:
+				tt[j*n+j] = 0
+				tt[ilo*n+ilo] = 0
+			}
+			t.Run(fmt.Sprintf("n=%d/case=%d", n, k), func(t *testing.T) {
+				for _, c := range []struct {
+					job          lapack.SchurJob
+					compq, compz lapack.SchurComp
+					schur        bool
+				}{
+					{lapack.EigenvaluesAndSchur, lapack.SchurHess, lapack.SchurHess, true},
+					{lapack.EigenvaluesOnly, lapack.SchurNone, lapack.SchurNone, false},
+				} {
+					compareDhgeqzWithNetlib(t, c.job, c.compq, c.compz, n, ilo, ihi, h, tt, c.schur)
+					compareDhgeqzInOrder(t, c.job, c.compq, c.compz, n, ilo, ihi, h, tt)
+				}
+			})
+		}
+	}
+}
+
+// TestDhgeqzNetlibExceptionalShift compares Dhgeqz with Netlib on cyclic
+// pencils whose standard shifts stall, which forces the exceptional shift.
+func TestDhgeqzNetlibExceptionalShift(t *testing.T) {
+	for n := 3; n <= 6; n++ {
+		for _, tscale := range []float64{1, 1e-300} {
+			h := make([]float64, n*n)
+			tt := make([]float64, n*n)
+			for i := 1; i < n; i++ {
+				h[i*n+i-1] = 1
+			}
+			h[n-1] = 1
+			for i := range n {
+				tt[i*n+i] = 1
+			}
+			tt[(n-2)*n+n-2] = tscale
+			t.Run(fmt.Sprintf("n=%d/tscale=%g", n, tscale), func(t *testing.T) {
+				compareDhgeqzWithNetlib(t, lapack.EigenvaluesAndSchur, lapack.SchurHess, lapack.SchurHess, n, 0, n-1, h, tt, true)
+				compareDhgeqzInOrder(t, lapack.EigenvaluesAndSchur, lapack.SchurHess, lapack.SchurHess, n, 0, n-1, h, tt)
+			})
+		}
+	}
+}
+
+// compareDhgeqzInOrder compares alphar, alphai, beta and, for job S, the
+// diagonals of S and T elementwise with Netlib.
+func compareDhgeqzInOrder(t *testing.T, job lapack.SchurJob, compq, compz lapack.SchurComp,
+	n, ilo, ihi int, h, tt []float64) {
+	t.Helper()
+	gh, gt := append([]float64(nil), h...), append([]float64(nil), tt...)
+	nh, nt := append([]float64(nil), h...), append([]float64(nil), tt...)
+	gar, gai, gbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+	nar, nai, nbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+	gq, gz := make([]float64, n*n), make([]float64, n*n)
+	nq, nz := make([]float64, n*n), make([]float64, n*n)
+	work := make([]float64, n)
+	gok := Implementation{}.Dhgeqz(job, compq, compz, n, ilo, ihi,
+		gh, n, gt, n, gar, gai, gbeta, gq, n, gz, n, work, len(work))
+	info := netlib.Dhgeqz(byte(job), byte(compq), byte(compz), n, ilo, ihi,
+		nh, nt, nar, nai, nbeta, nq, nz)
+	if !gok || info != 0 {
+		return
+	}
+	for j := range n {
+		checkCloseNetlib(t, fmt.Sprintf("job=%c alphar[%d]", job, j), gar[j], nar[j])
+		checkCloseNetlib(t, fmt.Sprintf("job=%c alphai[%d]", job, j), gai[j], nai[j])
+		checkCloseNetlib(t, fmt.Sprintf("job=%c beta[%d]", job, j), gbeta[j], nbeta[j])
+		if job == lapack.EigenvaluesAndSchur {
+			checkCloseNetlib(t, fmt.Sprintf("S[%d,%d]", j, j), gh[j*n+j], nh[j*n+j])
+			checkCloseNetlib(t, fmt.Sprintf("T[%d,%d]", j, j), gt[j*n+j], nt[j*n+j])
+		}
+	}
+}
