@@ -84,6 +84,23 @@ static lapack_int run_dhgeqz(char job, char compq, char compz, lapack_int n,
 	return info;
 }
 
+static lapack_int run_dggev_work(char jobvl, char jobvr, lapack_int n,
+		double *a, double *b, double *ar, double *ai, double *beta,
+		double *vl, double *vr) {
+	double query;
+	lapack_int info = LAPACKE_dggev_work(LAPACK_ROW_MAJOR, jobvl, jobvr, n,
+		a, n, b, n, ar, ai, beta, vl, n, vr, n, &query, -1);
+	if (info != 0) {
+		return info;
+	}
+	lapack_int lwork = (lapack_int)query;
+	double *work = malloc((size_t)lwork*sizeof(double));
+	info = LAPACKE_dggev_work(LAPACK_ROW_MAJOR, jobvl, jobvr, n,
+		a, n, b, n, ar, ai, beta, vl, n, vr, n, work, lwork);
+	free(work);
+	return info;
+}
+
 static lapack_int run_dtgsen_singular(void) {
 	lapack_logical select[2] = {1, 0};
 	double a[4] = {1, 0, 0, 1};
@@ -500,4 +517,14 @@ func Dggev(jobvl, jobvr byte, n int, a, b, ar, ai, beta, vl, vr []float64) int {
 		(*C.double)(unsafe.Pointer(&beta[0])),
 		(*C.double)(unsafe.Pointer(&vl[0])), C.lapack_int(n),
 		(*C.double)(unsafe.Pointer(&vr[0])), C.lapack_int(n)))
+}
+
+// DggevWork calls LAPACKE_dggev_work, which skips LAPACKE's NaN input check,
+// with row-major, contiguous n×n matrices.
+func DggevWork(jobvl, jobvr byte, n int, a, b, ar, ai, beta, vl, vr []float64) int {
+	return int(C.run_dggev_work(C.char(jobvl), C.char(jobvr), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&a[0])), (*C.double)(unsafe.Pointer(&b[0])),
+		(*C.double)(unsafe.Pointer(&ar[0])), (*C.double)(unsafe.Pointer(&ai[0])),
+		(*C.double)(unsafe.Pointer(&beta[0])),
+		(*C.double)(unsafe.Pointer(&vl[0])), (*C.double)(unsafe.Pointer(&vr[0]))))
 }

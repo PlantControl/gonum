@@ -70,9 +70,12 @@ import (
 // If lwork == -1, instead of performing Dggev, the function only calculates
 // the optimal value of lwork and stores it into work[0].
 //
-// On return, ok reports whether the QZ iteration converged. If ok is false,
-// some eigenvalues may not have been computed, and the eigenvectors are not
-// meaningful.
+// On return, ok reports whether the QZ iteration and the eigenvector
+// computation succeeded. If ok is false, alphar, alphai and beta are valid only
+// for the eigenvalues QZ computed before failing, and the eigenvectors are not
+// meaningful. As in LAPACK, the input scaling of alphar, alphai and beta is
+// undone on every return, so alphar[j] or beta[j] may overflow or underflow
+// even though their ratio is representable.
 //
 // Dggev is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dggev(jobvl lapack.LeftEVJob, jobvr lapack.RightEVJob, n int,
@@ -288,13 +291,7 @@ func (impl Implementation) Dggev(jobvl lapack.LeftEVJob, jobvr lapack.RightEVJob
 		a, lda, b, ldb, alphar, alphai, beta,
 		vl, ldvl, vr, ldvr, work[iwrk:], lwork-iwrk)
 
-	if !ok {
-		work[0] = float64(maxwrk)
-		return false
-	}
-
-	// Compute eigenvectors.
-	if wantvl || wantvr {
+	if ok && (wantvl || wantvr) {
 		var side lapack.EVSide
 		if wantvl && wantvr {
 			side = lapack.EVBoth
@@ -307,40 +304,30 @@ func (impl Implementation) Dggev(jobvl lapack.LeftEVJob, jobvr lapack.RightEVJob
 		// Dtgevc with howmny=EVAllMulQ multiplies eigenvectors by Q and Z.
 		_, ok = impl.Dtgevc(side, lapack.EVAllMulQ, nil, n,
 			a, lda, b, ldb, vl, ldvl, vr, ldvr, n, work[iwrk:])
-		if !ok {
-			work[0] = float64(maxwrk)
-			return false
+		if ok {
+			bi := blas64.Implementation()
+			if wantvl {
+				impl.Dggbak(lapack.Permute, blas.Left, n, ilo, ihi, lscale, rscale, n, vl, ldvl)
+				normalizeDggevEigenvectors(bi, n, alphai, vl, ldvl, smlnum)
+			}
+			if wantvr {
+				impl.Dggbak(lapack.Permute, blas.Right, n, ilo, ihi, lscale, rscale, n, vr, ldvr)
+				normalizeDggevEigenvectors(bi, n, alphai, vr, ldvr, smlnum)
+			}
 		}
 	}
 
-	bi := blas64.Implementation()
-
-	// Back-transform eigenvectors.
-	if wantvl {
-		impl.Dggbak(lapack.Permute, blas.Left, n, ilo, ihi, lscale, rscale, n, vl, ldvl)
-		normalizeDggevEigenvectors(bi, n, alphai, vl, ldvl, smlnum)
-	}
-
-	if wantvr {
-		impl.Dggbak(lapack.Permute, blas.Right, n, ilo, ihi, lscale, rscale, n, vr, ldvr)
-		normalizeDggevEigenvectors(bi, n, alphai, vr, ldvr, smlnum)
-	}
-
-	// Undo scaling.
-	logAlphaScale := 0.0
-	logBetaScale := 0.0
+	// Undo scaling, also after a QZ or Dtgevc failure.
 	if scalea {
-		logAlphaScale = math.Log(anrm) - math.Log(cscalea)
+		impl.Dlascl(lapack.General, 0, 0, cscalea, anrm, n, 1, alphar, 1)
+		impl.Dlascl(lapack.General, 0, 0, cscalea, anrm, n, 1, alphai, 1)
 	}
 	if scaleb {
-		logBetaScale = math.Log(bnrm) - math.Log(cscaleb)
-	}
-	if scalea || scaleb {
-		rescaleGeneralizedEigenvalues(alphar, alphai, beta, logAlphaScale, logBetaScale, math.Max(anrm, bnrm))
+		impl.Dlascl(lapack.General, 0, 0, cscaleb, bnrm, n, 1, beta, 1)
 	}
 
 	work[0] = float64(maxwrk)
-	return true
+	return ok
 }
 
 func normalizeDggevEigenvectors(bi blas.Float64, n int, alphai, v []float64, ldv int, smlnum float64) {

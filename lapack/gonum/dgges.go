@@ -440,31 +440,3 @@ func recheckDggesSelection(ok bool, selctg lapack.SchurSelect, alphar, alphai, b
 	}
 	return sdim, reordered
 }
-
-// rescaleGeneralizedEigenvalues undoes the independent pencil scaling while
-// keeping each homogeneous eigenvalue triplet within the floating-point range.
-func rescaleGeneralizedEigenvalues(alphar, alphai, beta []float64, logAlphaScale, logBetaScale, target float64) {
-	if target == 0 {
-		target = 1
-	}
-	logTarget := math.Log(target)
-	for i := range alphar {
-		logR := scaledLogAbs(alphar[i], logAlphaScale)
-		logI := scaledLogAbs(alphai[i], logAlphaScale)
-		logB := scaledLogAbs(beta[i], logBetaScale)
-		logMax := math.Max(logR, math.Max(logI, logB))
-		if math.IsInf(logMax, -1) {
-			continue
-		}
-		alphar[i] = math.Copysign(math.Exp(logTarget+logR-logMax), alphar[i])
-		alphai[i] = math.Copysign(math.Exp(logTarget+logI-logMax), alphai[i])
-		beta[i] = math.Copysign(math.Exp(logTarget+logB-logMax), beta[i])
-	}
-}
-
-func scaledLogAbs(value, logScale float64) float64 {
-	if value == 0 {
-		return math.Inf(-1)
-	}
-	return math.Log(math.Abs(value)) + logScale
-}
