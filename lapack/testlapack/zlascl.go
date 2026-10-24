@@ -19,6 +19,7 @@ type Zlascler interface {
 }
 
 func ZlasclTest(t *testing.T, impl Zlascler) {
+	testZlasclNonfinite(t, impl)
 	const tol = 1e-14
 
 	rnd := rand.New(rand.NewPCG(1, 1))
@@ -158,5 +159,28 @@ func testZlasclStructuredStorage(t *testing.T, impl Zlascler) {
 				}
 			}
 		})
+	}
+}
+
+// testZlasclNonfinite checks that, as in ZLASCL, scaling by one leaves A
+// untouched, real scaling keeps the parts of an infinite entry separate, and
+// the multi-step loop recomputes its thresholds on every pass.
+func testZlasclNonfinite(t *testing.T, impl Zlascler) {
+	inf := math.Inf(1)
+	a := []complex128{complex(inf, 0), complex(1, -inf)}
+	impl.Zlascl(lapack.General, 0, 0, 1, 1, 1, 2, a, 2)
+	if a[0] != complex(inf, 0) || a[1] != complex(1, -inf) {
+		t.Errorf("cfrom=cto=1 modified A to %v", a)
+	}
+	a = []complex128{complex(inf, 0), complex(1, -inf)}
+	impl.Zlascl(lapack.General, 0, 0, 1, 2, 1, 2, a, 2)
+	if a[0] != complex(inf, 0) || a[1] != complex(2, -inf) {
+		t.Errorf("scaling by 2 gave %v, want [(+Inf+0i) (2-Infi)]", a)
+	}
+	a = []complex128{complex(1e300, -1e300)}
+	impl.Zlascl(lapack.General, 0, 0, 1.7e308, 1e-310, 1, 1, a, 1)
+	want := 1e300 / 1.7e308 * 1e-310
+	if math.Abs(real(a[0])-want) > 1e-3*want || math.Abs(imag(a[0])+want) > 1e-3*want {
+		t.Errorf("multi-step scaling gave %v, want (%g,%g)", a[0], want, -want)
 	}
 }

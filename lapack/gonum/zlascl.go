@@ -80,8 +80,8 @@ func (impl Implementation) Zlascl(kind lapack.MatrixType, kl, ku int, cfrom, cto
 	bignum := 1 / smlnum
 	cfromc := cfrom
 	ctoc := cto
-	cfrom1 := cfromc * smlnum
 	for {
+		cfrom1 := cfromc * smlnum
 		var done bool
 		var mul, ctol float64
 		if cfrom1 == cfromc {
@@ -107,44 +107,46 @@ func (impl Implementation) Zlascl(kind lapack.MatrixType, kl, ku int, cfrom, cto
 			} else {
 				mul = ctoc / cfromc
 				done = true
+				if mul == 1 {
+					return
+				}
 			}
 		}
-		cmul := complex(mul, 0)
 		switch kind {
 		case lapack.General:
 			for i := 0; i < m; i++ {
 				for j := 0; j < n; j++ {
-					a[i*lda+j] = a[i*lda+j] * cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		case lapack.UpperTri:
 			for i := 0; i < m; i++ {
 				for j := i; j < n; j++ {
-					a[i*lda+j] = a[i*lda+j] * cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		case lapack.LowerTri:
 			for i := 0; i < m; i++ {
 				for j := 0; j <= min(i, n-1); j++ {
-					a[i*lda+j] = a[i*lda+j] * cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		case lapack.UpperHessenberg:
 			for i := 0; i < m; i++ {
 				for j := max(0, i-1); j < n; j++ {
-					a[i*lda+j] *= cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		case lapack.SymBandLower:
 			for i := 0; i < n; i++ {
 				for j := 0; j <= min(kl, n-i-1); j++ {
-					a[i*lda+j] *= cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		case lapack.SymBandUpper:
 			for i := 0; i < n; i++ {
 				for j := max(ku-i, 0); j <= ku; j++ {
-					a[i*lda+j] *= cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		case lapack.Band:
@@ -152,7 +154,7 @@ func (impl Implementation) Zlascl(kind lapack.MatrixType, kl, ku int, cfrom, cto
 				j0 := max(kl+ku-i, kl)
 				j1 := min(2*kl+ku, kl+ku+m-i-1)
 				for j := j0; j <= j1; j++ {
-					a[i*lda+j] *= cmul
+					a[i*lda+j] = zmulr(a[i*lda+j], mul)
 				}
 			}
 		}

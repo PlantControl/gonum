@@ -45,7 +45,7 @@ func (impl Implementation) Zlanhs(norm lapack.MatrixNorm, n int, a []complex128,
 		for i := 0; i < n; i++ {
 			minj := max(0, i-1)
 			for j := minj; j < n; j++ {
-				value = math.Max(value, cmplx.Abs(a[i*lda+j]))
+				value = lapackMax(value, cmplx.Abs(a[i*lda+j]))
 			}
 		}
 	case lapack.MaxColumnSum:
@@ -58,7 +58,7 @@ func (impl Implementation) Zlanhs(norm lapack.MatrixNorm, n int, a []complex128,
 			}
 		}
 		for _, v := range work[:n] {
-			value = math.Max(value, v)
+			value = lapackMax(value, v)
 		}
 	case lapack.MaxRowSum:
 		for i := 0; i < n; i++ {
@@ -67,7 +67,7 @@ func (impl Implementation) Zlanhs(norm lapack.MatrixNorm, n int, a []complex128,
 			for j := minj; j < n; j++ {
 				sum += cmplx.Abs(a[i*lda+j])
 			}
-			value = math.Max(value, sum)
+			value = lapackMax(value, sum)
 		}
 	case lapack.Frobenius:
 		scale := 0.0

@@ -18,6 +18,7 @@ type Zlanger interface {
 }
 
 func ZlangeTest(t *testing.T, impl Zlanger) {
+	testZlangeNaN(t, impl)
 	rnd := rand.New(rand.NewPCG(1, 1))
 	for _, test := range []struct {
 		m, n, lda int
@@ -110,6 +111,21 @@ func ZlangeTest(t *testing.T, impl Zlanger) {
 		got := impl.Zlange(norm, 0, 0, nil, 1, nil)
 		if got != 0 {
 			t.Errorf("empty-matrix norm %c gave %v, want 0", byte(norm), got)
+		}
+	}
+}
+
+// testZlangeNaN checks that, as in ZLANGE, a NaN dominates an infinity.
+func testZlangeNaN(t *testing.T, impl Zlanger) {
+	nan, inf := math.NaN(), math.Inf(1)
+	for _, a := range [][]complex128{{complex(inf, 0), complex(nan, 0)}, {complex(nan, 0), complex(inf, 0)}} {
+		for _, norm := range []lapack.MatrixNorm{lapack.MaxAbs, lapack.MaxColumnSum, lapack.MaxRowSum} {
+			if v := impl.Zlange(norm, 1, 2, a, 2, make([]float64, 2)); !math.IsNaN(v) {
+				t.Errorf("norm=%c A=%v: got %v, want NaN", norm, a, v)
+			}
+			if v := impl.Zlange(norm, 2, 1, a, 1, make([]float64, 1)); !math.IsNaN(v) {
+				t.Errorf("norm=%c Aᵀ=%v: got %v, want NaN", norm, a, v)
+			}
 		}
 	}
 }

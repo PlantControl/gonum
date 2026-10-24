@@ -67,28 +67,28 @@ func (impl Implementation) Zlasr(side blas.Side, pivot lapack.Pivot, direct lapa
 		if pivot == lapack.Variable {
 			if direct == lapack.Forward {
 				for j := 0; j < m-1; j++ {
-					ctmp := complex(c[j], 0)
-					stmp := complex(s[j], 0)
+					ctmp := c[j]
+					stmp := s[j]
 					if c[j] != 1 || s[j] != 0 {
 						for i := 0; i < n; i++ {
 							tmp2 := a[j*lda+i]
 							tmp := a[(j+1)*lda+i]
-							a[(j+1)*lda+i] = ctmp*tmp - stmp*tmp2
-							a[j*lda+i] = stmp*tmp + ctmp*tmp2
+							a[(j+1)*lda+i] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+							a[j*lda+i] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 						}
 					}
 				}
 				return
 			}
 			for j := m - 2; j >= 0; j-- {
-				ctmp := complex(c[j], 0)
-				stmp := complex(s[j], 0)
+				ctmp := c[j]
+				stmp := s[j]
 				if c[j] != 1 || s[j] != 0 {
 					for i := 0; i < n; i++ {
 						tmp2 := a[j*lda+i]
 						tmp := a[(j+1)*lda+i]
-						a[(j+1)*lda+i] = ctmp*tmp - stmp*tmp2
-						a[j*lda+i] = stmp*tmp + ctmp*tmp2
+						a[(j+1)*lda+i] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+						a[j*lda+i] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 					}
 				}
 			}
@@ -96,28 +96,28 @@ func (impl Implementation) Zlasr(side blas.Side, pivot lapack.Pivot, direct lapa
 		} else if pivot == lapack.Top {
 			if direct == lapack.Forward {
 				for j := 1; j < m; j++ {
-					ctmp := complex(c[j-1], 0)
-					stmp := complex(s[j-1], 0)
+					ctmp := c[j-1]
+					stmp := s[j-1]
 					if c[j-1] != 1 || s[j-1] != 0 {
 						for i := 0; i < n; i++ {
 							tmp := a[j*lda+i]
 							tmp2 := a[i]
-							a[j*lda+i] = ctmp*tmp - stmp*tmp2
-							a[i] = stmp*tmp + ctmp*tmp2
+							a[j*lda+i] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+							a[i] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 						}
 					}
 				}
 				return
 			}
 			for j := m - 1; j >= 1; j-- {
-				ctmp := complex(c[j-1], 0)
-				stmp := complex(s[j-1], 0)
+				ctmp := c[j-1]
+				stmp := s[j-1]
 				if c[j-1] != 1 || s[j-1] != 0 {
 					for i := 0; i < n; i++ {
 						tmp := a[j*lda+i]
 						tmp2 := a[i]
-						a[j*lda+i] = ctmp*tmp - stmp*tmp2
-						a[i] = stmp*tmp + ctmp*tmp2
+						a[j*lda+i] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+						a[i] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 					}
 				}
 			}
@@ -126,28 +126,28 @@ func (impl Implementation) Zlasr(side blas.Side, pivot lapack.Pivot, direct lapa
 		// pivot == lapack.Bottom.
 		if direct == lapack.Forward {
 			for j := 0; j < m-1; j++ {
-				ctmp := complex(c[j], 0)
-				stmp := complex(s[j], 0)
+				ctmp := c[j]
+				stmp := s[j]
 				if c[j] != 1 || s[j] != 0 {
 					for i := 0; i < n; i++ {
 						tmp := a[j*lda+i]
 						tmp2 := a[(m-1)*lda+i]
-						a[j*lda+i] = stmp*tmp2 + ctmp*tmp
-						a[(m-1)*lda+i] = ctmp*tmp2 - stmp*tmp
+						a[j*lda+i] = zmulr(tmp2, stmp) + zmulr(tmp, ctmp)
+						a[(m-1)*lda+i] = zmulr(tmp2, ctmp) - zmulr(tmp, stmp)
 					}
 				}
 			}
 			return
 		}
 		for j := m - 2; j >= 0; j-- {
-			ctmp := complex(c[j], 0)
-			stmp := complex(s[j], 0)
+			ctmp := c[j]
+			stmp := s[j]
 			if c[j] != 1 || s[j] != 0 {
 				for i := 0; i < n; i++ {
 					tmp := a[j*lda+i]
 					tmp2 := a[(m-1)*lda+i]
-					a[j*lda+i] = stmp*tmp2 + ctmp*tmp
-					a[(m-1)*lda+i] = ctmp*tmp2 - stmp*tmp
+					a[j*lda+i] = zmulr(tmp2, stmp) + zmulr(tmp, ctmp)
+					a[(m-1)*lda+i] = zmulr(tmp2, ctmp) - zmulr(tmp, stmp)
 				}
 			}
 		}
@@ -157,28 +157,28 @@ func (impl Implementation) Zlasr(side blas.Side, pivot lapack.Pivot, direct lapa
 	if pivot == lapack.Variable {
 		if direct == lapack.Forward {
 			for j := 0; j < n-1; j++ {
-				ctmp := complex(c[j], 0)
-				stmp := complex(s[j], 0)
+				ctmp := c[j]
+				stmp := s[j]
 				if c[j] != 1 || s[j] != 0 {
 					for i := 0; i < m; i++ {
 						tmp := a[i*lda+j+1]
 						tmp2 := a[i*lda+j]
-						a[i*lda+j+1] = ctmp*tmp - stmp*tmp2
-						a[i*lda+j] = stmp*tmp + ctmp*tmp2
+						a[i*lda+j+1] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+						a[i*lda+j] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 					}
 				}
 			}
 			return
 		}
 		for j := n - 2; j >= 0; j-- {
-			ctmp := complex(c[j], 0)
-			stmp := complex(s[j], 0)
+			ctmp := c[j]
+			stmp := s[j]
 			if c[j] != 1 || s[j] != 0 {
 				for i := 0; i < m; i++ {
 					tmp := a[i*lda+j+1]
 					tmp2 := a[i*lda+j]
-					a[i*lda+j+1] = ctmp*tmp - stmp*tmp2
-					a[i*lda+j] = stmp*tmp + ctmp*tmp2
+					a[i*lda+j+1] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+					a[i*lda+j] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 				}
 			}
 		}
@@ -186,28 +186,28 @@ func (impl Implementation) Zlasr(side blas.Side, pivot lapack.Pivot, direct lapa
 	} else if pivot == lapack.Top {
 		if direct == lapack.Forward {
 			for j := 1; j < n; j++ {
-				ctmp := complex(c[j-1], 0)
-				stmp := complex(s[j-1], 0)
+				ctmp := c[j-1]
+				stmp := s[j-1]
 				if c[j-1] != 1 || s[j-1] != 0 {
 					for i := 0; i < m; i++ {
 						tmp := a[i*lda+j]
 						tmp2 := a[i*lda]
-						a[i*lda+j] = ctmp*tmp - stmp*tmp2
-						a[i*lda] = stmp*tmp + ctmp*tmp2
+						a[i*lda+j] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+						a[i*lda] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 					}
 				}
 			}
 			return
 		}
 		for j := n - 1; j >= 1; j-- {
-			ctmp := complex(c[j-1], 0)
-			stmp := complex(s[j-1], 0)
+			ctmp := c[j-1]
+			stmp := s[j-1]
 			if c[j-1] != 1 || s[j-1] != 0 {
 				for i := 0; i < m; i++ {
 					tmp := a[i*lda+j]
 					tmp2 := a[i*lda]
-					a[i*lda+j] = ctmp*tmp - stmp*tmp2
-					a[i*lda] = stmp*tmp + ctmp*tmp2
+					a[i*lda+j] = zmulr(tmp, ctmp) - zmulr(tmp2, stmp)
+					a[i*lda] = zmulr(tmp, stmp) + zmulr(tmp2, ctmp)
 				}
 			}
 		}
@@ -216,28 +216,28 @@ func (impl Implementation) Zlasr(side blas.Side, pivot lapack.Pivot, direct lapa
 	// pivot == lapack.Bottom.
 	if direct == lapack.Forward {
 		for j := 0; j < n-1; j++ {
-			ctmp := complex(c[j], 0)
-			stmp := complex(s[j], 0)
+			ctmp := c[j]
+			stmp := s[j]
 			if c[j] != 1 || s[j] != 0 {
 				for i := 0; i < m; i++ {
 					tmp := a[i*lda+j]
 					tmp2 := a[i*lda+n-1]
-					a[i*lda+j] = stmp*tmp2 + ctmp*tmp
-					a[i*lda+n-1] = ctmp*tmp2 - stmp*tmp
+					a[i*lda+j] = zmulr(tmp2, stmp) + zmulr(tmp, ctmp)
+					a[i*lda+n-1] = zmulr(tmp2, ctmp) - zmulr(tmp, stmp)
 				}
 			}
 		}
 		return
 	}
 	for j := n - 2; j >= 0; j-- {
-		ctmp := complex(c[j], 0)
-		stmp := complex(s[j], 0)
+		ctmp := c[j]
+		stmp := s[j]
 		if c[j] != 1 || s[j] != 0 {
 			for i := 0; i < m; i++ {
 				tmp := a[i*lda+j]
 				tmp2 := a[i*lda+n-1]
-				a[i*lda+j] = stmp*tmp2 + ctmp*tmp
-				a[i*lda+n-1] = ctmp*tmp2 - stmp*tmp
+				a[i*lda+j] = zmulr(tmp2, stmp) + zmulr(tmp, ctmp)
+				a[i*lda+n-1] = zmulr(tmp2, ctmp) - zmulr(tmp, stmp)
 			}
 		}
 	}
