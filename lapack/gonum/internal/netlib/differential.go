@@ -127,6 +127,27 @@ extern void dlagv2_(double *a, int *lda, double *b, int *ldb, double *alphar,
 extern void dlag2_(double *a, int *lda, double *b, int *ldb, double *safmin,
 	double *scale1, double *scale2, double *wr1, double *wr2, double *wi);
 
+static double run_norm(int kind, char norm, lapack_int m, lapack_int n, char uplo, char diag,
+		lapack_int kl, lapack_int ku, const double *a, const double _Complex *z,
+		const double *d, const double *e, const double *f) {
+	double work[64];
+	lapack_int ld = m > 0 ? m : 1, ldab = kl + ku + 1, kd = kl;
+	switch (kind) {
+	case 0: return LAPACK_dlange(&norm, &m, &n, a, &ld, work);
+	case 1: return LAPACK_dlanhs(&norm, &n, a, &ld, work);
+	case 2: return LAPACK_dlansy(&norm, &uplo, &n, a, &ld, work);
+	case 3: return LAPACK_dlantr(&norm, &uplo, &diag, &m, &n, a, &ld, work);
+	case 4: return LAPACK_dlangb(&norm, &n, &kl, &ku, a, &ldab, work);
+	case 5: ldab = kd + 1; return LAPACK_dlansb(&norm, &uplo, &n, &kd, a, &ldab, work);
+	case 6: ldab = kd + 1; return LAPACK_dlantb(&norm, &uplo, &diag, &n, &kd, a, &ldab, work);
+	case 7: return LAPACK_dlanst(&norm, &n, d, e);
+	case 8: return LAPACK_dlangt(&norm, &n, e, d, f);
+	case 9: return LAPACK_zlange(&norm, &m, &n, z, &ld, work);
+	case 10: return LAPACK_zlanhs(&norm, &n, z, &ld, work);
+	}
+	return -1;
+}
+
 static double dgees_threshold;
 
 static lapack_logical select_wr_below(const double *wr, const double *wi) {
@@ -665,4 +686,75 @@ func Dlacn2(n int, v, x []float64, isgn []int32, est float64, kase int, isave *[
 	ck := C.lapack_int(kase)
 	C.LAPACK_dlacn2(&cn, (*C.double)(unsafe.Pointer(&v[0])), (*C.double)(unsafe.Pointer(&x[0])), (*C.lapack_int)(unsafe.Pointer(&isgn[0])), &ce, &ck, (*C.lapack_int)(unsafe.Pointer(&isave[0])))
 	return float64(ce), int(ck)
+}
+
+// Norm calls the Fortran norm routine kind (DLANGE, DLANHS, DLANSY, DLANTR,
+// DLANGB, DLANSB, DLANTB, DLANST, DLANGT, ZLANGE or ZLANHS) on the dense
+// row-major m×n matrix a, stored as that routine expects. For DLANSB and
+// DLANTB, kl is the number of off-diagonals. ZLANGE and ZLANHS use a+0.5i and
+// a-0.5i.
+func Norm(kind string, norm byte, m, n int, uplo, diag byte, kl, ku int, a []float64) float64 {
+	col := make([]float64, max(1, m*n))
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			col[j*m+i] = a[i*n+j]
+		}
+	}
+	z := make([]complex128, len(col))
+	var d, e, f []float64
+	k := map[string]int{"DLANGE": 0, "DLANHS": 1, "DLANSY": 2, "DLANTR": 3, "DLANGB": 4,
+		"DLANSB": 5, "DLANTB": 6, "DLANST": 7, "DLANGT": 8, "ZLANGE": 9, "ZLANHS": 10}[kind]
+	switch kind {
+	case "DLANGB":
+		ldab := kl + ku + 1
+		col = make([]float64, n*ldab)
+		for j := 0; j < n; j++ {
+			for i := max(0, j-ku); i <= min(n-1, j+kl); i++ {
+				col[j*ldab+ku+i-j] = a[i*n+j]
+			}
+		}
+	case "DLANSB", "DLANTB":
+		ldab := kl + 1
+		col = make([]float64, n*ldab)
+		for j := 0; j < n; j++ {
+			if uplo == 'U' {
+				for i := max(0, j-kl); i <= j; i++ {
+					col[j*ldab+kl+i-j] = a[i*n+j]
+				}
+			} else {
+				for i := j; i <= min(n-1, j+kl); i++ {
+					col[j*ldab+i-j] = a[i*n+j]
+				}
+			}
+		}
+	case "DLANST", "DLANGT":
+		d, e, f = make([]float64, n), make([]float64, max(1, n-1)), make([]float64, max(1, n-1))
+		for i := 0; i < n; i++ {
+			d[i] = a[i*n+i]
+			if i < n-1 {
+				e[i] = a[i*n+i+1]
+				f[i] = a[i*n+i+1]
+			}
+		}
+		if kind == "DLANGT" {
+			for i := 0; i < n-1; i++ {
+				e[i] = a[(i+1)*n+i]
+			}
+		}
+	case "ZLANGE", "ZLANHS":
+		im := 0.5
+		if kind == "ZLANHS" {
+			im = -0.5
+		}
+		for i, v := range col {
+			z[i] = complex(v, im)
+		}
+	}
+	if d == nil {
+		d, e, f = []float64{0}, []float64{0}, []float64{0}
+	}
+	return float64(C.run_norm(C.int(k), C.char(norm), C.lapack_int(m), C.lapack_int(n), C.char(uplo), C.char(diag),
+		C.lapack_int(kl), C.lapack_int(ku), (*C.double)(unsafe.Pointer(&col[0])),
+		(*C.complexdouble)(unsafe.Pointer(&z[0])),
+		(*C.double)(unsafe.Pointer(&d[0])), (*C.double)(unsafe.Pointer(&e[0])), (*C.double)(unsafe.Pointer(&f[0]))))
 }

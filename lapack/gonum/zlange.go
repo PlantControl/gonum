@@ -112,13 +112,3 @@ func zlassq(impl Implementation, n int, x []complex128, incx int, scale, sumsq f
 	scale, sumsq = impl.Dlassq(n, im, 1, scale, sumsq)
 	return scale, sumsq
 }
-
-// lapackMax returns temp if value < temp or temp is NaN, and value otherwise,
-// as the LAPACK norm routines accumulate their maximum, so that a NaN is
-// propagated even past an infinity.
-func lapackMax(value, temp float64) float64 {
-	if value < temp || math.IsNaN(temp) {
-		return temp
-	}
-	return value
-}

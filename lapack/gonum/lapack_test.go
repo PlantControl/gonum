@@ -847,3 +847,8 @@ func TestZgesv(t *testing.T) {
 	t.Parallel()
 	testlapack.ZgesvTest(t, impl)
 }
+
+func TestNormNaN(t *testing.T) {
+	t.Parallel()
+	testlapack.NormNaNTest(t, impl)
+}
