@@ -49,6 +49,7 @@ func DtgsenTest(t *testing.T, impl Dtgsener) {
 	testDtgsenNormalizesRealEigenvalueSigns(t, impl)
 	testDtgsenSeparationDirections(t, impl)
 	testDtgsenOneNormSeparation(t, impl)
+	testDtgsenRandom(t, impl)
 }
 
 func testDtgsenSingularConditionEstimate(t *testing.T, impl Dtgsener) {

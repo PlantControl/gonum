@@ -41,6 +41,7 @@ func DhgeqzTest(t *testing.T, impl Dhgeqzer) {
 	testDhgeqzComplex6x6(t, impl)
 	testDhgeqzLargeN(t, impl, 50)
 	testDhgeqzLargeN(t, impl, 100)
+	testDhgeqzRandomProperties(t, impl)
 }
 
 func testDhgeqzFailureLeavesLeadingEigenvalues(t *testing.T, impl Dhgeqzer) {

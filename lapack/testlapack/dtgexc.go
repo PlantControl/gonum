@@ -25,6 +25,7 @@ func DtgexcTest(t *testing.T, impl Dtgexcer) {
 	if work[0] < 1 {
 		t.Errorf("Workspace query returned invalid size: %v", work[0])
 	}
+	testDtgexcRandom(t, impl)
 	if !dtgexcPanics(func() {
 		impl.Dtgexc(false, false, 1, nil, 1, nil, 1, nil, 1, nil, 1, 0, 0, nil, -1)
 	}) {

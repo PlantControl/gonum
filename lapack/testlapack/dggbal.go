@@ -18,6 +18,9 @@ type Dggbaler interface {
 }
 
 func DggbalTest(t *testing.T, impl Dggbaler) {
+	if bak, ok := impl.(Dggbaker); ok {
+		testDggbalRoundTrip(t, impl, bak)
+	}
 	rnd := rand.New(rand.NewPCG(1, 1))
 
 	for _, n := range []int{0, 1, 2, 3, 4, 5, 10, 20} {
