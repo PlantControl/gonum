@@ -29,7 +29,8 @@ import "plantcontrol.org/v1/gonum/blas/blas64"
 //
 // on exit.
 //
-// tau must have length at least m. work must have length at least max(1,lwork).
+// tau must have length at least m. work must have length at least max(1,lwork),
+// and lwork must be at least max(1,m), or 1 if m == 0 or m == n.
 //
 // If lwork is -1, instead of performing Dtzrzf, only the optimal workspace
 // size is stored into work[0].
@@ -43,14 +44,20 @@ func (impl Implementation) Dtzrzf(m, n int, a []float64, lda int, tau, work []fl
 		panic(nLTM)
 	case lda < max(1, n):
 		panic(badLdA)
-	case lwork < max(1, m) && lwork != -1:
+	}
+	lwkmin := max(1, m)
+	if m == 0 || m == n {
+		lwkmin = 1
+	}
+	switch {
+	case lwork < lwkmin && lwork != -1:
 		panic(badLWork)
 	case len(work) < max(1, lwork):
 		panic(shortWork)
 	}
 
 	if lwork == -1 {
-		work[0] = float64(m)
+		work[0] = float64(lwkmin)
 		return
 	}
 

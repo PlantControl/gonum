@@ -5,6 +5,7 @@
 package testlapack
 
 import (
+	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -19,6 +20,7 @@ type Dormrzer interface {
 }
 
 func DormrzTest(t *testing.T, impl Dormrzer) {
+	testDormrzZeroL(t, impl)
 	rnd := rand.New(rand.NewPCG(1, 1))
 	for _, side := range []blas.Side{blas.Left, blas.Right} {
 		for _, trans := range []blas.Transpose{blas.NoTrans, blas.Trans} {
@@ -124,6 +126,44 @@ func DormrzTest(t *testing.T, impl Dormrzer) {
 					t.Errorf("side=%c trans=%c k=%d l=%d mc=%d nc=%d: result mismatch",
 						byte(side), byte(trans), k, l, mc, nc)
 				}
+			}
+		}
+	}
+}
+
+// testDormrzZeroL checks that l = 0, where each Z(i) acts on row or column i
+// only, does not index past a minimal-length C with ldc > n.
+func testDormrzZeroL(t *testing.T, impl Dormrzer) {
+	const m, n, k, ldc = 3, 2, 2, 4
+	tau := []float64{0.5, 0.25}
+	for _, side := range []blas.Side{blas.Left, blas.Right} {
+		nq := m
+		if side == blas.Right {
+			nq = n
+		}
+		a := make([]float64, (k-1)*nq+nq)
+		c := make([]float64, (m-1)*ldc+n)
+		for i := range c {
+			c[i] = float64(i + 1)
+		}
+		want := append([]float64(nil), c...)
+		for i := 0; i < k; i++ {
+			if side == blas.Left {
+				for j := 0; j < n; j++ {
+					want[i*ldc+j] *= 1 - tau[i]
+				}
+			} else {
+				for r := 0; r < m; r++ {
+					want[r*ldc+i] *= 1 - tau[i]
+				}
+			}
+		}
+		work := make([]float64, max(m, n))
+		impl.Dormrz(side, blas.NoTrans, m, n, k, 0, a, nq, tau, c, ldc, work, len(work))
+		for i := range c {
+			if math.Abs(c[i]-want[i]) > 1e-15*math.Abs(want[i]) {
+				t.Errorf("side=%c: C=%v, want %v", side, c, want)
+				break
 			}
 		}
 	}

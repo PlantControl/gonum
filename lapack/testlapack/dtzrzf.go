@@ -19,6 +19,14 @@ type Dtzrzfer interface {
 }
 
 func DtzrzfTest(t *testing.T, impl Dtzrzfer) {
+	for _, mn := range [][2]int{{0, 0}, {0, 3}, {3, 3}} {
+		work := []float64{-1}
+		impl.Dtzrzf(mn[0], mn[1], nil, max(1, mn[1]), nil, work, -1)
+		if work[0] != 1 {
+			t.Errorf("m=%d n=%d: workspace query %v, want 1", mn[0], mn[1], work[0])
+		}
+	}
+	impl.Dtzrzf(2, 2, []float64{1, 2, 0, 3}, 2, make([]float64, 2), make([]float64, 1), 1)
 	rnd := rand.New(rand.NewPCG(1, 1))
 	for _, test := range []struct {
 		m, n, lda int
