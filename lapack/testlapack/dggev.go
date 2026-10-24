@@ -38,6 +38,8 @@ func DggevTest(t *testing.T, impl Dggever) {
 	testDggevComplexEigenvalues(t, impl)
 	testDggevSingularPencil(t, impl)
 	testDggevExtremeScaleEigenvalueRepresentation(t, impl)
+	testDggevUnscaledEigenvalues(t, impl)
+	testDggevFailureUnscalesEigenvalues(t, impl)
 }
 
 func testDggevExtremeScaleEigenvalueRepresentation(t *testing.T, impl Dggever) {
@@ -619,4 +621,120 @@ func checkGeneralizedEigenvectorResiduals(t *testing.T, name string, a, b blas64
 			t.Errorf("%s: eigenvector %d (alpha=%v, beta=%v) residual=%g, want <= %g", name, j, alpha, beta[j], res, tol)
 		}
 	}
+}
+
+// testDggevUnscaledEigenvalues checks that the scaling of a badly scaled A or
+// B is undone on alphar, alphai and beta individually, as LAPACK does, so
+// (A, c*B) returns (alpha, c*beta) when (A, B) returns (alpha, beta).
+func testDggevUnscaledEigenvalues(t *testing.T, impl Dggever) {
+	rnd := rand.New(rand.NewPCG(7, 7))
+	for _, n := range []int{2, 3, 5, 8} {
+		for _, sc := range []struct{ ca, cb float64 }{
+			{1e-200, 1}, {1e200, 1}, {1, 1e-200}, {1, 1e200}, {1e-200, 1e200}, {1e200, 1e-200},
+		} {
+			a0 := randomGeneral(n, n, n, rnd)
+			b0 := randomGeneral(n, n, n, rnd)
+			if n > 2 {
+				for i := 0; i < n; i++ {
+					b0.Data[i*n+n-1] = 0
+				}
+			}
+			ar0, ai0, beta0 := make([]float64, n), make([]float64, n), make([]float64, n)
+			ar, ai, beta := make([]float64, n), make([]float64, n), make([]float64, n)
+			run := func(a, b blas64.General, ar, ai, beta []float64) {
+				work := make([]float64, 1)
+				impl.Dggev(lapack.LeftEVNone, lapack.RightEVNone, n, nil, n, nil, n,
+					nil, nil, nil, nil, 1, nil, 1, work, -1)
+				work = make([]float64, int(work[0]))
+				if !impl.Dggev(lapack.LeftEVNone, lapack.RightEVNone, n, a.Data, n, b.Data, n,
+					ar, ai, beta, nil, 1, nil, 1, work, len(work)) {
+					t.Fatalf("n=%d ca=%g cb=%g: Dggev did not converge", n, sc.ca, sc.cb)
+				}
+			}
+			a, b := cloneGeneral(a0), cloneGeneral(b0)
+			for i := range a.Data {
+				a.Data[i] *= sc.ca
+				b.Data[i] *= sc.cb
+			}
+			run(cloneGeneral(a0), cloneGeneral(b0), ar0, ai0, beta0)
+			run(a, b, ar, ai, beta)
+			anorm := 0.0
+			for j := 0; j < n; j++ {
+				anorm = math.Max(anorm, math.Hypot(ar0[j], ai0[j]))
+			}
+			bnorm := 0.0
+			for j := 0; j < n; j++ {
+				bnorm = math.Max(bnorm, math.Abs(beta0[j]))
+			}
+			const tol = 1e-10
+			for j := 0; j < n; j++ {
+				name := fmt.Sprintf("n=%d ca=%g cb=%g j=%d", n, sc.ca, sc.cb, j)
+				if d := math.Hypot(ar[j]/sc.ca-ar0[j], ai[j]/sc.ca-ai0[j]); d > tol*anorm {
+					t.Errorf("%s: alpha/ca=(%g,%g), want (%g,%g)", name, ar[j]/sc.ca, ai[j]/sc.ca, ar0[j], ai0[j])
+				}
+				if d := math.Abs(beta[j]/sc.cb - beta0[j]); d > tol*bnorm {
+					t.Errorf("%s: beta/cb=%g, want %g", name, beta[j]/sc.cb, beta0[j])
+				}
+			}
+		}
+	}
+}
+
+// testDggevFailureUnscalesEigenvalues checks that the input scaling is undone
+// on the eigenvalues QZ isolated before a failure, as LAPACK's DGGEV does by
+// jumping to its unscaling code. A NaN in the 3×3 active block of one matrix
+// makes QZ fail while the other matrix is badly scaled; the last row of the
+// pencil is triangular, so balancing isolates its eigenvalue
+// a[n-1,n-1]/b[n-1,n-1] before QZ starts.
+func testDggevFailureUnscalesEigenvalues(t *testing.T, impl Dggever) {
+	const n = 4
+	for _, tc := range []struct {
+		name string
+		a, b []float64
+	}{
+		{"NaN A, huge B", dggevFailurePencil(math.NaN(), 1), dggevFailurePencil(1, 1e300)},
+		{"NaN A, tiny B", dggevFailurePencil(math.NaN(), 1), dggevFailurePencil(1, 1e-300)},
+		{"huge A, NaN B", dggevFailurePencil(1, 1e300), dggevFailurePencil(math.NaN(), 1)},
+		{"tiny A, NaN B", dggevFailurePencil(1, 1e-300), dggevFailurePencil(math.NaN(), 1)},
+	} {
+		for _, wantv := range []bool{false, true} {
+			jobvl, jobvr := lapack.LeftEVNone, lapack.RightEVNone
+			if wantv {
+				jobvl, jobvr = lapack.LeftEVCompute, lapack.RightEVCompute
+			}
+			wantAlpha, wantBeta := tc.a[n*n-1], tc.b[n*n-1]
+			a := append([]float64(nil), tc.a...)
+			b := append([]float64(nil), tc.b...)
+			ar, ai, beta := make([]float64, n), make([]float64, n), make([]float64, n)
+			vl, vr := make([]float64, n*n), make([]float64, n*n)
+			work := make([]float64, 1)
+			impl.Dggev(jobvl, jobvr, n, nil, n, nil, n, nil, nil, nil, nil, n, nil, n, work, -1)
+			work = make([]float64, int(work[0]))
+			if impl.Dggev(jobvl, jobvr, n, a, n, b, n, ar, ai, beta, vl, n, vr, n, work, len(work)) {
+				t.Errorf("%s wantv=%v: Dggev converged, want QZ failure", tc.name, wantv)
+				continue
+			}
+			if math.Abs(ar[n-1]-wantAlpha) > 1e-14*math.Abs(wantAlpha) || ai[n-1] != 0 ||
+				math.Abs(beta[n-1]-wantBeta) > 1e-14*math.Abs(wantBeta) {
+				t.Errorf("%s wantv=%v: isolated eigenvalue alpha=(%g,%g) beta=%g, want alpha=%g beta=%g",
+					tc.name, wantv, ar[n-1], ai[n-1], beta[n-1], wantAlpha, wantBeta)
+			}
+		}
+	}
+}
+
+// dggevFailurePencil returns a row-major 4×4 matrix scaled by c whose last
+// row is zero except its diagonal and whose leading 3×3 block is dense and
+// contains v. With v = NaN, QZ on a pencil built from it fails.
+func dggevFailurePencil(v, c float64) []float64 {
+	m := []float64{
+		2, 1, 1, 1,
+		1, v, 2, 1,
+		1, 2, 3, 1,
+		0, 0, 0, 0.5,
+	}
+	for i := range m {
+		m[i] *= c
+	}
+	return m
 }

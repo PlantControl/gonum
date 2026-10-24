@@ -42,6 +42,7 @@ func DtgsylTest(t *testing.T, impl Dtgsyler) {
 	testDtgsylScalingAcrossBlocks(t, impl)
 	testDtgsylTransposedScalingAcrossBlocks(t, impl)
 	testDtgsylTransIgnoresIjob(t, impl)
+	testDtgsylScalingLastRowBlock(t, impl)
 }
 
 func testDtgsylTransIgnoresIjob(t *testing.T, impl Dtgsyler) {
@@ -169,7 +170,7 @@ func testDtgsyl(t *testing.T, impl Dtgsyler, m, n int, trans blas.Transpose, ijo
 
 	// Generate random quasi-triangular matrices A (m×m) and upper triangular B (n×n).
 	a := randomSchur(m, m+extra, rnd)
-	b := randomUpperTriangular(n, n+extra, rnd)
+	b := randomSchur(n, n+extra, rnd)
 
 	// Generate random upper triangular matrices D (m×m) and E (n×n).
 	d := randomUpperTriangular(m, m+extra, rnd)
@@ -286,6 +287,54 @@ func testDtgsylWorkspace(t *testing.T, impl Dtgsyler) {
 				if lwork < expectedMin {
 					t.Errorf("m=%d, n=%d, ijob=%d: workspace query returned %d, want >= %d",
 						m, n, ijob, lwork, expectedMin)
+				}
+			}
+		}
+	}
+}
+
+// testDtgsylScalingLastRowBlock checks that scaling triggered while solving the
+// last row block of C and F does not index past minimal-length C and F, and
+// that the scaled solution satisfies the equations.
+func testDtgsylScalingLastRowBlock(t *testing.T, impl Dtgsyler) {
+	for _, trans := range []blas.Transpose{blas.NoTrans, blas.Trans} {
+		for _, ldc := range []int{2, 4} {
+			const m, n = 1, 2
+			a := []float64{1}
+			d := []float64{1}
+			b := []float64{2, 0, 0, 3}
+			e := []float64{1, 0, 0, 1}
+			cOrig := []float64{0, 1e300}
+			fOrig := []float64{0, 0}
+			if trans == blas.Trans {
+				cOrig[0], cOrig[1] = 1e300, 0
+			}
+			c := make([]float64, (m-1)*ldc+n)
+			f := make([]float64, (m-1)*ldc+n)
+			copy(c, cOrig)
+			copy(f, fOrig)
+			scale, _, ok := impl.Dtgsyl(trans, 0, m, n, a, m, b, n, c, ldc, d, m, e, n, f, ldc,
+				make([]float64, 1), 1, make([]int, m+n+6))
+			if !ok {
+				t.Fatalf("trans=%v ldc=%d: solve reported coincident eigenvalues", trans, ldc)
+			}
+			if scale >= 1 || scale <= 0 {
+				t.Fatalf("trans=%v ldc=%d: scale=%v, want scaling in (0,1)", trans, ldc, scale)
+			}
+			for j := range n {
+				var gotC, gotF, wantC, wantF float64
+				if trans == blas.NoTrans {
+					gotC = a[0]*c[j] - f[j]*b[j*n+j]
+					gotF = d[0]*c[j] - f[j]*e[j*n+j]
+					wantC, wantF = scale*cOrig[j], scale*fOrig[j]
+				} else {
+					gotC = a[0]*c[j] + d[0]*f[j]
+					gotF = c[j]*b[j*n+j] + f[j]*e[j*n+j]
+					wantC, wantF = scale*cOrig[j], -scale*fOrig[j]
+				}
+				tol := 1e-12 * math.Max(1e-300, math.Max(math.Abs(scale*cOrig[0]), math.Abs(scale*cOrig[1])))
+				if math.Abs(gotC-wantC) > tol || math.Abs(gotF-wantF) > tol {
+					t.Errorf("trans=%v ldc=%d col %d residuals=(%g,%g), want (%g,%g)", trans, ldc, j, gotC, gotF, wantC, wantF)
 				}
 			}
 		}

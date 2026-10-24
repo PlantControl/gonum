@@ -42,6 +42,11 @@ func ZlartgTest(t *testing.T, impl Zlartger) {
 		complex(0, safmin),
 		complex(safmax, 0),
 		complex(0, safmax),
+		complex(1e200, 0),
+		complex(0, 1e200),
+		complex(1e30, -1e30),
+		complex(-1e-200, 1e-210),
+		complex(3e-300, 0),
 	)
 
 	for _, f := range values {
@@ -103,6 +108,15 @@ func ZlartgTest(t *testing.T, impl Zlartger) {
 			resid := cmplx.Abs(rs-lhs) / rnorm
 			if resid > tol {
 				t.Errorf("%v: cs*f+sn*g!=r; resid=%v", name, resid)
+			}
+
+			// r has the phase of f, or is real and positive if f = 0.
+			if f != 0 {
+				if ph := r / f; math.Abs(imag(ph)) > tol*cmplx.Abs(ph) || real(ph) <= 0 {
+					t.Errorf("%v: r=%v does not have the phase of f", name, r)
+				}
+			} else if imag(r) != 0 || real(r) <= 0 {
+				t.Errorf("%v: f=0 but r=%v is not real positive", name, r)
 			}
 
 			// Check that -conj(sn)*f + cs*g = 0.

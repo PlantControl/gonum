@@ -18,6 +18,7 @@ type Zlanhser interface {
 }
 
 func ZlanhsTest(t *testing.T, impl Zlanhser) {
+	testZlanhsNaN(t, impl)
 	const tol = 1e-14
 	rnd := rand.New(rand.NewPCG(1, 1))
 	for _, n := range []int{0, 1, 2, 4, 9} {
@@ -103,4 +104,19 @@ func zlangeRef(norm lapack.MatrixNorm, m, n int, a []complex128, lda int) float6
 		panic("invalid norm")
 	}
 	return value
+}
+
+// testZlanhsNaN checks that, as in ZLANHS, a NaN dominates an infinity.
+func testZlanhsNaN(t *testing.T, impl Zlanhser) {
+	nan, inf := math.NaN(), math.Inf(1)
+	for _, a := range [][]complex128{
+		{complex(inf, 0), complex(nan, 0), complex(1, 0), complex(1, 0)},
+		{complex(nan, 0), complex(1, 0), complex(inf, 0), complex(1, 0)},
+	} {
+		for _, norm := range []lapack.MatrixNorm{lapack.MaxAbs, lapack.MaxColumnSum, lapack.MaxRowSum} {
+			if v := impl.Zlanhs(norm, 2, a, 2, make([]float64, 2)); !math.IsNaN(v) {
+				t.Errorf("norm=%c A=%v: got %v, want NaN", norm, a, v)
+			}
+		}
+	}
 }

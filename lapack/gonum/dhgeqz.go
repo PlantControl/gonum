@@ -446,7 +446,7 @@ func (impl Implementation) Dhgeqz(job lapack.SchurJob, compq, compz lapack.Schur
 
 func standardizeDhgeqzRealEigenvalue(ilschr, ilz bool, n, j, ifrstm int,
 	h []float64, ldh int, t []float64, ldt int, z []float64, ldz int) {
-	if t[j*ldt+j] >= 0 {
+	if !(t[j*ldt+j] < 0) {
 		return
 	}
 	if ilschr {
@@ -493,20 +493,18 @@ func (impl Implementation) doQZSweepSingle(ilschr, ilq, ilz bool, n, ilast, ifrs
 			bi.Drot(n, q[j:], ldq, q[j+1:], ldq, cs, sn)
 		}
 
-		if t[(j+1)*ldt+j] != 0 {
-			cs, sn, r = impl.Dlartg(t[(j+1)*ldt+j+1], t[(j+1)*ldt+j])
-			t[(j+1)*ldt+j+1] = r
-			t[(j+1)*ldt+j] = 0
+		cs, sn, r = impl.Dlartg(t[(j+1)*ldt+j+1], t[(j+1)*ldt+j])
+		t[(j+1)*ldt+j+1] = r
+		t[(j+1)*ldt+j] = 0
 
-			nh := min(j+2, ilast) - ifrstm + 1
-			bi.Drot(nh, h[ifrstm*ldh+j+1:], ldh, h[ifrstm*ldh+j:], ldh, cs, sn)
-			nt := j - ifrstm + 1
-			if nt > 0 {
-				bi.Drot(nt, t[ifrstm*ldt+j+1:], ldt, t[ifrstm*ldt+j:], ldt, cs, sn)
-			}
-			if ilz {
-				bi.Drot(n, z[j+1:], ldz, z[j:], ldz, cs, sn)
-			}
+		nh := min(j+2, ilast) - ifrstm + 1
+		bi.Drot(nh, h[ifrstm*ldh+j+1:], ldh, h[ifrstm*ldh+j:], ldh, cs, sn)
+		nt := j - ifrstm + 1
+		if nt > 0 {
+			bi.Drot(nt, t[ifrstm*ldt+j+1:], ldt, t[ifrstm*ldt+j:], ldt, cs, sn)
+		}
+		if ilz {
+			bi.Drot(n, z[j+1:], ldz, z[j:], ldz, cs, sn)
 		}
 	}
 }

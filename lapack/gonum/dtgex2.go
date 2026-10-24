@@ -152,11 +152,11 @@ func (impl Implementation) dtgex2Swap11(s, t, li, ir []float64, ld int, threshA,
 	li[1], li[ld+1] = -li[ld], li[0]
 	bi.Drot(2, s, 1, s[ld:], 1, li[0], li[ld])
 	bi.Drot(2, t, 1, t[ld:], 1, li[0], li[ld])
-	if math.Abs(s[ld]) > threshA || math.Abs(t[ld]) > threshB {
+	if !(math.Abs(s[ld]) <= threshA && math.Abs(t[ld]) <= threshB) {
 		return false
 	}
 	residA, residB := localStrongResidual(2, a, lda, b, ldb, li, s, ir, t, ld, true)
-	if residA > threshA || residB > threshB {
+	if !(residA <= threshA && residB <= threshB) {
 		return false
 	}
 	s[ld], t[ld] = 0, 0

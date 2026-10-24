@@ -35,6 +35,8 @@ func Dtgex2Test(t *testing.T, impl Dtgex2er) {
 	// Test 2×2 - 2×2 swap.
 	testDtgex2_2x2(t, impl)
 	testDtgex2Embedded(t, impl)
+	testDtgex2Random(t, impl)
+	testDtgex2RejectsNaN(t, impl)
 }
 
 func testDtgex2Embedded(t *testing.T, impl Dtgex2er) {
@@ -277,6 +279,36 @@ func checkDtgex2Decomposition(t *testing.T, name string, aOrig, bOrig, a, b, q, 
 		norm := dlange(lapack.MaxColumnSum, tc.orig.Rows, tc.orig.Cols, tc.orig.Data, tc.orig.Stride)
 		if resid > tol*math.Max(1, norm) {
 			t.Errorf("%s: %s decomposition residual=%g", name, label, resid)
+		}
+	}
+}
+
+// testDtgex2RejectsNaN checks that a NaN fails the stability tests and the
+// swap is rejected without modifying the outputs, as in DTGEX2 where the
+// tests are written as |S21| <= thresh.
+func testDtgex2RejectsNaN(t *testing.T, impl Dtgex2er) {
+	for _, tc := range []struct {
+		name string
+		a, b []float64
+	}{
+		{"A11", []float64{math.NaN(), 1, 0, 1}, []float64{1, 0, 0, 1}},
+		{"B12", []float64{2, 1, 0, 1}, []float64{1, math.NaN(), 0, 1}},
+	} {
+		const n = 2
+		a := append([]float64(nil), tc.a...)
+		b := append([]float64(nil), tc.b...)
+		q := eye(n, n).Data
+		z := eye(n, n).Data
+		work := make([]float64, 8)
+		if impl.Dtgex2(true, true, n, a, n, b, n, q, n, z, n, 0, 1, 1, work, len(work)) {
+			t.Errorf("%s: swap with NaN accepted", tc.name)
+		}
+		for i := range a {
+			same := func(x, y float64) bool { return x == y || (math.IsNaN(x) && math.IsNaN(y)) }
+			if !same(a[i], tc.a[i]) || !same(b[i], tc.b[i]) || q[i] != eye(n, n).Data[i] || z[i] != eye(n, n).Data[i] {
+				t.Errorf("%s: rejected swap modified outputs", tc.name)
+				break
+			}
 		}
 	}
 }

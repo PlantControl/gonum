@@ -23,6 +23,7 @@ type Zlasrer interface {
 // ZlasrTest verifies that Zlasr applies a sequence of plane rotations matching
 // a naive reference implementation built from individual rotations.
 func ZlasrTest(t *testing.T, impl Zlasrer) {
+	testZlasrRealRotation(t, impl)
 	const tol = 1e-13
 	rnd := rand.New(rand.NewPCG(1, 1))
 	for _, side := range []blas.Side{blas.Left, blas.Right} {
@@ -159,5 +160,17 @@ func zlasrCheck(t *testing.T, impl Zlasrer, rnd *rand.Rand, side blas.Side,
 	bound := tol * float64(max(1, max(m, n))) * float64(max(1, rotCount))
 	if maxDiff > bound {
 		t.Errorf("%s: mismatch vs reference; maxDiff=%v, tol=%v", name, maxDiff, bound)
+	}
+}
+
+// testZlasrRealRotation checks that the real rotation scales the real and
+// imaginary parts separately, as Fortran real*complex does, so an infinite
+// entry does not create a NaN part.
+func testZlasrRealRotation(t *testing.T, impl Zlasrer) {
+	inf := math.Inf(1)
+	a := []complex128{complex(inf, 0), 0}
+	impl.Zlasr(blas.Left, lapack.Variable, lapack.Forward, 2, 1, []float64{0.6}, []float64{0.8}, a, 1)
+	if a[0] != complex(inf, 0) || a[1] != complex(-inf, 0) {
+		t.Errorf("got %v, want [(+Inf+0i) (-Inf+0i)]", a)
 	}
 }

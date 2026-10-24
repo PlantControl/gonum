@@ -128,7 +128,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 			p++
 			i++
 		} else {
-			iwork[p] = -(i + 1)
+			iwork[p] = i + 1
 			p++
 			i += 2
 		}
@@ -144,7 +144,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 			q++
 			j++
 		} else {
-			iwork[q] = -(j + 1)
+			iwork[q] = j + 1
 			q++
 			j += 2
 		}
@@ -279,8 +279,8 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[2*ldz+2] = -e[js*lde+js]
 					z[2*ldz+3] = 0
 
-					// Row 3: D[is+1,is+1]*R[is+1] - E[js,js]*L[is+1] = F[is+1,js] (D[is+1,is]=0 for upper triangular)
-					z[3*ldz] = d[(is+1)*ldd+is]
+					// Row 3: D[is+1,is+1]*R[is+1] - E[js,js]*L[is+1] = F[is+1,js]; D is upper triangular.
+					z[3*ldz] = 0
 					z[3*ldz+1] = d[(is+1)*ldd+is+1]
 					z[3*ldz+2] = 0
 					z[3*ldz+3] = -e[js*lde+js]
@@ -346,8 +346,8 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[4*ldz+1] = d[is*ldd+is+1]
 					z[4*ldz+4] = -e[js*lde+js]
 
-					// Row 5: D[is+1,is]*R[is,js] + D[is+1,is+1]*R[is+1,js] - L[is+1,js]*E[js,js] = F[is+1,js]
-					z[5*ldz] = d[(is+1)*ldd+is]
+					// Row 5: D[is+1,is+1]*R[is+1,js] - L[is+1,js]*E[js,js] = F[is+1,js]
+					z[5*ldz] = 0
 					z[5*ldz+1] = d[(is+1)*ldd+is+1]
 					z[5*ldz+5] = -e[js*lde+js]
 
@@ -357,8 +357,8 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[6*ldz+4] = -e[js*lde+js+1]
 					z[6*ldz+6] = -e[(js+1)*lde+js+1]
 
-					// Row 7: D[is+1,is]*R[is,js+1] + D[is+1,is+1]*R[is+1,js+1] - L[is+1,js]*E[js,js+1] - L[is+1,js+1]*E[js+1,js+1] = F[is+1,js+1]
-					z[7*ldz+2] = d[(is+1)*ldd+is]
+					// Row 7: D[is+1,is+1]*R[is+1,js+1] - L[is+1,js]*E[js,js+1] - L[is+1,js+1]*E[js+1,js+1] = F[is+1,js+1]
+					z[7*ldz+2] = 0
 					z[7*ldz+3] = d[(is+1)*ldd+is+1]
 					z[7*ldz+5] = -e[js*lde+js+1]
 					z[7*ldz+7] = -e[(js+1)*lde+js+1]
@@ -488,7 +488,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 
 					z[3*ldz] = b[(js+1)*ldb+js]
 					z[3*ldz+1] = b[(js+1)*ldb+js+1]
-					z[3*ldz+2] = e[(js+1)*lde+js]
+					z[3*ldz+2] = 0
 					z[3*ldz+3] = e[(js+1)*lde+js+1]
 
 					rhs[0] = c[is*ldc+js]
@@ -522,7 +522,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[0] = a[is*lda+is]
 					z[1] = a[(is+1)*lda+is]
 					z[2] = d[is*ldd+is]
-					z[3] = d[(is+1)*ldd+is]
+					z[3] = 0
 
 					// Row 1: Aᵀ[is+1,is]*R[is] + Aᵀ[is+1,is+1]*R[is+1] + Dᵀ[is+1,is]*L[is] + Dᵀ[is+1,is+1]*L[is+1] = C[is+1]
 					z[ldz] = a[is*lda+is+1]
@@ -576,7 +576,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[0] = a[is*lda+is]
 					z[1] = a[(is+1)*lda+is]
 					z[4] = d[is*ldd+is]
-					z[5] = d[(is+1)*ldd+is]
+					z[5] = 0
 
 					// Row 1: C[is+1,js]
 					z[ldz] = a[is*lda+is+1]
@@ -588,7 +588,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[2*ldz+2] = a[is*lda+is]
 					z[2*ldz+3] = a[(is+1)*lda+is]
 					z[2*ldz+6] = d[is*ldd+is]
-					z[2*ldz+7] = d[(is+1)*ldd+is]
+					z[2*ldz+7] = 0
 
 					// Row 3: C[is+1,js+1]
 					z[3*ldz+2] = a[is*lda+is+1]
@@ -611,13 +611,13 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					// Row 6: -F[is,js+1]
 					z[6*ldz] = b[(js+1)*ldb+js]
 					z[6*ldz+2] = b[(js+1)*ldb+js+1]
-					z[6*ldz+4] = e[(js+1)*lde+js]
+					z[6*ldz+4] = 0
 					z[6*ldz+6] = e[(js+1)*lde+js+1]
 
 					// Row 7: -F[is+1,js+1]
 					z[7*ldz+1] = b[(js+1)*ldb+js]
 					z[7*ldz+3] = b[(js+1)*ldb+js+1]
-					z[7*ldz+5] = e[(js+1)*lde+js]
+					z[7*ldz+5] = 0
 					z[7*ldz+7] = e[(js+1)*lde+js+1]
 
 					rhs[0] = c[is*ldc+js]

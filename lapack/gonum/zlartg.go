@@ -4,7 +4,10 @@
 
 package gonum
 
-import "math"
+import (
+	"math"
+	"math/cmplx"
+)
 
 // Zlartg generates a plane rotation so that
 //
@@ -17,93 +20,116 @@ import "math"
 // avoid overflow or underflow. Properties:
 //   - cs >= 0
 //   - if g = 0, then cs = 1 and sn = 0
-//   - if f = 0 and g != 0, then cs = 0 and |sn| = 1
+//   - if f = 0 and g != 0, then cs = 0 and r is real and positive
+//   - if f != 0, then r has the phase of f
+//
+// Zlartg is a translation of the LAPACK 3.12 ZLARTG, based on Algorithm 978
+// of Anderson, Safe Scaling in the Level 1 BLAS, ACM Trans. Math. Softw. 44
+// (2017).
 //
 // Zlartg is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Zlartg(f, g complex128) (cs float64, sn, r complex128) {
-	// Implementation based on Supplemental Material to:
-	//
-	// Edward Anderson
-	// Algorithm 978: Safe Scaling in the Level 1 BLAS
-	// ACM Trans. Math. Softw. 44, 1, Article 12 (2017)
-	// DOI: https://doi.org/10.1145/3061665
 	const safmin = dlamchS
 	const safmax = 1 / safmin
-	rtmin := math.Sqrt(safmin / dlamchE)
-	rtmax := math.Sqrt(safmax * dlamchE)
+	rtmin := math.Sqrt(safmin)
 
 	if g == 0 {
 		return 1, 0, f
 	}
 
-	// Use Hypot for overflow-safe magnitudes.
-	g1 := math.Hypot(real(g), imag(g))
-
 	if f == 0 {
-		cs = 0
-		// sn = conj(g)/|g|, r = |g|.
-		sn = complex(real(g)/g1, -imag(g)/g1)
-		r = complex(g1, 0)
-		return cs, sn, r
+		var d float64
+		switch {
+		case real(g) == 0:
+			d = math.Abs(imag(g))
+			sn = zdivr(cmplx.Conj(g), d)
+		case imag(g) == 0:
+			d = math.Abs(real(g))
+			sn = zdivr(cmplx.Conj(g), d)
+		default:
+			g1 := math.Max(math.Abs(real(g)), math.Abs(imag(g)))
+			rtmax := math.Sqrt(safmax / 2)
+			if g1 > rtmin && g1 < rtmax {
+				d = math.Sqrt(zabssq(g))
+				sn = zdivr(cmplx.Conj(g), d)
+			} else {
+				u := math.Min(safmax, math.Max(safmin, g1))
+				gs := zdivr(g, u)
+				d = math.Sqrt(zabssq(gs))
+				sn = zdivr(cmplx.Conj(gs), d)
+				d *= u
+			}
+		}
+		return 0, sn, complex(d, 0)
 	}
 
-	f1 := math.Hypot(real(f), imag(f))
-
-	// If all quantities are well-scaled (squaring is safe on f and g), use
-	// the direct formula.
-	if rtmin < f1 && f1 < rtmax && rtmin < g1 && g1 < rtmax {
+	f1 := math.Max(math.Abs(real(f)), math.Abs(imag(f)))
+	g1 := math.Max(math.Abs(real(g)), math.Abs(imag(g)))
+	rtmax := math.Sqrt(safmax / 4)
+	if f1 > rtmin && f1 < rtmax && g1 > rtmin && g1 < rtmax {
 		f2 := zabssq(f)
 		g2 := zabssq(g)
 		h2 := f2 + g2
-		var d float64
-		if f2 > rtmin && h2 < rtmax {
-			d = math.Sqrt(f2 * h2)
+		if f2 >= h2*safmin {
+			cs = math.Sqrt(f2 / h2)
+			r = zdivr(f, cs)
+			rtmax *= 2
+			if f2 > rtmin && h2 < rtmax {
+				sn = cmplx.Conj(g) * zdivr(f, math.Sqrt(f2*h2))
+			} else {
+				sn = cmplx.Conj(g) * zdivr(r, h2)
+			}
 		} else {
-			d = math.Sqrt(f2) * math.Sqrt(h2)
+			d := math.Sqrt(f2 * h2)
+			cs = f2 / d
+			if cs >= safmin {
+				r = zdivr(f, cs)
+			} else {
+				r = zmulr(f, h2/d)
+			}
+			sn = cmplx.Conj(g) * zdivr(f, d)
 		}
-		p := 1 / d
-		cs = f2 * p
-		// sn = conj(g) * f / d.
-		sn = complex(real(g), -imag(g)) * complex(real(f)*p, imag(f)*p)
-		// r = f * h2 / d.
-		r = complex(real(f)*(h2*p), imag(f)*(h2*p))
 		return cs, sn, r
 	}
 
-	// Otherwise scale by u = clamp(max(f1,g1), safmin, safmax).
-	u := math.Min(math.Max(safmin, math.Max(f1, g1)), safmax)
-	uu := 1 / u
-	fs := complex(real(f)*uu, imag(f)*uu)
-	gs := complex(real(g)*uu, imag(g)*uu)
-
-	f2 := zabssq(fs)
+	u := math.Min(safmax, math.Max(safmin, math.Max(f1, g1)))
+	gs := zdivr(g, u)
 	g2 := zabssq(gs)
-	h2 := f2 + g2
-
-	// If f fully underflows after scaling, fall back to the f == 0 branch.
-	if f2 == 0 {
-		cs = 0
-		sn = complex(real(g)/g1, -imag(g)/g1)
-		r = complex(g1, 0)
-		return cs, sn, r
-	}
-	// If g fully underflows after scaling, fall back to the g == 0 branch
-	// using the pre-scale f.
-	if g2 == 0 {
-		return 1, 0, f
-	}
-
-	var d float64
-	if f2 > rtmin && h2 < rtmax {
-		d = math.Sqrt(f2 * h2)
+	var w, f2, h2 float64
+	var fs complex128
+	if f1/u < rtmin {
+		v := math.Min(safmax, math.Max(safmin, f1))
+		w = v / u
+		fs = zdivr(f, v)
+		f2 = zabssq(fs)
+		h2 = f2*w*w + g2
 	} else {
-		d = math.Sqrt(f2) * math.Sqrt(h2)
+		w = 1
+		fs = zdivr(f, u)
+		f2 = zabssq(fs)
+		h2 = f2 + g2
 	}
-	p := 1 / d
-	cs = f2 * p
-	sn = complex(real(gs), -imag(gs)) * complex(real(fs)*p, imag(fs)*p)
-	r = complex(real(fs)*(h2*p), imag(fs)*(h2*p))
-	r = complex(real(r)*u, imag(r)*u)
+	if f2 >= h2*safmin {
+		cs = math.Sqrt(f2 / h2)
+		r = zdivr(fs, cs)
+		rtmax *= 2
+		if f2 > rtmin && h2 < rtmax {
+			sn = cmplx.Conj(gs) * zdivr(fs, math.Sqrt(f2*h2))
+		} else {
+			sn = cmplx.Conj(gs) * zdivr(r, h2)
+		}
+	} else {
+		d := math.Sqrt(f2 * h2)
+		cs = f2 / d
+		if cs >= safmin {
+			r = zdivr(fs, cs)
+		} else {
+			r = zmulr(fs, h2/d)
+		}
+		sn = cmplx.Conj(gs) * zdivr(fs, d)
+	}
+	cs *= w
+	r = zmulr(r, u)
 	return cs, sn, r
 }
 
@@ -111,4 +137,14 @@ func (impl Implementation) Zlartg(f, g complex128) (cs float64, sn, r complex128
 func zabssq(z complex128) float64 {
 	re, im := real(z), imag(z)
 	return re*re + im*im
+}
+
+// zdivr returns z/d for real d, dividing each part.
+func zdivr(z complex128, d float64) complex128 {
+	return complex(real(z)/d, imag(z)/d)
+}
+
+// zmulr returns z*d for real d, multiplying each part.
+func zmulr(z complex128, d float64) complex128 {
+	return complex(real(z)*d, imag(z)*d)
 }

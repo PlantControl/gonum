@@ -173,7 +173,7 @@ func testDtrsen(t *testing.T, impl Dtrsener, n, extra int, selectPattern string,
 	m, s, sep, ok := impl.Dtrsen(ijob, wantq, selected, n, tMat.Data, tMat.Stride, qData, ldq, wr, wi, work, lwork, iwork, liwork)
 
 	if !ok {
-		t.Logf("%s: reordering failed (ok=false)", prefix)
+		t.Errorf("%s: reordering failed (ok=false)", prefix)
 		return
 	}
 

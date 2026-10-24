@@ -84,6 +84,84 @@ static lapack_int run_dhgeqz(char job, char compq, char compz, lapack_int n,
 	return info;
 }
 
+static lapack_int run_dggev_work(char jobvl, char jobvr, lapack_int n,
+		double *a, double *b, double *ar, double *ai, double *beta,
+		double *vl, double *vr) {
+	double query;
+	lapack_int info = LAPACKE_dggev_work(LAPACK_ROW_MAJOR, jobvl, jobvr, n,
+		a, n, b, n, ar, ai, beta, vl, n, vr, n, &query, -1);
+	if (info != 0) {
+		return info;
+	}
+	lapack_int lwork = (lapack_int)query;
+	double *work = malloc((size_t)lwork*sizeof(double));
+	info = LAPACKE_dggev_work(LAPACK_ROW_MAJOR, jobvl, jobvr, n,
+		a, n, b, n, ar, ai, beta, vl, n, vr, n, work, lwork);
+	free(work);
+	return info;
+}
+
+static lapack_int run_dtrsen(char job, char compq, lapack_logical *sel, lapack_int n, double *t, double *q,
+		double *wr, double *wi, lapack_int *m, double *s, double *sep) {
+	lapack_int ld = n > 0 ? n : 1, info = 0;
+	lapack_int lwork = 2*n*n + n + 1, liwork = n*n + 1;
+	double *tc = malloc((size_t)ld*ld*sizeof(double));
+	double *qc = malloc((size_t)ld*ld*sizeof(double));
+	double *work = malloc((size_t)lwork*sizeof(double));
+	lapack_int *iwork = malloc((size_t)liwork*sizeof(lapack_int));
+	row_to_col(n, t, tc);
+	row_to_col(n, q, qc);
+	LAPACK_dtrsen(&job, &compq, sel, &n, tc, &ld, qc, &ld, wr, wi, m, s, sep,
+		work, &lwork, iwork, &liwork, &info);
+	col_to_row(n, tc, t);
+	col_to_row(n, qc, q);
+	free(tc); free(qc); free(work); free(iwork);
+	return info;
+}
+
+extern void zlartg_(double _Complex *f, double _Complex *g, double *c,
+	double _Complex *s, double _Complex *r);
+
+extern void dlagv2_(double *a, int *lda, double *b, int *ldb, double *alphar,
+	double *alphai, double *beta, double *csl, double *snl, double *csr, double *snr);
+extern void dlag2_(double *a, int *lda, double *b, int *ldb, double *safmin,
+	double *scale1, double *scale2, double *wr1, double *wr2, double *wi);
+
+static double run_norm(int kind, char norm, lapack_int m, lapack_int n, char uplo, char diag,
+		lapack_int kl, lapack_int ku, const double *a, const double _Complex *z,
+		const double *d, const double *e, const double *f) {
+	double work[64];
+	lapack_int ld = m > 0 ? m : 1, ldab = kl + ku + 1, kd = kl;
+	switch (kind) {
+	case 0: return LAPACK_dlange(&norm, &m, &n, a, &ld, work);
+	case 1: return LAPACK_dlanhs(&norm, &n, a, &ld, work);
+	case 2: return LAPACK_dlansy(&norm, &uplo, &n, a, &ld, work);
+	case 3: return LAPACK_dlantr(&norm, &uplo, &diag, &m, &n, a, &ld, work);
+	case 4: return LAPACK_dlangb(&norm, &n, &kl, &ku, a, &ldab, work);
+	case 5: ldab = kd + 1; return LAPACK_dlansb(&norm, &uplo, &n, &kd, a, &ldab, work);
+	case 6: ldab = kd + 1; return LAPACK_dlantb(&norm, &uplo, &diag, &n, &kd, a, &ldab, work);
+	case 7: return LAPACK_dlanst(&norm, &n, d, e);
+	case 8: return LAPACK_dlangt(&norm, &n, e, d, f);
+	case 9: return LAPACK_zlange(&norm, &m, &n, z, &ld, work);
+	case 10: return LAPACK_zlanhs(&norm, &n, z, &ld, work);
+	}
+	return -1;
+}
+
+static double dgees_threshold;
+
+static lapack_logical select_wr_below(const double *wr, const double *wi) {
+	(void)wi;
+	return *wr < dgees_threshold;
+}
+
+static lapack_int run_dgees(char jobvs, lapack_int sort, double threshold, lapack_int n,
+		double *a, lapack_int *sdim, double *wr, double *wi, double *vs) {
+	dgees_threshold = threshold;
+	return LAPACKE_dgees(LAPACK_ROW_MAJOR, jobvs, sort ? 'S' : 'N',
+		sort ? select_wr_below : NULL, n, a, n, sdim, wr, wi, vs, n);
+}
+
 static lapack_int run_dtgsen_singular(void) {
 	lapack_logical select[2] = {1, 0};
 	double a[4] = {1, 0, 0, 1};
@@ -100,11 +178,30 @@ static lapack_int run_dtgsen_case(lapack_int ijob, lapack_logical wantq,
 		lapack_logical wantz, uint64_t mask, lapack_int n, double *a, double *b,
 		double *ar, double *ai, double *beta, double *q, double *z, lapack_int *m,
 		double *pl, double *pr, double *dif) {
-	lapack_logical *select = malloc((size_t)n*sizeof(lapack_logical));
+	// LAPACKE_dtgsen's workspace query undersizes IWORK for IJOB 3 and 5,
+	// and DTGSEN's XERBLA then exits the test binary with status 0, so call
+	// DTGSEN directly with generous workspace.
+	lapack_logical *select = malloc((size_t)(n > 0 ? n : 1)*sizeof(lapack_logical));
 	for (lapack_int i = 0; i < n; i++) select[i] = (mask >> i) & 1;
-	lapack_int info = LAPACKE_dtgsen(LAPACK_ROW_MAJOR, ijob, wantq, wantz,
-		select, n, a, n, b, n, ar, ai, beta, q, n, z, n, m, pl, pr, dif);
-	free(select);
+	lapack_int ld = n > 0 ? n : 1, info = 0;
+	lapack_int lwork = 4*n*n + 4*n + 16, liwork = 2*n*n + n + 6;
+	double *ac = malloc((size_t)ld*ld*sizeof(double));
+	double *bc = malloc((size_t)ld*ld*sizeof(double));
+	double *qc = malloc((size_t)ld*ld*sizeof(double));
+	double *zc = malloc((size_t)ld*ld*sizeof(double));
+	double *work = malloc((size_t)lwork*sizeof(double));
+	lapack_int *iwork = malloc((size_t)liwork*sizeof(lapack_int));
+	row_to_col(n, a, ac);
+	row_to_col(n, b, bc);
+	row_to_col(n, q, qc);
+	row_to_col(n, z, zc);
+	LAPACK_dtgsen(&ijob, &wantq, &wantz, select, &n, ac, &ld, bc, &ld, ar, ai, beta,
+		qc, &ld, zc, &ld, m, pl, pr, dif, work, &lwork, iwork, &liwork, &info);
+	col_to_row(n, ac, a);
+	col_to_row(n, bc, b);
+	col_to_row(n, qc, q);
+	col_to_row(n, zc, z);
+	free(select); free(ac); free(bc); free(qc); free(zc); free(work); free(iwork);
 	return info;
 }
 
@@ -500,4 +597,164 @@ func Dggev(jobvl, jobvr byte, n int, a, b, ar, ai, beta, vl, vr []float64) int {
 		(*C.double)(unsafe.Pointer(&beta[0])),
 		(*C.double)(unsafe.Pointer(&vl[0])), C.lapack_int(n),
 		(*C.double)(unsafe.Pointer(&vr[0])), C.lapack_int(n)))
+}
+
+// DggevWork calls LAPACKE_dggev_work, which skips LAPACKE's NaN input check,
+// with row-major, contiguous n×n matrices.
+func DggevWork(jobvl, jobvr byte, n int, a, b, ar, ai, beta, vl, vr []float64) int {
+	return int(C.run_dggev_work(C.char(jobvl), C.char(jobvr), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&a[0])), (*C.double)(unsafe.Pointer(&b[0])),
+		(*C.double)(unsafe.Pointer(&ar[0])), (*C.double)(unsafe.Pointer(&ai[0])),
+		(*C.double)(unsafe.Pointer(&beta[0])),
+		(*C.double)(unsafe.Pointer(&vl[0])), (*C.double)(unsafe.Pointer(&vr[0]))))
+}
+
+// Dgees calls LAPACKE_dgees with row-major, contiguous n×n matrices, selecting
+// eigenvalues with real part below threshold when sort is true.
+func Dgees(jobvs byte, sort bool, threshold float64, n int, a, wr, wi, vs []float64) (sdim, info int) {
+	var csdim C.lapack_int
+	cinfo := C.run_dgees(C.char(jobvs), C.lapack_int(boolInt(sort)), C.double(threshold), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&a[0])), &csdim,
+		(*C.double)(unsafe.Pointer(&wr[0])), (*C.double)(unsafe.Pointer(&wi[0])),
+		(*C.double)(unsafe.Pointer(&vs[0])))
+	return int(csdim), int(cinfo)
+}
+
+// Dtrsyl calls LAPACKE_dtrsyl_work with row-major, contiguous matrices.
+func Dtrsyl(trana, tranb byte, isgn, m, n int, a, b, c []float64) (scale float64, info int) {
+	var cscale C.double
+	cinfo := C.LAPACKE_dtrsyl_work(C.LAPACK_ROW_MAJOR, C.char(trana), C.char(tranb), C.lapack_int(isgn),
+		C.lapack_int(m), C.lapack_int(n), (*C.double)(unsafe.Pointer(&a[0])), C.lapack_int(m),
+		(*C.double)(unsafe.Pointer(&b[0])), C.lapack_int(n), (*C.double)(unsafe.Pointer(&c[0])), C.lapack_int(n), &cscale)
+	return float64(cscale), int(cinfo)
+}
+
+// Dtrsen calls the Fortran DTRSEN with row-major, contiguous n×n matrices.
+func Dtrsen(job, compq byte, selected []bool, n int, t, q, wr, wi []float64) (m int, s, sep float64, info int) {
+	sel := make([]C.lapack_logical, n)
+	for i, v := range selected {
+		sel[i] = C.lapack_logical(boolInt(v))
+	}
+	var cm C.lapack_int
+	var cs, csep C.double
+	cinfo := C.run_dtrsen(C.char(job), C.char(compq), &sel[0], C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&t[0])), (*C.double)(unsafe.Pointer(&q[0])),
+		(*C.double)(unsafe.Pointer(&wr[0])), (*C.double)(unsafe.Pointer(&wi[0])), &cm, &cs, &csep)
+	return int(cm), float64(cs), float64(csep), int(cinfo)
+}
+
+// Zlartg calls the Fortran ZLARTG.
+func Zlartg(f, g complex128) (c float64, s, r complex128) {
+	cf, cg := C.complexdouble(f), C.complexdouble(g)
+	var cc C.double
+	var cs, cr C.complexdouble
+	C.zlartg_(&cf, &cg, &cc, &cs, &cr)
+	return float64(cc), complex128(cs), complex128(cr)
+}
+
+// Dlagv2 calls the Fortran DLAGV2 on row-major 2×2 a and b.
+func Dlagv2(a, b []float64) (alphar, alphai, beta [2]float64, csl, snl, csr, snr float64) {
+	ac := [4]C.double{C.double(a[0]), C.double(a[2]), C.double(a[1]), C.double(a[3])}
+	bc := [4]C.double{C.double(b[0]), C.double(b[2]), C.double(b[1]), C.double(b[3])}
+	ld := C.int(2)
+	var ar, ai, be [2]C.double
+	var cl, sl, cr, sr C.double
+	C.dlagv2_(&ac[0], &ld, &bc[0], &ld, &ar[0], &ai[0], &be[0], &cl, &sl, &cr, &sr)
+	a[0], a[2], a[1], a[3] = float64(ac[0]), float64(ac[1]), float64(ac[2]), float64(ac[3])
+	b[0], b[2], b[1], b[3] = float64(bc[0]), float64(bc[1]), float64(bc[2]), float64(bc[3])
+	for i := range 2 {
+		alphar[i], alphai[i], beta[i] = float64(ar[i]), float64(ai[i]), float64(be[i])
+	}
+	return alphar, alphai, beta, float64(cl), float64(sl), float64(cr), float64(sr)
+}
+
+// Dlag2 calls the Fortran DLAG2 on row-major 2×2 a and b.
+func Dlag2(a, b []float64, safmin float64) (scale1, scale2, wr1, wr2, wi float64) {
+	ac := [4]C.double{C.double(a[0]), C.double(a[2]), C.double(a[1]), C.double(a[3])}
+	bc := [4]C.double{C.double(b[0]), C.double(b[2]), C.double(b[1]), C.double(b[3])}
+	ld := C.int(2)
+	sm := C.double(safmin)
+	var s1, s2, w1, w2, w C.double
+	C.dlag2_(&ac[0], &ld, &bc[0], &ld, &sm, &s1, &s2, &w1, &w2, &w)
+	return float64(s1), float64(s2), float64(w1), float64(w2), float64(w)
+}
+
+// Dlacn2 calls the Fortran DLACN2.
+func Dlacn2(n int, v, x []float64, isgn []int32, est float64, kase int, isave *[3]int32) (float64, int) {
+	cn := C.lapack_int(n)
+	ce := C.double(est)
+	ck := C.lapack_int(kase)
+	C.LAPACK_dlacn2(&cn, (*C.double)(unsafe.Pointer(&v[0])), (*C.double)(unsafe.Pointer(&x[0])), (*C.lapack_int)(unsafe.Pointer(&isgn[0])), &ce, &ck, (*C.lapack_int)(unsafe.Pointer(&isave[0])))
+	return float64(ce), int(ck)
+}
+
+// Norm calls the Fortran norm routine kind (DLANGE, DLANHS, DLANSY, DLANTR,
+// DLANGB, DLANSB, DLANTB, DLANST, DLANGT, ZLANGE or ZLANHS) on the dense
+// row-major m×n matrix a, stored as that routine expects. For DLANSB and
+// DLANTB, kl is the number of off-diagonals. ZLANGE and ZLANHS use a+0.5i and
+// a-0.5i.
+func Norm(kind string, norm byte, m, n int, uplo, diag byte, kl, ku int, a []float64) float64 {
+	col := make([]float64, max(1, m*n))
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			col[j*m+i] = a[i*n+j]
+		}
+	}
+	z := make([]complex128, len(col))
+	var d, e, f []float64
+	k := map[string]int{"DLANGE": 0, "DLANHS": 1, "DLANSY": 2, "DLANTR": 3, "DLANGB": 4,
+		"DLANSB": 5, "DLANTB": 6, "DLANST": 7, "DLANGT": 8, "ZLANGE": 9, "ZLANHS": 10}[kind]
+	switch kind {
+	case "DLANGB":
+		ldab := kl + ku + 1
+		col = make([]float64, n*ldab)
+		for j := 0; j < n; j++ {
+			for i := max(0, j-ku); i <= min(n-1, j+kl); i++ {
+				col[j*ldab+ku+i-j] = a[i*n+j]
+			}
+		}
+	case "DLANSB", "DLANTB":
+		ldab := kl + 1
+		col = make([]float64, n*ldab)
+		for j := 0; j < n; j++ {
+			if uplo == 'U' {
+				for i := max(0, j-kl); i <= j; i++ {
+					col[j*ldab+kl+i-j] = a[i*n+j]
+				}
+			} else {
+				for i := j; i <= min(n-1, j+kl); i++ {
+					col[j*ldab+i-j] = a[i*n+j]
+				}
+			}
+		}
+	case "DLANST", "DLANGT":
+		d, e, f = make([]float64, n), make([]float64, max(1, n-1)), make([]float64, max(1, n-1))
+		for i := 0; i < n; i++ {
+			d[i] = a[i*n+i]
+			if i < n-1 {
+				e[i] = a[i*n+i+1]
+				f[i] = a[i*n+i+1]
+			}
+		}
+		if kind == "DLANGT" {
+			for i := 0; i < n-1; i++ {
+				e[i] = a[(i+1)*n+i]
+			}
+		}
+	case "ZLANGE", "ZLANHS":
+		im := 0.5
+		if kind == "ZLANHS" {
+			im = -0.5
+		}
+		for i, v := range col {
+			z[i] = complex(v, im)
+		}
+	}
+	if d == nil {
+		d, e, f = []float64{0}, []float64{0}, []float64{0}
+	}
+	return float64(C.run_norm(C.int(k), C.char(norm), C.lapack_int(m), C.lapack_int(n), C.char(uplo), C.char(diag),
+		C.lapack_int(kl), C.lapack_int(ku), (*C.double)(unsafe.Pointer(&col[0])),
+		(*C.complexdouble)(unsafe.Pointer(&z[0])),
+		(*C.double)(unsafe.Pointer(&d[0])), (*C.double)(unsafe.Pointer(&e[0])), (*C.double)(unsafe.Pointer(&f[0]))))
 }

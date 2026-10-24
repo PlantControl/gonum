@@ -30,7 +30,7 @@ import (
 //
 // On return, m is the dimension of the specified invariant subspace.
 // s is the reciprocal condition number for the average of the selected
-// eigenvalues (valid only if ijob=1 or 3).
+// eigenvalues (valid only if ijob=1 or 3; 0 if the reordering failed).
 // sep is the reciprocal condition number for the right invariant subspace
 // (valid only if ijob=2 or 3).
 //
@@ -181,7 +181,7 @@ func (impl Implementation) Dtrsen(ijob int, wantq bool, selected []bool, n int, 
 	for i := 0; i < n; i++ {
 		if i < n-1 && t[(i+1)*ldt+i] != 0 {
 			wr[i] = t[i*ldt+i]
-			wr[i+1] = t[i*ldt+i]
+			wr[i+1] = t[(i+1)*ldt+i+1]
 			wi[i] = math.Sqrt(math.Abs(t[i*ldt+i+1])) * math.Sqrt(math.Abs(t[(i+1)*ldt+i]))
 			wi[i+1] = -wi[i]
 			i++
@@ -198,7 +198,13 @@ func (impl Implementation) Dtrsen(ijob int, wantq bool, selected []bool, n int, 
 	if (m == 0 || m == n) && wantsp {
 		sep = impl.Dlange(lapack.MaxColumnSum, n, n, t, ldt, work)
 	}
-	if ijob == 0 || m == 0 || m == n || !ok {
+	if !ok {
+		if wants {
+			s = 0
+		}
+		return m, s, 0, false
+	}
+	if ijob == 0 || m == 0 || m == n {
 		return m, s, sep, ok
 	}
 
@@ -228,12 +234,25 @@ func (impl Implementation) Dtrsen(ijob int, wantq bool, selected []bool, n int, 
 			if kase == 0 {
 				break
 			}
+			// As in DTRSEN, x holds R column-major, and v, which Dlacn2 does
+			// not read between calls, is the scratch for the solve.
+			x, v := work[:nn], work[nn:2*nn]
+			for i := 0; i < n1; i++ {
+				for j := 0; j < n2; j++ {
+					v[i*n2+j] = x[j*n1+i]
+				}
+			}
 			if kase == 1 {
 				scale, _ = impl.Dtrsyl(blas.NoTrans, blas.NoTrans, -1, n1, n2,
-					t, ldt, t[n1*ldt+n1:], ldt, work, n2)
+					t, ldt, t[n1*ldt+n1:], ldt, v, n2)
 			} else {
 				scale, _ = impl.Dtrsyl(blas.Trans, blas.Trans, -1, n1, n2,
-					t, ldt, t[n1*ldt+n1:], ldt, work, n2)
+					t, ldt, t[n1*ldt+n1:], ldt, v, n2)
+			}
+			for i := 0; i < n1; i++ {
+				for j := 0; j < n2; j++ {
+					x[j*n1+i] = v[i*n2+j]
+				}
 			}
 		}
 		sep = scale / est

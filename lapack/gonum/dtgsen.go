@@ -8,7 +8,6 @@ import (
 	"math"
 
 	"plantcontrol.org/v1/gonum/blas"
-	"plantcontrol.org/v1/gonum/lapack"
 )
 
 // Dtgsen reorders the generalized real Schur decomposition of a real matrix
@@ -251,10 +250,8 @@ func (impl Implementation) Dtgsen(ijob int, wantq, wantz bool, selected []bool, 
 			b, ldb, b[n1*ldb+n1:], ldb, f, n2,
 			workTgsyl[:], 1, iwork)
 
-		rnorm := impl.Dlange(lapack.Frobenius, n1, n2, c, n2, nil)
-		lnorm := impl.Dlange(lapack.Frobenius, n1, n2, f, n2, nil)
-		pl = scale / math.Hypot(scale, rnorm)
-		pr = scale / math.Hypot(scale, lnorm)
+		pl = dtgsenProjectionNorm(impl, scale, c)
+		pr = dtgsenProjectionNorm(impl, scale, f)
 	}
 
 	// Compute DIF (separation estimates).
@@ -353,13 +350,36 @@ func (impl Implementation) dtgsenDif(m, n int, a []float64, lda int, b []float64
 		if kase != 1 {
 			trans = blas.Trans
 		}
+		// As in DTGSEN, x holds C and F column-major and v, which DLACN2
+		// does not read between calls, is the scratch for the solve.
+		c, f := v[:mn], v[mn:nn]
+		for i := 0; i < m; i++ {
+			for j := 0; j < n; j++ {
+				c[i*n+j] = x[j*m+i]
+				f[i*n+j] = x[mn+j*m+i]
+			}
+		}
 		scale, _, _ = impl.Dtgsyl(trans, 0, m, n,
-			a, lda, b, ldb, x[:mn], n,
-			d, ldd, e, lde, x[mn:], n,
+			a, lda, b, ldb, c, n,
+			d, ldd, e, lde, f, n,
 			workTgsyl[:], 1, iwork)
-	}
-	if est == 0 {
-		return 0
+		for i := 0; i < m; i++ {
+			for j := 0; j < n; j++ {
+				x[j*m+i] = c[i*n+j]
+				x[mn+j*m+i] = f[i*n+j]
+			}
+		}
 	}
 	return scale / est
+}
+
+// dtgsenProjectionNorm returns scale/sqrt(scale²+‖x‖²_F) as DTGSEN computes
+// PL and PR, with 1 for x = 0.
+func dtgsenProjectionNorm(impl Implementation, scale float64, x []float64) float64 {
+	rdscal, dsum := impl.Dlassq(len(x), x, 1, 0, 1)
+	p := rdscal * math.Sqrt(dsum)
+	if p == 0 {
+		return 1
+	}
+	return scale / (math.Sqrt(scale*scale/p+p) * math.Sqrt(p))
 }

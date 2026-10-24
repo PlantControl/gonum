@@ -53,7 +53,7 @@ func (impl Implementation) Zlange(norm lapack.MatrixNorm, m, n int, a []complex1
 		var value float64
 		for i := 0; i < m; i++ {
 			for j := 0; j < n; j++ {
-				value = math.Max(value, cmplx.Abs(a[i*lda+j]))
+				value = lapackMax(value, cmplx.Abs(a[i*lda+j]))
 			}
 		}
 		return value
@@ -68,7 +68,7 @@ func (impl Implementation) Zlange(norm lapack.MatrixNorm, m, n int, a []complex1
 		}
 		var value float64
 		for i := 0; i < n; i++ {
-			value = math.Max(value, work[i])
+			value = lapackMax(value, work[i])
 		}
 		return value
 	case lapack.MaxRowSum:
@@ -78,7 +78,7 @@ func (impl Implementation) Zlange(norm lapack.MatrixNorm, m, n int, a []complex1
 			for j := 0; j < n; j++ {
 				sum += cmplx.Abs(a[i*lda+j])
 			}
-			value = math.Max(value, sum)
+			value = lapackMax(value, sum)
 		}
 		return value
 	default:

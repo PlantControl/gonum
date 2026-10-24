@@ -22,6 +22,7 @@ type Dgeeser interface {
 }
 
 func DgeesTest(t *testing.T, impl Dgeeser) {
+	testDgeesSelectsUnscaledEigenvalues(t, impl)
 	rnd := rand.New(rand.NewPCG(1, 1))
 
 	for _, n := range []int{0, 1, 2, 3, 4, 5, 6, 10, 20, 50, 100} {
@@ -312,7 +313,7 @@ func testDgeesSort(t *testing.T, impl Dgeeser, n, extra int, selctg func(wr, wi 
 
 	sdim, ok := impl.Dgees(lapack.SchurHess, lapack.SortSelected, selctg, n, a.Data, a.Stride, wr, wi, vs.Data, ldvs, work, lwork, bwork)
 	if !ok {
-		t.Logf("%s: Dgees with sorting failed to converge", prefix)
+		t.Errorf("%s: Dgees with sorting failed to converge", prefix)
 		return
 	}
 
@@ -382,4 +383,26 @@ func residualSchurFactorization(A, T, Z blas64.General) float64 {
 	}
 
 	return dlange(lapack.MaxColumnSum, n, n, R2.Data, R2.Stride)
+}
+
+// testDgeesSelectsUnscaledEigenvalues checks that, as in DGEES, selctg is
+// evaluated on the eigenvalues of the original A when A is scaled, and that
+// sdim counts the eigenvalues that satisfy selctg on return.
+func testDgeesSelectsUnscaledEigenvalues(t *testing.T, impl Dgeeser) {
+	const n = 2
+	for _, c := range []float64{2e138, 1e-300} {
+		a := []float64{0.5 * c, c, 0, 2 * c}
+		sel := func(wr, wi float64) bool { return wr < 0.45*c }
+		wr, wi := make([]float64, n), make([]float64, n)
+		work := make([]float64, 100)
+		sdim, ok := impl.Dgees(lapack.SchurNone, lapack.SortSelected, sel, n, a, n, wr, wi, nil, 1, work, len(work), make([]bool, n))
+		if !ok || sdim != 0 {
+			t.Errorf("c=%g: sdim=%d ok=%v, want 0 true; wr=%v", c, sdim, ok, wr)
+		}
+		a = []float64{0.4 * c, c, 0, 2 * c}
+		sdim, ok = impl.Dgees(lapack.SchurNone, lapack.SortSelected, sel, n, a, n, wr, wi, nil, 1, work, len(work), make([]bool, n))
+		if !ok || sdim != 1 || !(wr[0] < 0.45*c) {
+			t.Errorf("c=%g: sdim=%d ok=%v wr=%v, want 1 true with wr[0] selected", c, sdim, ok, wr)
+		}
+	}
 }

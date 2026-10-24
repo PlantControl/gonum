@@ -40,6 +40,7 @@ func Dtgsy2Test(t *testing.T, impl Dtgsy2er) {
 	testDtgsy2Special(t, impl)
 	testDtgsy2DifAccumulatorDoesNotScaleSystem(t, impl)
 	testDtgsy2TransIgnoresIjob(t, impl)
+	testDtgsy2UnreferencedTriangles(t, impl, rnd)
 }
 
 func testDtgsy2TransIgnoresIjob(t *testing.T, impl Dtgsy2er) {
@@ -82,7 +83,7 @@ func testDtgsy2(t *testing.T, impl Dtgsy2er, m, n int, trans blas.Transpose, ijo
 
 	// Generate random quasi-triangular matrices A (m×m) and B (n×n).
 	a := randomSchur(m, m+extra, rnd)
-	b := randomUpperTriangular(n, n+extra, rnd)
+	b := randomSchur(n, n+extra, rnd)
 
 	// Generate random upper triangular matrices D (m×m) and E (n×n).
 	d := randomUpperTriangular(m, m+extra, rnd)
@@ -292,4 +293,62 @@ func randomUpperTriangular(n, stride int, rnd *rand.Rand) blas64.General {
 		}
 	}
 	return a
+}
+
+// poisonBelow sets the elements of a more than k places below the diagonal,
+// and the padding, to NaN.
+func poisonBelow(a blas64.General, k int) blas64.General {
+	p := cloneGeneral(a)
+	for i := 0; i < p.Rows; i++ {
+		for j := 0; j < i-k; j++ {
+			p.Data[i*p.Stride+j] = math.NaN()
+		}
+		for j := p.Cols; j < p.Stride && i*p.Stride+j < len(p.Data); j++ {
+			p.Data[i*p.Stride+j] = math.NaN()
+		}
+	}
+	return p
+}
+
+// testDtgsy2UnreferencedTriangles checks that Dtgsy2, like DTGSY2, references
+// only the upper quasi-triangle of A and B and the upper triangle of D and E.
+func testDtgsy2UnreferencedTriangles(t *testing.T, impl Dtgsy2er, rnd *rand.Rand) {
+	for _, m := range []int{1, 2, 3, 4, 6} {
+		for _, n := range []int{1, 2, 3, 4, 6} {
+			for _, trans := range []blas.Transpose{blas.NoTrans, blas.Trans} {
+				for _, ijob := range []int{0, 1, 2} {
+					if trans == blas.Trans && ijob != 0 {
+						continue
+					}
+					a := randomSchur(m, m+2, rnd)
+					b := randomSchur(n, n+2, rnd)
+					d := randomUpperTriangular(m, m+2, rnd)
+					e := randomUpperTriangular(n, n+2, rnd)
+					c := randomGeneral(m, n, n+2, rnd)
+					f := randomGeneral(m, n, n+2, rnd)
+					run := func(a, b, d, e blas64.General) (c2, f2 blas64.General, scale, rdsum, rdscal float64) {
+						c2, f2 = cloneGeneral(c), cloneGeneral(f)
+						scale, rdsum, rdscal, _, _ = impl.Dtgsy2(trans, ijob, m, n,
+							a.Data, a.Stride, b.Data, b.Stride, c2.Data, c2.Stride,
+							d.Data, d.Stride, e.Data, e.Stride, f2.Data, f2.Stride,
+							0, 1, make([]int, m+n+6))
+						return c2, f2, scale, rdsum, rdscal
+					}
+					wc, wf, ws, wsum, wscal := run(a, b, d, e)
+					gc, gf, gs, gsum, gscal := run(poisonBelow(a, 1), poisonBelow(b, 1), poisonBelow(d, 0), poisonBelow(e, 0))
+					name := fmt.Sprintf("m=%d n=%d trans=%c ijob=%d", m, n, trans, ijob)
+					if gs != ws || gsum != wsum || gscal != wscal {
+						t.Errorf("%s: scale,rdsum,rdscal=%v,%v,%v with poisoned triangles, want %v,%v,%v", name, gs, gsum, gscal, ws, wsum, wscal)
+					}
+					for i := 0; i < m; i++ {
+						for j := 0; j < n; j++ {
+							if gc.Data[i*gc.Stride+j] != wc.Data[i*wc.Stride+j] || gf.Data[i*gf.Stride+j] != wf.Data[i*wf.Stride+j] {
+								t.Errorf("%s: solution [%d,%d] changed with poisoned triangles", name, i, j)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }

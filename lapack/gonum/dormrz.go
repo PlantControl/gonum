@@ -69,7 +69,7 @@ func (impl Implementation) Dormrz(side blas.Side, trans blas.Transpose, m, n, k,
 		panic(kGTM)
 	case !left && k > n:
 		panic(kGTN)
-	case l < 0 || l > nq-k:
+	case l < 0 || l > nq:
 		panic("lapack: l out of range")
 	case lda < max(1, nq):
 		panic(badLdA)
@@ -121,11 +121,15 @@ func (impl Implementation) Dormrz(side blas.Side, trans blas.Transpose, m, n, k,
 			// v[i]=1, v[m-l:m] = A[i, nq-l:nq], rest zero.
 			// w = C[i,:] + A[i,m-l:m]ᵀ * C[m-l:m,:]  (length n)
 			bi.Dcopy(n, c[i*ldc:], 1, work, 1)
-			bi.Dgemv(blas.Trans, l, n, 1, c[(m-l)*ldc:], ldc, a[i*lda+(nq-l):], 1, 1, work, 1)
+			if l > 0 {
+				bi.Dgemv(blas.Trans, l, n, 1, c[(m-l)*ldc:], ldc, a[i*lda+(nq-l):], 1, 1, work, 1)
+			}
 			// C[i,:] -= tau * w
 			bi.Daxpy(n, -tau[i], work, 1, c[i*ldc:], 1)
 			// C[m-l:m,:] -= tau * v * wᵀ
-			bi.Dger(l, n, -tau[i], a[i*lda+(nq-l):], 1, work, 1, c[(m-l)*ldc:], ldc)
+			if l > 0 {
+				bi.Dger(l, n, -tau[i], a[i*lda+(nq-l):], 1, work, 1, c[(m-l)*ldc:], ldc)
+			}
 		} else {
 			// Apply Z(i) from the right: C := C * (I - tau*v*vᵀ)
 			// v[i]=1, v[n-l:n] = A[i, nq-l:nq], rest zero.

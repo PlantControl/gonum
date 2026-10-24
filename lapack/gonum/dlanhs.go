@@ -44,7 +44,7 @@ func (impl Implementation) Dlanhs(norm lapack.MatrixNorm, n int, a []float64, ld
 		for i := 0; i < n; i++ {
 			minj := max(0, i-1)
 			for _, v := range a[i*lda+minj : i*lda+n] {
-				value = math.Max(value, math.Abs(v))
+				value = lapackMax(value, math.Abs(v))
 			}
 		}
 	case lapack.MaxColumnSum:
@@ -57,13 +57,13 @@ func (impl Implementation) Dlanhs(norm lapack.MatrixNorm, n int, a []float64, ld
 			}
 		}
 		for _, v := range work[:n] {
-			value = math.Max(value, v)
+			value = lapackMax(value, v)
 		}
 	case lapack.MaxRowSum:
 		for i := 0; i < n; i++ {
 			minj := max(0, i-1)
 			sum := bi.Dasum(n-minj, a[i*lda+minj:], 1)
-			value = math.Max(value, sum)
+			value = lapackMax(value, sum)
 		}
 	case lapack.Frobenius:
 		scale := 0.0

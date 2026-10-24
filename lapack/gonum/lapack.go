@@ -4,7 +4,11 @@
 
 package gonum
 
-import "plantcontrol.org/v1/gonum/lapack"
+import (
+	"math"
+
+	"plantcontrol.org/v1/gonum/lapack"
+)
 
 // Implementation is the native Go implementation of LAPACK routines. It
 // is built on top of calls to the return of blas64.Implementation(), so while
@@ -80,3 +84,13 @@ const (
 	dssml = 0x1p537
 	dsbig = 0x1p-538
 )
+
+// lapackMax returns temp if value < temp or temp is NaN, and value otherwise,
+// as the LAPACK norm routines accumulate their maximum, so that a NaN is
+// propagated even past an infinity.
+func lapackMax(value, temp float64) float64 {
+	if value < temp || math.IsNaN(temp) {
+		return temp
+	}
+	return value
+}

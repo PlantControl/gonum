@@ -250,6 +250,7 @@ func DggesTest(t *testing.T, impl Dggeser) {
 	testDggesZeroAndInfiniteEigenvalues(t, impl)
 	testDggesExtremeScaleEigenvalueRepresentation(t, impl)
 	testDggesSelectionRecheck(t, impl)
+	testDggesSortedRandom(t, impl)
 }
 
 func testDggesSortingPreservesAlphaScale(t *testing.T, impl Dggeser) {

@@ -122,199 +122,40 @@ func (impl Implementation) Dtgsyl(trans blas.Transpose, ijob, m, n int,
 
 	bi := blas64.Implementation()
 
+	// Block sizes returned by ILAENV(2, 'DTGSYL') and ILAENV(5, 'DTGSYL').
+	const mbBlock, nbBlock = 2, 2
+
 	scale = 1
 	dif = 0
 	ok = true
 
-	// Determine block structure of A.
-	p := 0
-	i := 0
-	for i < m {
-		if i == m-1 || a[(i+1)*lda+i] == 0 {
-			iwork[p] = i + 1
-			p++
-			i++
-		} else {
-			iwork[p] = -(i + 1)
-			p++
-			i += 2
-		}
-	}
-	iwork[p] = m + 1
-
-	// Determine block structure of B.
-	q := p + 1
-	j := 0
-	for j < n {
-		if j == n-1 || b[(j+1)*ldb+j] == 0 {
-			iwork[q] = j + 1
-			q++
-			j++
-		} else {
-			iwork[q] = -(j + 1)
-			q++
-			j += 2
-		}
-	}
-	iwork[q] = n + 1
-	q = q - p - 1
-
 	isolve := 1
 	ifunc := 0
-	if ijob >= 3 && notran {
-		ifunc = ijob - 2
-		impl.Dlaset(blas.All, m, n, 0, 0, c, ldc)
-		impl.Dlaset(blas.All, m, n, 0, 0, f, ldf)
-	} else if ijob >= 1 && notran {
-		isolve = 2
+	if notran {
+		if ijob >= 3 {
+			ifunc = ijob - 2
+			impl.Dlaset(blas.All, m, n, 0, 0, c, ldc)
+			impl.Dlaset(blas.All, m, n, 0, 0, f, ldf)
+		} else if ijob >= 1 {
+			isolve = 2
+		}
 	}
 
 	var dscale, dsum, scaloc, scale2 float64
-	var pq int
+	var pq, ppqq int
 	var lok bool
 
-	for iround := 1; iround <= isolve; iround++ {
-		scale = 1
-		dscale = 0
-		dsum = 1
-		pq = 0
-
-		if notran {
-			// Solve (I, J) - subsystem:
-			//   A[I,I]*R[I,J] - L[I,J]*B[J,J] = C[I,J]
-			//   D[I,I]*R[I,J] - L[I,J]*E[J,J] = F[I,J]
-			// for I = P, P-1, ..., 1; J = 1, 2, ..., Q.
-			for j := p + 1; j <= p+q; j++ {
-				js := iwork[j]
-				je := abs(iwork[j+1]) - 1
-				nbj := je - abs(js) + 1
-				if js < 0 {
-					js = -js
-				}
-				js-- // 0-based
-
-				for i := p; i >= 1; i-- {
-					is := iwork[i-1]
-					ie := abs(iwork[i]) - 1
-					mbi := ie - abs(is) + 1
-					if is < 0 {
-						is = -is
-					}
-					is-- // 0-based
-
-					// Solve the (I, J)-subsystem using Dtgsy2.
-					var ppqq int
-					scaloc, dsum, dscale, ppqq, lok = impl.Dtgsy2(trans, ifunc, mbi, nbj,
-						a[is*lda+is:], lda, b[js*ldb+js:], ldb, c[is*ldc+js:], ldc,
-						d[is*ldd+is:], ldd, e[js*lde+js:], lde, f[is*ldf+js:], ldf,
-						dsum, dscale, iwork[p+q+2:])
-					pq += ppqq
-					if !lok {
-						ok = false
-					}
-
-					if scaloc != 1 {
-						for k := 0; k < js; k++ {
-							bi.Dscal(m, scaloc, c[k:], ldc)
-							bi.Dscal(m, scaloc, f[k:], ldf)
-						}
-						for k := js; k < js+nbj; k++ {
-							bi.Dscal(is, scaloc, c[k:], ldc)
-							bi.Dscal(is, scaloc, f[k:], ldf)
-							bi.Dscal(m-is-mbi, scaloc, c[(is+mbi)*ldc+k:], ldc)
-							bi.Dscal(m-is-mbi, scaloc, f[(is+mbi)*ldf+k:], ldf)
-						}
-						for k := js + nbj; k < n; k++ {
-							bi.Dscal(m, scaloc, c[k:], ldc)
-							bi.Dscal(m, scaloc, f[k:], ldf)
-						}
-						scale *= scaloc
-					}
-
-					// Substitute R[I,J] and L[I,J] into remaining equation.
-					if i > 1 {
-						bi.Dgemm(blas.NoTrans, blas.NoTrans, is, nbj, mbi, -1,
-							a[is:], lda, c[is*ldc+js:], ldc, 1, c[js:], ldc)
-						bi.Dgemm(blas.NoTrans, blas.NoTrans, is, nbj, mbi, -1,
-							d[is:], ldd, c[is*ldc+js:], ldc, 1, f[js:], ldf)
-					}
-					if j < p+q {
-						bi.Dgemm(blas.NoTrans, blas.NoTrans, mbi, n-js-nbj, nbj, 1,
-							f[is*ldf+js:], ldf, b[js*ldb+js+nbj:], ldb, 1, c[is*ldc+js+nbj:], ldc)
-						bi.Dgemm(blas.NoTrans, blas.NoTrans, mbi, n-js-nbj, nbj, 1,
-							f[is*ldf+js:], ldf, e[js*lde+js+nbj:], lde, 1, f[is*ldf+js+nbj:], ldf)
-					}
-				}
-			}
-		} else {
-			// Solve transposed (I, J) - subsystem:
-			//   Aᵀ[I,I]*R[I,J] + Dᵀ[I,I]*L[I,J] = C[I,J]
-			//   R[I,J]*Bᵀ[J,J] + L[I,J]*Eᵀ[J,J] = -F[I,J]
-			// for I = 1, 2, ..., P; J = Q, Q-1, ..., 1.
-			for i := 1; i <= p; i++ {
-				is := iwork[i-1]
-				ie := abs(iwork[i]) - 1
-				mbi := ie - abs(is) + 1
-				if is < 0 {
-					is = -is
-				}
-				is-- // 0-based
-
-				for j := p + q; j >= p+1; j-- {
-					js := iwork[j]
-					je := abs(iwork[j+1]) - 1
-					nbj := je - abs(js) + 1
-					if js < 0 {
-						js = -js
-					}
-					js-- // 0-based
-
-					// Solve the (I, J)-subsystem using Dtgsy2.
-					var ppqq int
-					scaloc, dsum, dscale, ppqq, lok = impl.Dtgsy2(trans, ifunc, mbi, nbj,
-						a[is*lda+is:], lda, b[js*ldb+js:], ldb, c[is*ldc+js:], ldc,
-						d[is*ldd+is:], ldd, e[js*lde+js:], lde, f[is*ldf+js:], ldf,
-						dsum, dscale, iwork[p+q+2:])
-					pq += ppqq
-					if !lok {
-						ok = false
-					}
-
-					if scaloc != 1 {
-						for k := 0; k < js; k++ {
-							bi.Dscal(m, scaloc, c[k:], ldc)
-							bi.Dscal(m, scaloc, f[k:], ldf)
-						}
-						for k := js; k < js+nbj; k++ {
-							bi.Dscal(is, scaloc, c[k:], ldc)
-							bi.Dscal(is, scaloc, f[k:], ldf)
-							bi.Dscal(m-is-mbi, scaloc, c[(is+mbi)*ldc+k:], ldc)
-							bi.Dscal(m-is-mbi, scaloc, f[(is+mbi)*ldf+k:], ldf)
-						}
-						for k := js + nbj; k < n; k++ {
-							bi.Dscal(m, scaloc, c[k:], ldc)
-							bi.Dscal(m, scaloc, f[k:], ldf)
-						}
-						scale *= scaloc
-					}
-
-					// Substitute R[I,J] and L[I,J] into remaining equation.
-					if j > p+1 {
-						bi.Dgemm(blas.NoTrans, blas.Trans, mbi, js, nbj, 1,
-							c[is*ldc+js:], ldc, b[js:], ldb, 1, f[is*ldf:], ldf)
-						bi.Dgemm(blas.NoTrans, blas.Trans, mbi, js, nbj, 1,
-							f[is*ldf+js:], ldf, e[js:], lde, 1, f[is*ldf:], ldf)
-					}
-					if i < p {
-						bi.Dgemm(blas.Trans, blas.NoTrans, m-is-mbi, nbj, mbi, -1,
-							a[is*lda+is+mbi:], lda, c[is*ldc+js:], ldc, 1, c[(is+mbi)*ldc+js:], ldc)
-						bi.Dgemm(blas.Trans, blas.NoTrans, m-is-mbi, nbj, mbi, -1,
-							d[is*ldd+is+mbi:], ldd, f[is*ldf+js:], ldf, 1, c[(is+mbi)*ldc+js:], ldc)
-					}
-				}
+	// setDif and swapRounds follow the end of each solve round in DTGSYL.
+	setDif := func() {
+		if dscale != 0 {
+			if ijob == 1 || ijob == 3 {
+				dif = math.Sqrt(float64(2*m*n)) / (dscale * math.Sqrt(dsum))
+			} else {
+				dif = math.Sqrt(float64(pq)) / (dscale * math.Sqrt(dsum))
 			}
 		}
-
+	}
+	swapRounds := func(iround int) {
 		if isolve == 2 && iround == 1 {
 			if notran {
 				ifunc = ijob
@@ -331,13 +172,168 @@ func (impl Implementation) Dtgsyl(trans blas.Transpose, ijob, m, n int,
 		}
 	}
 
-	// Compute Dif.
-	if notran && dscale != 0 {
-		switch ijob {
-		case 1, 3:
-			dif = math.Sqrt(float64(2*m*n)) / (dscale * math.Sqrt(dsum))
-		case 2, 4:
-			dif = math.Sqrt(float64(pq)) / (dscale * math.Sqrt(dsum))
+	if mbBlock >= m && nbBlock >= n {
+		// Use the unblocked Level 2 solver.
+		for iround := 1; iround <= isolve; iround++ {
+			dscale, dsum, pq = 0, 1, 0
+			scale, dsum, dscale, pq, lok = impl.Dtgsy2(trans, ifunc, m, n,
+				a, lda, b, ldb, c, ldc, d, ldd, e, lde, f, ldf, dsum, dscale, iwork)
+			if !lok {
+				ok = false
+			}
+			setDif()
+			swapRounds(iround)
+		}
+		work[0] = float64(lwmin)
+		return scale, dif, ok
+	}
+
+	// Determine the block structure of A and B as DTGSYL does. iwork holds
+	// 1-based block starts: A's in iwork[0:p+1] and B's in iwork[p+1:q+1],
+	// with indices p and q as in DTGSYL.
+	p := 0
+	i := 1
+	for i <= m {
+		p++
+		iwork[p-1] = i
+		i += mbBlock
+		if i >= m {
+			break
+		}
+		if a[(i-1)*lda+i-2] != 0 {
+			i++
+		}
+	}
+	iwork[p] = m + 1
+	if iwork[p-1] == iwork[p] {
+		p--
+	}
+	q := p + 1
+	j := 1
+	for j <= n {
+		q++
+		iwork[q-1] = j
+		j += nbBlock
+		if j >= n {
+			break
+		}
+		if b[(j-1)*ldb+j-2] != 0 {
+			j++
+		}
+	}
+	iwork[q] = n + 1
+	if iwork[q-1] == iwork[q] {
+		q--
+	}
+
+	// rescale applies scaloc to the parts of C and F outside the block
+	// rows is:ie and columns js:je (1-based, inclusive).
+	rescale := func(is, ie, js, je int) {
+		for k := 1; k <= js-1; k++ {
+			bi.Dscal(m, scaloc, c[k-1:], ldc)
+			bi.Dscal(m, scaloc, f[k-1:], ldf)
+		}
+		for k := js; k <= je; k++ {
+			bi.Dscal(is-1, scaloc, c[k-1:], ldc)
+			bi.Dscal(is-1, scaloc, f[k-1:], ldf)
+		}
+		if m > ie {
+			for k := js; k <= je; k++ {
+				bi.Dscal(m-ie, scaloc, c[ie*ldc+k-1:], ldc)
+				bi.Dscal(m-ie, scaloc, f[ie*ldf+k-1:], ldf)
+			}
+		}
+		for k := je + 1; k <= n; k++ {
+			bi.Dscal(m, scaloc, c[k-1:], ldc)
+			bi.Dscal(m, scaloc, f[k-1:], ldf)
+		}
+		scale *= scaloc
+	}
+
+	if notran {
+		// Solve (I, J)-subsystem
+		//  A(I, I) * R(I, J) - L(I, J) * B(J, J) = C(I, J)
+		//  D(I, I) * R(I, J) - L(I, J) * E(J, J) = F(I, J)
+		// for I = P, P - 1,..., 1; J = 1, 2,..., Q.
+		for iround := 1; iround <= isolve; iround++ {
+			dscale, dsum, pq, scale = 0, 1, 0, 1
+			for jj := p + 2; jj <= q; jj++ {
+				js := iwork[jj-1]
+				je := iwork[jj] - 1
+				nbj := je - js + 1
+				for ii := p; ii >= 1; ii-- {
+					is := iwork[ii-1]
+					ie := iwork[ii] - 1
+					mbi := ie - is + 1
+					scaloc, dsum, dscale, ppqq, lok = impl.Dtgsy2(trans, ifunc, mbi, nbj,
+						a[(is-1)*lda+is-1:], lda, b[(js-1)*ldb+js-1:], ldb, c[(is-1)*ldc+js-1:], ldc,
+						d[(is-1)*ldd+is-1:], ldd, e[(js-1)*lde+js-1:], lde, f[(is-1)*ldf+js-1:], ldf,
+						dsum, dscale, iwork[q+1:])
+					if !lok {
+						ok = false
+					}
+					pq += ppqq
+					if scaloc != 1 {
+						rescale(is, ie, js, je)
+					}
+
+					// Substitute R(I, J) and L(I, J) into remaining equation.
+					if ii > 1 {
+						bi.Dgemm(blas.NoTrans, blas.NoTrans, is-1, nbj, mbi, -1,
+							a[is-1:], lda, c[(is-1)*ldc+js-1:], ldc, 1, c[js-1:], ldc)
+						bi.Dgemm(blas.NoTrans, blas.NoTrans, is-1, nbj, mbi, -1,
+							d[is-1:], ldd, c[(is-1)*ldc+js-1:], ldc, 1, f[js-1:], ldf)
+					}
+					if jj < q {
+						bi.Dgemm(blas.NoTrans, blas.NoTrans, mbi, n-je, nbj, 1,
+							f[(is-1)*ldf+js-1:], ldf, b[(js-1)*ldb+je:], ldb, 1, c[(is-1)*ldc+je:], ldc)
+						bi.Dgemm(blas.NoTrans, blas.NoTrans, mbi, n-je, nbj, 1,
+							f[(is-1)*ldf+js-1:], ldf, e[(js-1)*lde+je:], lde, 1, f[(is-1)*ldf+je:], ldf)
+					}
+				}
+			}
+			setDif()
+			swapRounds(iround)
+		}
+	} else {
+		// Solve transposed (I, J)-subsystem
+		//  A(I, I)ᵀ * R(I, J)  + D(I, I)ᵀ * L(I, J)  =  C(I, J)
+		//  R(I, J)  * B(J, J)ᵀ + L(I, J)  * E(J, J)ᵀ = -F(I, J)
+		// for I = 1,2,..., P; J = Q, Q-1,..., 1.
+		scale = 1
+		for ii := 1; ii <= p; ii++ {
+			is := iwork[ii-1]
+			ie := iwork[ii] - 1
+			mbi := ie - is + 1
+			for jj := q; jj >= p+2; jj-- {
+				js := iwork[jj-1]
+				je := iwork[jj] - 1
+				nbj := je - js + 1
+				scaloc, dsum, dscale, _, lok = impl.Dtgsy2(trans, ifunc, mbi, nbj,
+					a[(is-1)*lda+is-1:], lda, b[(js-1)*ldb+js-1:], ldb, c[(is-1)*ldc+js-1:], ldc,
+					d[(is-1)*ldd+is-1:], ldd, e[(js-1)*lde+js-1:], lde, f[(is-1)*ldf+js-1:], ldf,
+					dsum, dscale, iwork[q+1:])
+				if !lok {
+					ok = false
+				}
+				if scaloc != 1 {
+					rescale(is, ie, js, je)
+				}
+
+				// Substitute R(I, J) and L(I, J) into remaining equation.
+				if jj > p+2 {
+					bi.Dgemm(blas.NoTrans, blas.Trans, mbi, js-1, nbj, 1,
+						c[(is-1)*ldc+js-1:], ldc, b[js-1:], ldb, 1, f[(is-1)*ldf:], ldf)
+					bi.Dgemm(blas.NoTrans, blas.Trans, mbi, js-1, nbj, 1,
+						f[(is-1)*ldf+js-1:], ldf, e[js-1:], lde, 1, f[(is-1)*ldf:], ldf)
+				}
+				if ii < p {
+					bi.Dgemm(blas.Trans, blas.NoTrans, m-ie, nbj, mbi, -1,
+						a[(is-1)*lda+ie:], lda, c[(is-1)*ldc+js-1:], ldc, 1, c[ie*ldc+js-1:], ldc)
+					bi.Dgemm(blas.Trans, blas.NoTrans, m-ie, nbj, mbi, -1,
+						d[(is-1)*ldd+ie:], ldd, f[(is-1)*ldf+js-1:], ldf, 1, c[ie*ldc+js-1:], ldc)
+				}
+			}
 		}
 	}
 

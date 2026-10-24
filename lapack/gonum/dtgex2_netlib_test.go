@@ -8,6 +8,7 @@ package gonum
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -217,5 +218,29 @@ func TestDtgex2NetlibBorderlineAcceptance(t *testing.T) {
 		if d := gonumOK - netlibOK; d > trials/20 || -d > trials/20 {
 			t.Errorf("rel=%g: Gonum accepted %d, Netlib %d of %d", rel, gonumOK, netlibOK, trials)
 		}
+	}
+}
+
+func TestDtgex2NetlibNaN(t *testing.T) {
+	nan := math.NaN()
+	for _, tc := range []struct {
+		name   string
+		a, b   []float64
+		n1, n2 int
+	}{
+		{"1x1/A11", []float64{nan, 1, 0, 1}, []float64{1, 0, 0, 1}, 1, 1},
+		{"1x1/B12", []float64{2, 1, 0, 1}, []float64{1, nan, 0, 1}, 1, 1},
+		{"1x2/A11", []float64{nan, 1, 1, 0, 1, 2, 0, -1, 1}, []float64{1, 0, 0, 0, 1, 0, 0, 0, 1}, 1, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n := tc.n1 + tc.n2
+			ga, gb := append([]float64(nil), tc.a...), append([]float64(nil), tc.b...)
+			work := make([]float64, 64)
+			ok := Implementation{}.Dtgex2(false, false, n, ga, n, gb, n, nil, 1, nil, 1, 0, tc.n1, tc.n2, work, len(work))
+			info := netlib.Dtgex2(n, append([]float64(nil), tc.a...), append([]float64(nil), tc.b...), 0, tc.n1, tc.n2)
+			if ok != (info == 0) {
+				t.Fatalf("Gonum ok=%v, Netlib info=%d", ok, info)
+			}
+		})
 	}
 }
