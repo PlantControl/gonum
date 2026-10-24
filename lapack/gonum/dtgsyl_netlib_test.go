@@ -8,6 +8,8 @@ package gonum
 
 import (
 	"fmt"
+	"math"
+	"math/rand/v2"
 	"testing"
 
 	"plantcontrol.org/v1/gonum/blas"
@@ -138,5 +140,53 @@ func TestDtgsylNetlibSolveAndEstimate(t *testing.T) {
 				checkCloseNetlib(t, fmt.Sprintf("F[%d]", i), gf[i], nf[i])
 			}
 		})
+	}
+}
+
+// TestDtgsylNetlibRandomBlocked compares Dtgsyl with Netlib on random
+// generalized Schur pencils large enough for DTGSYL's 2×2 outer blocking,
+// whose blocks are extended to keep 2×2 diagonal blocks whole.
+func TestDtgsylNetlibRandomBlocked(t *testing.T) {
+	rnd := rand.New(rand.NewPCG(71, 71))
+	for m := 1; m <= 7; m++ {
+		for n := 1; n <= 7; n++ {
+			for k := 0; k < 3; k++ {
+				a, d := randomNetlibSchurPair(m, rnd)
+				b, e := randomNetlibSchurPair(n, rnd)
+				c := make([]float64, m*n)
+				f := make([]float64, m*n)
+				for i := range c {
+					c[i], f[i] = rnd.NormFloat64(), rnd.NormFloat64()
+				}
+				for _, tc := range []struct {
+					trans blas.Transpose
+					ijob  int
+				}{{blas.NoTrans, 0}, {blas.NoTrans, 1}, {blas.NoTrans, 2}, {blas.NoTrans, 3}, {blas.NoTrans, 4}, {blas.Trans, 0}} {
+					t.Run(fmt.Sprintf("m=%d/n=%d/k=%d/%c/ijob=%d", m, n, k, tc.trans, tc.ijob), func(t *testing.T) {
+						gc, gf := append([]float64(nil), c...), append([]float64(nil), f...)
+						work := make([]float64, max(1, 2*m*n))
+						gscale, gdif, ok := Implementation{}.Dtgsyl(tc.trans, tc.ijob, m, n, a, m, b, n, gc, n, d, m, e, n, gf, n,
+							work, len(work), make([]int, m+n+6))
+						nc, nf := append([]float64(nil), c...), append([]float64(nil), f...)
+						nscale, ndif, info := netlib.Dtgsyl(byte(tc.trans), tc.ijob, m, n,
+							append([]float64(nil), a...), append([]float64(nil), b...), nc,
+							append([]float64(nil), d...), append([]float64(nil), e...), nf)
+						if ok != (info == 0) {
+							t.Fatalf("ok=%v, Netlib info=%d", ok, info)
+						}
+						if math.Abs(gscale-nscale) > 1e-12*nscale {
+							t.Errorf("scale=%v, want Netlib %v", gscale, nscale)
+						}
+						if tc.trans == blas.NoTrans && tc.ijob > 0 && math.Abs(gdif-ndif) > 1e-10*math.Abs(ndif) {
+							t.Errorf("dif=%v, want Netlib %v", gdif, ndif)
+						}
+						for i := range nc {
+							checkCloseNetlib(t, fmt.Sprintf("C[%d]", i), gc[i], nc[i])
+							checkCloseNetlib(t, fmt.Sprintf("F[%d]", i), gf[i], nf[i])
+						}
+					})
+				}
+			}
+		}
 	}
 }

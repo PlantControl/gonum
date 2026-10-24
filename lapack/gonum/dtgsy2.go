@@ -128,7 +128,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 			p++
 			i++
 		} else {
-			iwork[p] = -(i + 1)
+			iwork[p] = i + 1
 			p++
 			i += 2
 		}
@@ -144,7 +144,7 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 			q++
 			j++
 		} else {
-			iwork[q] = -(j + 1)
+			iwork[q] = j + 1
 			q++
 			j += 2
 		}
