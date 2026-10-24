@@ -119,6 +119,9 @@ static lapack_int run_dtrsen(char job, char compq, lapack_logical *sel, lapack_i
 	return info;
 }
 
+extern void zlartg_(double _Complex *f, double _Complex *g, double *c,
+	double _Complex *s, double _Complex *r);
+
 static double dgees_threshold;
 
 static lapack_logical select_wr_below(const double *wr, const double *wi) {
@@ -593,4 +596,13 @@ func Dtrsen(job, compq byte, selected []bool, n int, t, q, wr, wi []float64) (m 
 		(*C.double)(unsafe.Pointer(&t[0])), (*C.double)(unsafe.Pointer(&q[0])),
 		(*C.double)(unsafe.Pointer(&wr[0])), (*C.double)(unsafe.Pointer(&wi[0])), &cm, &cs, &csep)
 	return int(cm), float64(cs), float64(csep), int(cinfo)
+}
+
+// Zlartg calls the Fortran ZLARTG.
+func Zlartg(f, g complex128) (c float64, s, r complex128) {
+	cf, cg := C.complexdouble(f), C.complexdouble(g)
+	var cc C.double
+	var cs, cr C.complexdouble
+	C.zlartg_(&cf, &cg, &cc, &cs, &cr)
+	return float64(cc), complex128(cs), complex128(cr)
 }
