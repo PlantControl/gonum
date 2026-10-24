@@ -221,8 +221,10 @@ func (impl Implementation) Dtgsyl(trans blas.Transpose, ijob, m, n int,
 						for k := js; k < js+nbj; k++ {
 							bi.Dscal(is, scaloc, c[k:], ldc)
 							bi.Dscal(is, scaloc, f[k:], ldf)
-							bi.Dscal(m-is-mbi, scaloc, c[(is+mbi)*ldc+k:], ldc)
-							bi.Dscal(m-is-mbi, scaloc, f[(is+mbi)*ldf+k:], ldf)
+							if is+mbi < m {
+								bi.Dscal(m-is-mbi, scaloc, c[(is+mbi)*ldc+k:], ldc)
+								bi.Dscal(m-is-mbi, scaloc, f[(is+mbi)*ldf+k:], ldf)
+							}
 						}
 						for k := js + nbj; k < n; k++ {
 							bi.Dscal(m, scaloc, c[k:], ldc)
@@ -288,8 +290,10 @@ func (impl Implementation) Dtgsyl(trans blas.Transpose, ijob, m, n int,
 						for k := js; k < js+nbj; k++ {
 							bi.Dscal(is, scaloc, c[k:], ldc)
 							bi.Dscal(is, scaloc, f[k:], ldf)
-							bi.Dscal(m-is-mbi, scaloc, c[(is+mbi)*ldc+k:], ldc)
-							bi.Dscal(m-is-mbi, scaloc, f[(is+mbi)*ldf+k:], ldf)
+							if is+mbi < m {
+								bi.Dscal(m-is-mbi, scaloc, c[(is+mbi)*ldc+k:], ldc)
+								bi.Dscal(m-is-mbi, scaloc, f[(is+mbi)*ldf+k:], ldf)
+							}
 						}
 						for k := js + nbj; k < n; k++ {
 							bi.Dscal(m, scaloc, c[k:], ldc)
