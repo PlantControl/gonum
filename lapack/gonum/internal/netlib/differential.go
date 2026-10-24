@@ -157,11 +157,30 @@ static lapack_int run_dtgsen_case(lapack_int ijob, lapack_logical wantq,
 		lapack_logical wantz, uint64_t mask, lapack_int n, double *a, double *b,
 		double *ar, double *ai, double *beta, double *q, double *z, lapack_int *m,
 		double *pl, double *pr, double *dif) {
-	lapack_logical *select = malloc((size_t)n*sizeof(lapack_logical));
+	// LAPACKE_dtgsen's workspace query undersizes IWORK for IJOB 3 and 5,
+	// and DTGSEN's XERBLA then exits the test binary with status 0, so call
+	// DTGSEN directly with generous workspace.
+	lapack_logical *select = malloc((size_t)(n > 0 ? n : 1)*sizeof(lapack_logical));
 	for (lapack_int i = 0; i < n; i++) select[i] = (mask >> i) & 1;
-	lapack_int info = LAPACKE_dtgsen(LAPACK_ROW_MAJOR, ijob, wantq, wantz,
-		select, n, a, n, b, n, ar, ai, beta, q, n, z, n, m, pl, pr, dif);
-	free(select);
+	lapack_int ld = n > 0 ? n : 1, info = 0;
+	lapack_int lwork = 4*n*n + 4*n + 16, liwork = 2*n*n + n + 6;
+	double *ac = malloc((size_t)ld*ld*sizeof(double));
+	double *bc = malloc((size_t)ld*ld*sizeof(double));
+	double *qc = malloc((size_t)ld*ld*sizeof(double));
+	double *zc = malloc((size_t)ld*ld*sizeof(double));
+	double *work = malloc((size_t)lwork*sizeof(double));
+	lapack_int *iwork = malloc((size_t)liwork*sizeof(lapack_int));
+	row_to_col(n, a, ac);
+	row_to_col(n, b, bc);
+	row_to_col(n, q, qc);
+	row_to_col(n, z, zc);
+	LAPACK_dtgsen(&ijob, &wantq, &wantz, select, &n, ac, &ld, bc, &ld, ar, ai, beta,
+		qc, &ld, zc, &ld, m, pl, pr, dif, work, &lwork, iwork, &liwork, &info);
+	col_to_row(n, ac, a);
+	col_to_row(n, bc, b);
+	col_to_row(n, qc, q);
+	col_to_row(n, zc, z);
+	free(select); free(ac); free(bc); free(qc); free(zc); free(work); free(iwork);
 	return info;
 }
 
@@ -637,4 +656,13 @@ func Dlag2(a, b []float64, safmin float64) (scale1, scale2, wr1, wr2, wi float64
 	var s1, s2, w1, w2, w C.double
 	C.dlag2_(&ac[0], &ld, &bc[0], &ld, &sm, &s1, &s2, &w1, &w2, &w)
 	return float64(s1), float64(s2), float64(w1), float64(w2), float64(w)
+}
+
+// Dlacn2 calls the Fortran DLACN2.
+func Dlacn2(n int, v, x []float64, isgn []int32, est float64, kase int, isave *[3]int32) (float64, int) {
+	cn := C.lapack_int(n)
+	ce := C.double(est)
+	ck := C.lapack_int(kase)
+	C.LAPACK_dlacn2(&cn, (*C.double)(unsafe.Pointer(&v[0])), (*C.double)(unsafe.Pointer(&x[0])), (*C.lapack_int)(unsafe.Pointer(&isgn[0])), &ce, &ck, (*C.lapack_int)(unsafe.Pointer(&isave[0])))
+	return float64(ce), int(ck)
 }

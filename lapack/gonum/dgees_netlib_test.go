@@ -206,7 +206,7 @@ func TestDtrsenNetlib(t *testing.T) {
 					gm, gs, gsep, ok := impl.Dtrsen(ijob, true, sel, n, gt, n, gq, n, gwr, gwi, work, len(work), iwork, len(iwork))
 					nt := append([]float64(nil), tt...)
 					nwr, nwi := make([]float64, n), make([]float64, n)
-					nm, ns, nsep, info := netlib.Dtrsen("NESB"[ijob], 'V', sel, n, nt, nq, nwr, nwi)
+					nm, ns, nsep, info := netlib.Dtrsen("NEVB"[ijob], 'V', sel, n, nt, nq, nwr, nwi)
 					if ok != (info == 0) || gm != nm {
 						t.Fatalf("ok=%v m=%d, Netlib info=%d m=%d", ok, gm, info, nm)
 					}

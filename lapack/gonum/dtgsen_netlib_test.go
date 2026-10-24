@@ -272,8 +272,13 @@ func dtgsenOraclePencil() (a, b []float64, selected []bool) {
 }
 
 // TestDtgsenNetlibDifOneNorm compares the DLACN2-based Dif estimates of
-// ijob 3 and 5 with Netlib on random pencils whose blocks are both larger
-// than one, where the order of C and F in the estimator vector matters.
+// ijob 3 and 5 and PL, PR of ijob 1 with Netlib on random pencils whose
+// blocks are both larger than one, where the order of C and F in the
+// estimator vector and the IWORK contents DTGSYL leaves for DLACN2 matter.
+// Which of DTGEX2's QR and RQ swaps is taken depends on rounding-level
+// residuals, so the reordered pencils may legitimately differ; both
+// implementations therefore estimate on Netlib's reordered pencil with the
+// leading block selected, which needs no swaps.
 func TestDtgsenNetlibDifOneNorm(t *testing.T) {
 	rnd := rand.New(rand.NewPCG(41, 41))
 	for n := 4; n <= 8; n++ {
@@ -283,27 +288,34 @@ func TestDtgsenNetlibDifOneNorm(t *testing.T) {
 			for i := range sel {
 				sel[i] = rnd.Float64() < 0.5
 			}
+			na, nb := append([]float64(nil), s...), append([]float64(nil), p...)
+			m, _, _, _, info := netlib.Dtgsen(0, false, false, sel, n, na, nb,
+				make([]float64, n), make([]float64, n), make([]float64, n), make([]float64, n*n), make([]float64, n*n))
+			if info != 0 || m == 0 || m == n {
+				continue
+			}
+			lead := make([]bool, n)
+			for i := range m {
+				lead[i] = true
+			}
 			for _, ijob := range []int{1, 3, 5} {
 				t.Run(fmt.Sprintf("n=%d/case=%d/ijob=%d", n, k, ijob), func(t *testing.T) {
-					ga, gb := append([]float64(nil), s...), append([]float64(nil), p...)
+					ga, gb := append([]float64(nil), na...), append([]float64(nil), nb...)
 					gar, gai, gbeta := make([]float64, n), make([]float64, n), make([]float64, n)
 					work := make([]float64, 1)
 					iwork := make([]int, 1)
 					impl := Implementation{}
-					impl.Dtgsen(ijob, false, false, sel, n, ga, n, gb, n, gar, gai, gbeta, nil, 1, nil, 1, work, -1, iwork, -1)
+					impl.Dtgsen(ijob, false, false, lead, n, ga, n, gb, n, gar, gai, gbeta, nil, 1, nil, 1, work, -1, iwork, -1)
 					work = make([]float64, int(work[0]))
 					iwork = make([]int, iwork[0])
-					gm, gpl, gpr, gdif, ok := impl.Dtgsen(ijob, false, false, sel, n, ga, n, gb, n,
+					gm, gpl, gpr, gdif, ok := impl.Dtgsen(ijob, false, false, lead, n, ga, n, gb, n,
 						gar, gai, gbeta, nil, 1, nil, 1, work, len(work), iwork, len(iwork))
 					nar, nai, nbeta := make([]float64, n), make([]float64, n), make([]float64, n)
-					nm, npl, npr, ndif, info := netlib.Dtgsen(ijob, false, false, sel, n,
-						append([]float64(nil), s...), append([]float64(nil), p...), nar, nai, nbeta,
+					nm, npl, npr, ndif, ninfo := netlib.Dtgsen(ijob, false, false, lead, n,
+						append([]float64(nil), na...), append([]float64(nil), nb...), nar, nai, nbeta,
 						make([]float64, n*n), make([]float64, n*n))
-					if ok != (info == 0) || gm != nm {
-						t.Fatalf("ok=%v m=%d, Netlib info=%d m=%d", ok, gm, info, nm)
-					}
-					if !ok || gm == 0 || gm == n {
-						return
+					if !ok || ninfo != 0 || gm != nm || gm != m {
+						t.Fatalf("ok=%v m=%d, Netlib info=%d m=%d, want m=%d", ok, gm, ninfo, nm, m)
 					}
 					rel := func(name string, got, want float64) {
 						if math.Abs(got-want) > 1e-10*math.Abs(want) {

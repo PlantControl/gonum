@@ -66,7 +66,7 @@ func (impl Implementation) Dlacn2(n int, v, x []float64, isgn []int, est float64
 		}
 		est = bi.Dasum(n, x, 1)
 		for i := 0; i < n; i++ {
-			x[i] = math.Copysign(1, x[i])
+			x[i] = dlacn2Sign(x[i])
 			isgn[i] = int(x[i])
 		}
 		kase = 2
@@ -88,14 +88,14 @@ func (impl Implementation) Dlacn2(n int, v, x []float64, isgn []int, est float64
 		est = bi.Dasum(n, v, 1)
 		sameSigns := true
 		for i := 0; i < n; i++ {
-			if int(math.Copysign(1, x[i])) != isgn[i] {
+			if int(dlacn2Sign(x[i])) != isgn[i] {
 				sameSigns = false
 				break
 			}
 		}
 		if !sameSigns && est > estold {
 			for i := 0; i < n; i++ {
-				x[i] = math.Copysign(1, x[i])
+				x[i] = dlacn2Sign(x[i])
 				isgn[i] = int(x[i])
 			}
 			kase = 2
@@ -133,4 +133,13 @@ func (impl Implementation) Dlacn2(n int, v, x []float64, isgn []int, est float64
 	kase = 1
 	isave[0] = 5
 	return est, kase
+}
+
+// dlacn2Sign returns 1 if x >= 0 and -1 otherwise, as DLACN2 computes the
+// sign vector, so that -0 maps to 1 and NaN to -1.
+func dlacn2Sign(x float64) float64 {
+	if x >= 0 {
+		return 1
+	}
+	return -1
 }
