@@ -122,6 +122,11 @@ static lapack_int run_dtrsen(char job, char compq, lapack_logical *sel, lapack_i
 extern void zlartg_(double _Complex *f, double _Complex *g, double *c,
 	double _Complex *s, double _Complex *r);
 
+extern void dlagv2_(double *a, int *lda, double *b, int *ldb, double *alphar,
+	double *alphai, double *beta, double *csl, double *snl, double *csr, double *snr);
+extern void dlag2_(double *a, int *lda, double *b, int *ldb, double *safmin,
+	double *scale1, double *scale2, double *wr1, double *wr2, double *wi);
+
 static double dgees_threshold;
 
 static lapack_logical select_wr_below(const double *wr, const double *wi) {
@@ -605,4 +610,31 @@ func Zlartg(f, g complex128) (c float64, s, r complex128) {
 	var cs, cr C.complexdouble
 	C.zlartg_(&cf, &cg, &cc, &cs, &cr)
 	return float64(cc), complex128(cs), complex128(cr)
+}
+
+// Dlagv2 calls the Fortran DLAGV2 on row-major 2×2 a and b.
+func Dlagv2(a, b []float64) (alphar, alphai, beta [2]float64, csl, snl, csr, snr float64) {
+	ac := [4]C.double{C.double(a[0]), C.double(a[2]), C.double(a[1]), C.double(a[3])}
+	bc := [4]C.double{C.double(b[0]), C.double(b[2]), C.double(b[1]), C.double(b[3])}
+	ld := C.int(2)
+	var ar, ai, be [2]C.double
+	var cl, sl, cr, sr C.double
+	C.dlagv2_(&ac[0], &ld, &bc[0], &ld, &ar[0], &ai[0], &be[0], &cl, &sl, &cr, &sr)
+	a[0], a[2], a[1], a[3] = float64(ac[0]), float64(ac[1]), float64(ac[2]), float64(ac[3])
+	b[0], b[2], b[1], b[3] = float64(bc[0]), float64(bc[1]), float64(bc[2]), float64(bc[3])
+	for i := range 2 {
+		alphar[i], alphai[i], beta[i] = float64(ar[i]), float64(ai[i]), float64(be[i])
+	}
+	return alphar, alphai, beta, float64(cl), float64(sl), float64(cr), float64(sr)
+}
+
+// Dlag2 calls the Fortran DLAG2 on row-major 2×2 a and b.
+func Dlag2(a, b []float64, safmin float64) (scale1, scale2, wr1, wr2, wi float64) {
+	ac := [4]C.double{C.double(a[0]), C.double(a[2]), C.double(a[1]), C.double(a[3])}
+	bc := [4]C.double{C.double(b[0]), C.double(b[2]), C.double(b[1]), C.double(b[3])}
+	ld := C.int(2)
+	sm := C.double(safmin)
+	var s1, s2, w1, w2, w C.double
+	C.dlag2_(&ac[0], &ld, &bc[0], &ld, &sm, &s1, &s2, &w1, &w2, &w)
+	return float64(s1), float64(s2), float64(w1), float64(w2), float64(w)
 }
