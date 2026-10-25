@@ -238,8 +238,9 @@ func compareDhgeqzWithNetlib(t *testing.T, job lapack.SchurJob, compq, compz lap
 
 // TestDhgeqzNetlibZeroDiagonalT compares Dhgeqz with Netlib on pencils with
 // exactly zero or negative diagonal elements of T, which exercise the
-// infinite-eigenvalue chases (DHGEQZ labels 40, 50 and 70), the ILAZR2 test,
-// and the sign normalization of T outside and inside the active block.
+// infinite-eigenvalue chases (DHGEQZ labels 40, 50 and 70), the ILAZR2 test
+// (without taking its chase; see TestDhgeqzNetlibIlazr2Chase), and the sign
+// normalization of T outside and inside the active block.
 func TestDhgeqzNetlibZeroDiagonalT(t *testing.T) {
 	rnd := rand.New(rand.NewPCG(31, 31))
 	for n := 2; n <= 8; n++ {
