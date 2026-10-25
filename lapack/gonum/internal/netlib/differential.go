@@ -800,3 +800,26 @@ func transpose(m, n int, a []float64) []float64 {
 	}
 	return t
 }
+
+// Zgetrf calls LAPACKE_zgetrf on the row-major m×n a. ipiv is 1-based.
+func Zgetrf(m, n int, a []complex128, lda int, ipiv []int32) int {
+	return int(C.LAPACKE_zgetrf(C.LAPACK_ROW_MAJOR, C.lapack_int(m), C.lapack_int(n),
+		(*C.lapack_complex_double)(unsafe.Pointer(&a[0])), C.lapack_int(lda),
+		(*C.lapack_int)(unsafe.Pointer(&ipiv[0]))))
+}
+
+// Zgetrs calls LAPACKE_zgetrs on row-major data. ipiv is 1-based.
+func Zgetrs(trans byte, n, nrhs int, a []complex128, lda int, ipiv []int32, b []complex128, ldb int) int {
+	return int(C.LAPACKE_zgetrs(C.LAPACK_ROW_MAJOR, C.char(trans), C.lapack_int(n), C.lapack_int(nrhs),
+		(*C.lapack_complex_double)(unsafe.Pointer(&a[0])), C.lapack_int(lda),
+		(*C.lapack_int)(unsafe.Pointer(&ipiv[0])),
+		(*C.lapack_complex_double)(unsafe.Pointer(&b[0])), C.lapack_int(ldb)))
+}
+
+// Zgesv calls LAPACKE_zgesv on row-major data. ipiv is 1-based.
+func Zgesv(n, nrhs int, a []complex128, lda int, ipiv []int32, b []complex128, ldb int) int {
+	return int(C.LAPACKE_zgesv(C.LAPACK_ROW_MAJOR, C.lapack_int(n), C.lapack_int(nrhs),
+		(*C.lapack_complex_double)(unsafe.Pointer(&a[0])), C.lapack_int(lda),
+		(*C.lapack_int)(unsafe.Pointer(&ipiv[0])),
+		(*C.lapack_complex_double)(unsafe.Pointer(&b[0])), C.lapack_int(ldb)))
+}

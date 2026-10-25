@@ -30,6 +30,12 @@ func ZgesvTest(t *testing.T, impl Zgesver) {
 		}
 	}
 
+	for _, n := range []int{2, 3, 5, 16, 64} {
+		for _, nrhs := range []int{1, 3} {
+			zgesvPivotTest(t, impl, rnd, n, nrhs)
+		}
+	}
+
 	// Singular matrix path: zero column.
 	t.Run("singular", func(t *testing.T) {
 		n := 4
@@ -130,5 +136,33 @@ func zgesvTest(t *testing.T, impl Zgesver, rnd *rand.Rand, n, nrhs, lda, ldb int
 				return
 			}
 		}
+	}
+}
+
+// zgesvPivotTest solves with a general matrix whose factorization needs row
+// interchanges.
+func zgesvPivotTest(t *testing.T, impl Zgesver, rnd *rand.Rand, n, nrhs int) {
+	lda, ldb := n+2, nrhs+1
+	name := fmt.Sprintf("pivot/n=%v,nrhs=%v", n, nrhs)
+	a := zluPivotMatrix(n, lda, rnd)
+	x := make([]complex128, n*ldb)
+	for i := range x {
+		x[i] = complex(rnd.NormFloat64(), rnd.NormFloat64())
+	}
+	A := cblas128.General{Rows: n, Cols: n, Stride: lda, Data: a}
+	X := cblas128.General{Rows: n, Cols: nrhs, Stride: ldb, Data: x}
+	B := cblas128.General{Rows: n, Cols: nrhs, Stride: ldb, Data: make([]complex128, n*ldb)}
+	cblas128.Gemm(blas.NoTrans, blas.NoTrans, 1, A, X, 0, B)
+	lu := append([]complex128(nil), a...)
+	got := append([]complex128(nil), B.Data...)
+	ipiv := make([]int, n)
+	if !impl.Zgesv(n, nrhs, lu, lda, ipiv, got, ldb) {
+		t.Fatalf("%s: unexpected failure", name)
+	}
+	if ipiv[0] == 0 {
+		t.Fatalf("%s: no row interchange at the first step", name)
+	}
+	if r := zluBackwardError(blas.NoTrans, A, cblas128.General{Rows: n, Cols: nrhs, Stride: ldb, Data: got}, B); r > 50 {
+		t.Errorf("%s: backward error %v·n·eps, want <= 50", name, r)
 	}
 }
