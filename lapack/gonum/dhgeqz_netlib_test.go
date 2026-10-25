@@ -377,3 +377,124 @@ func TestDhgeqzNetlibNaNTrailingDiagonal(t *testing.T) {
 		checkCloseNetlib(t, fmt.Sprintf("Z[%d,2]", i), gz[i*n+2], nz[i*n+2])
 	}
 }
+
+// TestDhgeqzNetlibIlazr2Chase compares Dhgeqz with Netlib on pencils where
+// T(j,j) = 0 for an interior j and H(j,j-1)·H(j+1,j) is negligible although
+// neither factor is, so DHGEQZ takes the ILAZR2 chase and scales H(j,j-1) by
+// the first rotation's cosine.
+func TestDhgeqzNetlibIlazr2Chase(t *testing.T) {
+	for n := 4; n <= 6; n++ {
+		for j := 1; j < n-1; j++ {
+			rnd := rand.New(rand.NewPCG(uint64(n), uint64(j)))
+			h := make([]float64, n*n)
+			tt := make([]float64, n*n)
+			for r := range n {
+				for c := max(0, r-1); c < n; c++ {
+					h[r*n+c] = rnd.NormFloat64()
+				}
+				for c := r; c < n; c++ {
+					tt[r*n+c] = rnd.NormFloat64()
+				}
+			}
+			h[j*n+j] = 1
+			h[j*n+j-1] = 1e-9
+			h[(j+1)*n+j] = 1e-9
+			tt[j*n+j] = 0
+			for _, job := range []lapack.SchurJob{lapack.EigenvaluesOnly, lapack.EigenvaluesAndSchur} {
+				t.Run(fmt.Sprintf("n=%d/j=%d/job=%c", n, j, job), func(t *testing.T) {
+					compq, compz := lapack.SchurNone, lapack.SchurNone
+					if job == lapack.EigenvaluesAndSchur {
+						compq, compz = lapack.SchurHess, lapack.SchurHess
+					}
+					compareDhgeqzWithNetlib(t, job, compq, compz, n, 0, n-1, h, tt, job == lapack.EigenvaluesAndSchur)
+					compareDhgeqzInOrder(t, job, compq, compz, n, 0, n-1, h, tt)
+				})
+			}
+		}
+	}
+}
+
+// TestDhgeqzNetlibExceptionalShiftAccumulates compares Dhgeqz with Netlib on
+// pencils with T below 1e-299, where at every tenth iteration
+// MAXIT·SAFMIN·|H(ilast,ilast-1)| >= |T(ilast-1,ilast-1)| and DHGEQZ adds
+// 1/(SAFMIN·MAXIT) to a nonzero exceptional shift instead of resetting it.
+// Both pencils, found by search, converge only with the accumulated shift.
+func TestDhgeqzNetlibExceptionalShiftAccumulates(t *testing.T) {
+	for i, tc := range []struct {
+		n     int
+		h, tt []float64
+	}{
+		{
+			n: 6,
+			h: []float64{
+				0, 0, -0.3339221563805084, 0, 0, 0,
+				-0.270437872829134, -0.363382047715767, 0, 0, 0.6573028634910769, 0,
+				0, 0.7686298848642166, 0.35030660177222694, 1.1088609654208472, 0.39244671047755264, 0.3162493535093063,
+				0, 0, -0.09044119156898656, 0, 0, 0,
+				0, 0, 0, 1.4247991405436191, 0, 0,
+				0, 0, 0, 0, 0.3478946666536997, 1.6628024715335878,
+			},
+			tt: []float64{
+				5.475741653041993e-306, 2.2100263633282568e-301, 0, 0, 2.438052272012528e-301, 0,
+				0, 4.39230735885567e-303, 0, 0, -1.448971790859472e-300, 1.3684408849496923e-300,
+				0, 0, 9.348023413066877e-308, 0, 0, 0,
+				0, 0, 0, 4.4161506371172714e-306, -6.281984711514761e-301, 0,
+				0, 0, 0, 0, 1.0723566230310677e-302, 0,
+				0, 0, 0, 0, 0, 4.3396527351449675e-304,
+			},
+		},
+		{
+			n: 7,
+			h: []float64{
+				0, 0, 0, 0.08660867690912477, 0, 0.9761290937818051, 0,
+				-0.07889349703556148, 0, 0, 0, 0.5139935474199059, 0, 0,
+				0, 0.27555035937322014, 0, 0, 1.0088645367725235, 2.0388056301148283, -0.19269250492734802,
+				0, 0, 0.038040129283957724, 0, 0.5216291563002307, 0, 0,
+				0, 0, 0, 0.055779621209777835, 0, 0, 0,
+				0, 0, 0, 0, -1.9199455779038987, 0.23043801737604053, 0.8110876276247365,
+				0, 0, 0, 0, 0, -0.5227962976602188, 0,
+			},
+			tt: []float64{
+				4.4941279880815924e-304, 0, 0, 0, 0, -1.9462925265433537e-300, 0,
+				0, 3.1548064250429e-307, 0, 0, 0, 6.484629733303438e-302, 0,
+				0, 0, 1.9759246659979776e-304, 0, 0, -6.0759929658947725e-301, -5.458220956477567e-301,
+				0, 0, 0, 1.3683924429140707e-304, 1.7932417749156881e-301, 0, 0,
+				0, 0, 0, 0, 7.999005893078747e-304, 0, 0,
+				0, 0, 0, 0, 0, 7.882711061902595e-307, 0,
+				0, 0, 0, 0, 0, 0, 1.5227284604606824e-307,
+			},
+		},
+	} {
+		for _, job := range []lapack.SchurJob{lapack.EigenvaluesOnly, lapack.EigenvaluesAndSchur} {
+			t.Run(fmt.Sprintf("case=%d/job=%c", i, job), func(t *testing.T) {
+				compq, compz := lapack.SchurNone, lapack.SchurNone
+				if job == lapack.EigenvaluesAndSchur {
+					compq, compz = lapack.SchurHess, lapack.SchurHess
+				}
+				n := tc.n
+				gh, gt := append([]float64(nil), tc.h...), append([]float64(nil), tc.tt...)
+				gar, gai, gbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+				nar, nai, nbeta := make([]float64, n), make([]float64, n), make([]float64, n)
+				gok := Implementation{}.Dhgeqz(job, compq, compz, n, 0, n-1, gh, n, gt, n,
+					gar, gai, gbeta, make([]float64, n*n), n, make([]float64, n*n), n, make([]float64, n), n)
+				info := netlib.Dhgeqz(byte(job), byte(compq), byte(compz), n, 0, n-1,
+					append([]float64(nil), tc.h...), append([]float64(nil), tc.tt...),
+					nar, nai, nbeta, make([]float64, n*n), make([]float64, n*n))
+				if !gok || info != 0 {
+					t.Fatalf("ok=%v, Netlib info=%d, want both to converge", gok, info)
+				}
+				// The pencils have eigenvalues near 0/0, so compare alpha and
+				// beta to backward-error accuracy rather than their ratios.
+				hnorm := Implementation{}.Dlange(lapack.Frobenius, n, n, tc.h, n, nil)
+				tnorm := Implementation{}.Dlange(lapack.Frobenius, n, n, tc.tt, n, nil)
+				for j := range n {
+					if math.Abs(gar[j]-nar[j]) > 1e-12*hnorm || math.Abs(gai[j]-nai[j]) > 1e-12*hnorm ||
+						math.Abs(gbeta[j]-nbeta[j]) > 1e-12*tnorm {
+						t.Errorf("eigenvalue %d: (%g,%g)/%g, want Netlib (%g,%g)/%g",
+							j, gar[j], gai[j], gbeta[j], nar[j], nai[j], nbeta[j])
+					}
+				}
+			})
+		}
+	}
+}
