@@ -35,7 +35,9 @@ import (
 // (valid only if ijob=2 or 3).
 //
 // work must have length at least lwork. if lwork is -1, a workspace query is
-// performed.
+// performed. The minimum lwork is at least n for every ijob. DTRSEN requires
+// only max(1,m(n-m)) for ijob=1 and max(1,2m(n-m)) for ijob=2 or 3, which can
+// be less than the n elements of work that Dtrexc, like DTREXC, needs.
 //
 // iwork must have length at least liwork. if liwork is -1, a workspace query is
 // performed.

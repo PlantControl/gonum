@@ -33,7 +33,9 @@ import "plantcontrol.org/v1/gonum/blas/blas64"
 // and lwork must be at least max(1,m), or 1 if m == 0 or m == n.
 //
 // If lwork is -1, instead of performing Dtzrzf, only the optimal workspace
-// size is stored into work[0].
+// size is stored into work[0]. Dtzrzf is unblocked, as DLATRZ, and has no
+// DLARZB-blocked path, so the optimal size is the minimum rather than DTZRZF's
+// blocked estimate.
 //
 // Dtzrzf is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dtzrzf(m, n int, a []float64, lda int, tau, work []float64, lwork int) {
