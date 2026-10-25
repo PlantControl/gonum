@@ -30,6 +30,10 @@ import (
 // On entry, x contains x. On exit, x is overwritten with v. alpha is returned
 // as beta (a real number).
 //
+// If n == 0, H = I, tau = 0 and beta = real(alpha). ZLARFG leaves alpha
+// unchanged in this case, but a real beta cannot carry imag(alpha), so callers
+// that need alpha after an n == 0 call must keep their own copy.
+//
 // Zlarfg is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Zlarfg(n int, alpha complex128, x []complex128, incX int) (beta float64, tau complex128) {
 	switch {

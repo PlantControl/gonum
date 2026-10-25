@@ -335,3 +335,44 @@ func TestDtgsenNetlibDifOneNorm(t *testing.T) {
 		}
 	}
 }
+
+// TestDtgsenNetlibDifVectorOrder checks the ijob=3 and 5 DLACN2 estimates of
+// Difu and Difl on a pencil where they depend on DTGSEN's column-major order
+// of C and F in the DLACN2 vector; a row-major order gives about 0.6488 for
+// both instead of 0.7161. The selected pair is the leading 2×2 block, so no
+// reordering is involved.
+func TestDtgsenNetlibDifVectorOrder(t *testing.T) {
+	const n = 4
+	a := []float64{
+		4.151951049793962, 1.3491859262673866, -0.6803436418333284, -0.46724055232066797,
+		-1.2176734259528692, 4.151951049793962, 0.9025265471763038, -0.8696277039956732,
+		0, 0, -1.1581353536680439, 0.8265967434104418,
+		0, 0, -1.3290147141337605, -1.1581353536680439,
+	}
+	b := []float64{
+		1, 0, -0.496095880538768, 1.418682038796142,
+		0, 1, 0.01556966775673363, 0.07382207205034774,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	}
+	sel := []bool{true, false, false, false}
+	for _, ijob := range []int{3, 5} {
+		t.Run(fmt.Sprintf("ijob=%d", ijob), func(t *testing.T) {
+			ga, gb := append([]float64(nil), a...), append([]float64(nil), b...)
+			gar, gai, gbet := make([]float64, n), make([]float64, n), make([]float64, n)
+			work, iwork := make([]float64, 1), make([]int, 1)
+			impl := Implementation{}
+			impl.Dtgsen(ijob, false, false, sel, n, ga, n, gb, n, gar, gai, gbet, nil, 1, nil, 1, work, -1, iwork, -1)
+			work, iwork = make([]float64, int(work[0])), make([]int, iwork[0])
+			gm, _, _, gdif, ok := impl.Dtgsen(ijob, false, false, sel, n, ga, n, gb, n, gar, gai, gbet, nil, 1, nil, 1, work, len(work), iwork, len(iwork))
+			nm, _, _, ndif, info := netlib.Dtgsen(ijob, false, false, sel, n,
+				append([]float64(nil), a...), append([]float64(nil), b...),
+				make([]float64, n), make([]float64, n), make([]float64, n), make([]float64, n*n), make([]float64, n*n))
+			if !ok || info != 0 || gm != 2 || nm != 2 {
+				t.Fatalf("ok=%v m=%d, Netlib info=%d m=%d", ok, gm, info, nm)
+			}
+			checkScaledNetlib(t, "dif[0]", gdif[0], ndif[0], ndif[0])
+			checkScaledNetlib(t, "dif[1]", gdif[1], ndif[1], ndif[1])
+		})
+	}
+}

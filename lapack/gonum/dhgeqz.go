@@ -308,36 +308,9 @@ func (impl Implementation) Dhgeqz(job lapack.SchurJob, compq, compz lapack.Schur
 			if ilz {
 				bi.Drot(n, z[ilast:], ldz, z[ilast-1:], ldz, cs, sn)
 			}
-			// Standardize sign: T(ilast,ilast) >= 0.
-			if t[ilast*ldt+ilast] < 0 {
-				if ilschr {
-					for j := ifrstm; j <= ilast; j++ {
-						h[j*ldh+ilast] = -h[j*ldh+ilast]
-						t[j*ldt+ilast] = -t[j*ldt+ilast]
-					}
-				} else {
-					h[ilast*ldh+ilast] = -h[ilast*ldh+ilast]
-					t[ilast*ldt+ilast] = -t[ilast*ldt+ilast]
-				}
-				if ilz {
-					for j := range n {
-						z[j*ldz+ilast] = -z[j*ldz+ilast]
-					}
-				}
-			}
-			alphar[ilast] = h[ilast*ldh+ilast]
-			alphai[ilast] = 0
-			beta[ilast] = t[ilast*ldt+ilast]
-			ilast--
-			iiter = 0
-			eshift = 0
-			if !ilschr {
-				ilastm = ilast
-				if ifrstm > ilast {
-					ifrstm = ilo
-				}
-			}
-			continue
+			// As DHGEQZ falls through from label 70 to 80. T(ilast,ilast) is
+			// zero here, so the sign standardization never applies.
+			goto deflateReal
 		}
 
 	doQZStep:

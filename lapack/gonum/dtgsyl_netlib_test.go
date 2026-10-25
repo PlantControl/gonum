@@ -190,3 +190,55 @@ func TestDtgsylNetlibRandomBlocked(t *testing.T) {
 		}
 	}
 }
+
+// TestDtgsylNetlibIworkLayout checks that Dtgsyl leaves iwork exactly as
+// DTGSYL does. DTGSEN passes DTGSYL the IWORK that DLACN2 keeps its sign
+// vector in, so the stored block starts take part in DTGSEN's Dif estimates.
+func TestDtgsylNetlibIworkLayout(t *testing.T) {
+	const sentinel = 99
+	rnd := rand.New(rand.NewPCG(61, 61))
+	for m := 1; m <= 6; m++ {
+		for n := 1; n <= 6; n++ {
+			for k := 0; k < 4; k++ {
+				a, d := randomNetlibSchurPair(m, rnd)
+				b, e := randomNetlibSchurPair(n, rnd)
+				c, f := make([]float64, m*n), make([]float64, m*n)
+				for i := range c {
+					c[i], f[i] = rnd.NormFloat64(), rnd.NormFloat64()
+				}
+				for _, tc := range []struct {
+					trans blas.Transpose
+					ijob  int
+				}{
+					{blas.NoTrans, 0}, {blas.NoTrans, 1}, {blas.NoTrans, 2},
+					{blas.NoTrans, 3}, {blas.NoTrans, 4}, {blas.Trans, 0},
+				} {
+					name := fmt.Sprintf("m=%d/n=%d/case=%d/trans=%c/ijob=%d", m, n, k, tc.trans, tc.ijob)
+					t.Run(name, func(t *testing.T) {
+						gc, gf := append([]float64(nil), c...), append([]float64(nil), f...)
+						work := make([]float64, 1)
+						giw := make([]int, m+n+6)
+						impl := Implementation{}
+						impl.Dtgsyl(tc.trans, tc.ijob, m, n, a, m, b, n, gc, n, d, m, e, n, gf, n, work, -1, giw)
+						work = make([]float64, max(1, int(work[0])))
+						for i := range giw {
+							giw[i] = sentinel
+						}
+						impl.Dtgsyl(tc.trans, tc.ijob, m, n, a, m, b, n, gc, n, d, m, e, n, gf, n, work, len(work), giw)
+						niw := make([]int32, m+n+6)
+						for i := range niw {
+							niw[i] = sentinel
+						}
+						nc, nf := append([]float64(nil), c...), append([]float64(nil), f...)
+						netlib.DtgsylIwork(byte(tc.trans), tc.ijob, m, n, a, b, nc, d, e, nf, niw)
+						for i := range giw {
+							if giw[i] != int(niw[i]) {
+								t.Fatalf("iwork=%v, want Netlib %v", giw, niw)
+							}
+						}
+					})
+				}
+			}
+		}
+	}
+}

@@ -73,7 +73,9 @@ import (
 // generally be larger. On return, work[0] will contain the optimal value of lwork.
 //
 // If lwork is -1, instead of performing Dgges, only the optimal value of lwork
-// is computed and stored into work[0].
+// is computed and stored into work[0]. The minimum, max(8n, 6n+16), is that of
+// DGGES; the optimal value is the largest of the subroutines' own queries and
+// can exceed the DGGES estimate.
 //
 // If sort is lapack.SortSelected, bwork must have length n; otherwise bwork is
 // not referenced and can be nil.

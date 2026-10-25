@@ -43,7 +43,9 @@ import (
 // blas.Right, and this function will panic otherwise.
 //
 // If lwork is -1, instead of performing Dormrz, the optimal workspace size will
-// be stored into work[0].
+// be stored into work[0]. Dormrz applies the reflectors one at a time, as
+// DORMR3 does, and has no DLARZB-blocked path, so the optimal size is the
+// minimum rather than DORMRZ's blocked estimate.
 //
 // Dormrz is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dormrz(side blas.Side, trans blas.Transpose, m, n, k, l int, a []float64, lda int, tau, c []float64, ldc int, work []float64, lwork int) {

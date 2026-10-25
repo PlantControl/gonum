@@ -180,3 +180,39 @@ func TestDggevNetlibDifferential(t *testing.T) {
 		}
 	}
 }
+
+// TestDtgevcNetlibRealPairFails checks that Dtgevc fails as DTGEVC does when a
+// 2×2 diagonal block of S has real eigenvalues. Dggev cannot reach this
+// branch: Dhgeqz accepts a 2×2 block only after DLAG2, called on the same
+// block with the same safe minimum, reports a complex pair.
+func TestDtgevcNetlibRealPairFails(t *testing.T) {
+	const n = 3
+	s := []float64{
+		1, 2, 0.5,
+		0.5, 1, -1,
+		0, 0, 3,
+	}
+	p := []float64{
+		1, 0, 0.25,
+		0, 1, 0.5,
+		0, 0, 1,
+	}
+	for _, tc := range []struct {
+		side lapack.EVSide
+		name byte
+	}{
+		{lapack.EVRight, 'R'}, {lapack.EVLeft, 'L'}, {lapack.EVBoth, 'B'},
+	} {
+		t.Run(string(tc.name), func(t *testing.T) {
+			_, ok := Implementation{}.Dtgevc(tc.side, lapack.EVAll, nil, n,
+				append([]float64(nil), s...), n, append([]float64(nil), p...), n,
+				make([]float64, n*n), n, make([]float64, n*n), n, n, make([]float64, 6*n))
+			_, info := netlib.Dtgevc(tc.name, 'A', nil, n,
+				append([]float64(nil), s...), append([]float64(nil), p...),
+				make([]float64, n*n), make([]float64, n*n), n)
+			if ok || info <= 0 {
+				t.Fatalf("ok=%v, Netlib info=%d, want failure", ok, info)
+			}
+		})
+	}
+}

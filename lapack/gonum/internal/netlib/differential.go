@@ -38,6 +38,18 @@ static lapack_logical select_large_alpha(const double *ar, const double *ai, con
 }
 
 static void row_to_col(int n, const double *src, double *dst);
+
+static lapack_int run_dtgsyl_fortran(char trans, lapack_int ijob, lapack_int m, lapack_int n,
+		const double *a, const double *b, double *c, const double *d, const double *e, double *f,
+		double *scale, double *dif, lapack_int *iwork) {
+	lapack_int lda = m > 0 ? m : 1, ldb = n > 0 ? n : 1, info = 0;
+	lapack_int lwork = 2*m*n > 1 ? 2*m*n : 1;
+	double *work = malloc((size_t)lwork*sizeof(double));
+	LAPACK_dtgsyl(&trans, &ijob, &m, &n, a, &lda, b, &ldb, c, &lda, d, &lda, e, &ldb, f, &lda,
+		scale, dif, work, &lwork, iwork, &info);
+	free(work);
+	return info;
+}
 static void col_to_row(int n, const double *src, double *dst);
 
 static lapack_int run_dgges(char jobvsl, char jobvsr, lapack_int n,
@@ -757,4 +769,57 @@ func Norm(kind string, norm byte, m, n int, uplo, diag byte, kl, ku int, a []flo
 		C.lapack_int(kl), C.lapack_int(ku), (*C.double)(unsafe.Pointer(&col[0])),
 		(*C.complexdouble)(unsafe.Pointer(&z[0])),
 		(*C.double)(unsafe.Pointer(&d[0])), (*C.double)(unsafe.Pointer(&e[0])), (*C.double)(unsafe.Pointer(&f[0]))))
+}
+
+// DtgsylIwork calls the Fortran DTGSYL on the row-major m×m a and d, n×n b
+// and e, and m×n c and f with the caller's iwork, which it leaves as DTGSYL
+// wrote it. DTGSEN passes DTGSYL the IWORK that DLACN2 uses as ISGN, so the
+// values DTGSYL stores there are observable through DTGSEN's Dif estimates.
+func DtgsylIwork(trans byte, ijob, m, n int, a, b, c, d, e, f []float64, iwork []int32) (scale, dif float64, info int) {
+	ac, dc := transpose(m, m, a), transpose(m, m, d)
+	bc, ec := transpose(n, n, b), transpose(n, n, e)
+	cc, fc := transpose(m, n, c), transpose(m, n, f)
+	var cscale, cdif C.double
+	cinfo := C.run_dtgsyl_fortran(C.char(trans), C.lapack_int(ijob), C.lapack_int(m), C.lapack_int(n),
+		(*C.double)(unsafe.Pointer(&ac[0])), (*C.double)(unsafe.Pointer(&bc[0])),
+		(*C.double)(unsafe.Pointer(&cc[0])), (*C.double)(unsafe.Pointer(&dc[0])),
+		(*C.double)(unsafe.Pointer(&ec[0])), (*C.double)(unsafe.Pointer(&fc[0])),
+		&cscale, &cdif, (*C.lapack_int)(unsafe.Pointer(&iwork[0])))
+	copy(c, transpose(n, m, cc))
+	copy(f, transpose(n, m, fc))
+	return float64(cscale), float64(cdif), int(cinfo)
+}
+
+// transpose returns the n×m transpose of the row-major m×n a.
+func transpose(m, n int, a []float64) []float64 {
+	t := make([]float64, m*n)
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			t[j*m+i] = a[i*n+j]
+		}
+	}
+	return t
+}
+
+// Zgetrf calls LAPACKE_zgetrf on the row-major m×n a. ipiv is 1-based.
+func Zgetrf(m, n int, a []complex128, lda int, ipiv []int32) int {
+	return int(C.LAPACKE_zgetrf(C.LAPACK_ROW_MAJOR, C.lapack_int(m), C.lapack_int(n),
+		(*C.lapack_complex_double)(unsafe.Pointer(&a[0])), C.lapack_int(lda),
+		(*C.lapack_int)(unsafe.Pointer(&ipiv[0]))))
+}
+
+// Zgetrs calls LAPACKE_zgetrs on row-major data. ipiv is 1-based.
+func Zgetrs(trans byte, n, nrhs int, a []complex128, lda int, ipiv []int32, b []complex128, ldb int) int {
+	return int(C.LAPACKE_zgetrs(C.LAPACK_ROW_MAJOR, C.char(trans), C.lapack_int(n), C.lapack_int(nrhs),
+		(*C.lapack_complex_double)(unsafe.Pointer(&a[0])), C.lapack_int(lda),
+		(*C.lapack_int)(unsafe.Pointer(&ipiv[0])),
+		(*C.lapack_complex_double)(unsafe.Pointer(&b[0])), C.lapack_int(ldb)))
+}
+
+// Zgesv calls LAPACKE_zgesv on row-major data. ipiv is 1-based.
+func Zgesv(n, nrhs int, a []complex128, lda int, ipiv []int32, b []complex128, ldb int) int {
+	return int(C.LAPACKE_zgesv(C.LAPACK_ROW_MAJOR, C.lapack_int(n), C.lapack_int(nrhs),
+		(*C.lapack_complex_double)(unsafe.Pointer(&a[0])), C.lapack_int(lda),
+		(*C.lapack_int)(unsafe.Pointer(&ipiv[0])),
+		(*C.lapack_complex_double)(unsafe.Pointer(&b[0])), C.lapack_int(ldb)))
 }

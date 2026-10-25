@@ -225,3 +225,70 @@ func TestDtrsenNetlib(t *testing.T) {
 		}
 	}
 }
+
+// TestDtrsenNetlibReorderFailure checks Dtrsen when DTREXC rejects the swap of
+// two 2×2 blocks: as in DTRSEN, m is still the selected count, s is 0 for
+// ijob 1 and 3, sep is 0, and T and Q are left as the failed reordering left
+// them. Both 2×2 blocks are in standard form; the swap's weak stability ratio
+// is about 4.4·thresh, so both implementations reject it.
+func TestDtrsenNetlibReorderFailure(t *testing.T) {
+	const n = 4
+	tt := []float64{
+		-3.333419506092188, 0.0004896915795339604, -2.428346849649743, -3.445704900621385,
+		-7.184010700302862, -3.333419506092188, 0.5915379976921887, 3.1958988665291583,
+		0, 0, -3.0738820901054704, 0.027424367165052442,
+		0, 0, -0.002678551556826866, -3.0738820901054704,
+	}
+	sel := []bool{false, false, true, true}
+	for ijob := 0; ijob <= 3; ijob++ {
+		t.Run(fmt.Sprintf("ijob=%d", ijob), func(t *testing.T) {
+			gt, gq := append([]float64(nil), tt...), identityData(n)
+			gwr, gwi := make([]float64, n), make([]float64, n)
+			work, iwork := make([]float64, 1), make([]int, 1)
+			impl := Implementation{}
+			impl.Dtrsen(ijob, true, sel, n, gt, n, gq, n, gwr, gwi, work, -1, iwork, -1)
+			work, iwork = make([]float64, int(work[0])), make([]int, iwork[0])
+			gm, gs, gsep, ok := impl.Dtrsen(ijob, true, sel, n, gt, n, gq, n, gwr, gwi, work, len(work), iwork, len(iwork))
+			nt, nq := append([]float64(nil), tt...), identityData(n)
+			nm, ns, nsep, info := netlib.Dtrsen("NEVB"[ijob], 'V', sel, n, nt, nq, make([]float64, n), make([]float64, n))
+			if ok || info != 1 || gm != nm {
+				t.Fatalf("ok=%v m=%d, want Netlib info=1 m=%d (info=%d)", ok, gm, nm, info)
+			}
+			if (ijob == 1 || ijob == 3) && (gs != 0 || ns != 0) {
+				t.Errorf("s=%g, want 0 (Netlib %g)", gs, ns)
+			}
+			if gsep != 0 || nsep != 0 {
+				t.Errorf("sep=%g, want 0 (Netlib %g)", gsep, nsep)
+			}
+			for i := range gt {
+				checkCloseNetlib(t, fmt.Sprintf("T[%d]", i), gt[i], nt[i])
+				checkCloseNetlib(t, fmt.Sprintf("Q[%d]", i), gq[i], nq[i])
+			}
+		})
+	}
+}
+
+// TestDtrsenNetlibSepVectorOrder checks the DLACN2 estimate of sep on a pencil
+// where its result depends on DTRSEN's column-major order of the Sylvester
+// unknown R in the DLACN2 vector; a row-major order gives about 1731.7 here.
+func TestDtrsenNetlibSepVectorOrder(t *testing.T) {
+	const n = 4
+	tt := []float64{
+		-1778.448502772075, 2.448053918082918, -0.4564994967846239, -0.0005342738622964647,
+		-1.354925949973557, -1778.448502772075, 121.5657627101793, -408.58113710734955,
+		0, 0, 0.0001835842438431116, 107.6100019423774,
+		0, 0, -1.3868892903445238, 0.0001835842438431116,
+	}
+	sel := []bool{true, true, false, false}
+	gt, gq := append([]float64(nil), tt...), make([]float64, n*n)
+	work, iwork := make([]float64, 1), make([]int, 1)
+	impl := Implementation{}
+	impl.Dtrsen(2, false, sel, n, gt, n, gq, n, make([]float64, n), make([]float64, n), work, -1, iwork, -1)
+	work, iwork = make([]float64, int(work[0])), make([]int, iwork[0])
+	gm, _, gsep, ok := impl.Dtrsen(2, false, sel, n, gt, n, gq, n, make([]float64, n), make([]float64, n), work, len(work), iwork, len(iwork))
+	nm, _, nsep, info := netlib.Dtrsen('V', 'N', sel, n, append([]float64(nil), tt...), make([]float64, n*n), make([]float64, n), make([]float64, n))
+	if !ok || info != 0 || gm != 2 || nm != 2 {
+		t.Fatalf("ok=%v m=%d, Netlib info=%d m=%d", ok, gm, info, nm)
+	}
+	checkScaledNetlib(t, "sep", gsep, nsep, nsep)
+}
