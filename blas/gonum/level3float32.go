@@ -97,8 +97,9 @@ func (Implementation) Strsm(s blas.Side, ul blas.Uplo, tA blas.Transpose, d blas
 						}
 					}
 					if nonUnit {
-						tmp := 1 / a[i*lda+i]
-						f32.ScalUnitary(tmp, btmp)
+						for j := range btmp {
+							btmp[j] /= a[i*lda+i]
+						}
 					}
 				}
 				return
@@ -114,8 +115,9 @@ func (Implementation) Strsm(s blas.Side, ul blas.Uplo, tA blas.Transpose, d blas
 					}
 				}
 				if nonUnit {
-					tmp := 1 / a[i*lda+i]
-					f32.ScalUnitary(tmp, btmp)
+					for j := range btmp {
+						btmp[j] /= a[i*lda+i]
+					}
 				}
 			}
 			return
@@ -125,8 +127,9 @@ func (Implementation) Strsm(s blas.Side, ul blas.Uplo, tA blas.Transpose, d blas
 			for k := 0; k < m; k++ {
 				btmpk := b[k*ldb : k*ldb+n]
 				if nonUnit {
-					tmp := 1 / a[k*lda+k]
-					f32.ScalUnitary(tmp, btmpk)
+					for j := range btmpk {
+						btmpk[j] /= a[k*lda+k]
+					}
 				}
 				for ia, va := range a[k*lda+k+1 : k*lda+m] {
 					if va != 0 {
@@ -143,8 +146,9 @@ func (Implementation) Strsm(s blas.Side, ul blas.Uplo, tA blas.Transpose, d blas
 		for k := m - 1; k >= 0; k-- {
 			btmpk := b[k*ldb : k*ldb+n]
 			if nonUnit {
-				tmp := 1 / a[k*lda+k]
-				f32.ScalUnitary(tmp, btmpk)
+				for j := range btmpk {
+					btmpk[j] /= a[k*lda+k]
+				}
 			}
 			for i, va := range a[k*lda : k*lda+k] {
 				if va != 0 {

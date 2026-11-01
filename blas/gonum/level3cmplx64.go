@@ -1617,7 +1617,9 @@ func (Implementation) Ctrsm(side blas.Side, uplo blas.Uplo, transA blas.Transpos
 						}
 					}
 					if noUnit {
-						c64.ScalUnitary(1/a[i*lda+i], bi)
+						for j := range bi {
+							bi[j] /= a[i*lda+i]
+						}
 					}
 				}
 			} else {
@@ -1632,7 +1634,9 @@ func (Implementation) Ctrsm(side blas.Side, uplo blas.Uplo, transA blas.Transpos
 						}
 					}
 					if noUnit {
-						c64.ScalUnitary(1/a[i*lda+i], bi)
+						for j := range bi {
+							bi[j] /= a[i*lda+i]
+						}
 					}
 				}
 			}
@@ -1643,9 +1647,13 @@ func (Implementation) Ctrsm(side blas.Side, uplo blas.Uplo, transA blas.Transpos
 					bi := b[i*ldb : i*ldb+n]
 					if noUnit {
 						if noConj {
-							c64.ScalUnitary(1/a[i*lda+i], bi)
+							for j := range bi {
+								bi[j] /= a[i*lda+i]
+							}
 						} else {
-							c64.ScalUnitary(1/cmplx.Conj(a[i*lda+i]), bi)
+							for j := range bi {
+								bi[j] /= cmplx.Conj(a[i*lda+i])
+							}
 						}
 					}
 					for ja, aij := range a[i*lda+i+1 : i*lda+m] {
@@ -1668,9 +1676,13 @@ func (Implementation) Ctrsm(side blas.Side, uplo blas.Uplo, transA blas.Transpos
 					bi := b[i*ldb : i*ldb+n]
 					if noUnit {
 						if noConj {
-							c64.ScalUnitary(1/a[i*lda+i], bi)
+							for j := range bi {
+								bi[j] /= a[i*lda+i]
+							}
 						} else {
-							c64.ScalUnitary(1/cmplx.Conj(a[i*lda+i]), bi)
+							for j := range bi {
+								bi[j] /= cmplx.Conj(a[i*lda+i])
+							}
 						}
 					}
 					for j, aij := range a[i*lda : i*lda+i] {
