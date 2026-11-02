@@ -406,3 +406,65 @@ func fillNormBackgroundFunc(n int, put func(i, j int, v float64)) {
 		}
 	}
 }
+
+// nanSkippingNormer reports a fixed norm whatever the elements, standing in for
+// a Normer outside this package that skips NaN.
+type nanSkippingNormer struct {
+	*Dense
+	norm float64
+}
+
+func (n nanSkippingNormer) Norm(float64) float64 { return n.norm }
+
+func expAllNaN(a Matrix) bool {
+	var e Dense
+	e.Exp(a)
+	r, c := e.Dims()
+	for i := 0; i < r; i++ {
+		for j := 0; j < c; j++ {
+			if !math.IsNaN(e.At(i, j)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func TestDenseExpNaNEveryMatrixType(t *testing.T) {
+	t.Parallel()
+	for _, c := range normNaNCases() {
+		if c.r != c.c || c.r < 2 {
+			continue
+		}
+		for i := 0; i < c.r; i++ {
+			for j := 0; j < c.c; j++ {
+				if !c.stored(i, j) {
+					continue
+				}
+				if !expAllNaN(normNaNBuild(c, [3]float64{float64(i), float64(j), math.NaN()})) {
+					t.Errorf("%s NaN at (%d,%d): Exp not all NaN", c.name, i, j)
+				}
+			}
+		}
+	}
+}
+
+func TestDenseExpExternalNormerSkippingNaN(t *testing.T) {
+	t.Parallel()
+	nan := math.NaN()
+	for _, data := range [][]float64{
+		{0, nan, 0, 0},
+		{0, 0, nan, 0},
+		{nan, 0, 0, 0},
+		{0, 0, 0, nan},
+		{4.5, 0, 0, nan},
+		{nan, 0, 0, 4.5},
+		{1, nan, 0, 1},
+	} {
+		for _, norm := range []float64{0, 0.2, 0.5, 2, 100} {
+			if !expAllNaN(nanSkippingNormer{NewDense(2, 2, data), norm}) {
+				t.Errorf("a=%v norm %v: Exp not all NaN", data, norm)
+			}
+		}
+	}
+}
