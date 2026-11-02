@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"plantcontrol.org/v1/gonum/blas/blas64"
 	"plantcontrol.org/v1/gonum/floats"
@@ -1002,6 +1003,126 @@ func TestDenseExp(t *testing.T) {
 		if !EqualApprox(&got, want, 1e-14) {
 			t.Errorf("unexpected result for Exp test %d\ngot:\n%v\nwant:\n%v",
 				i, Formatted(&got), Formatted(want))
+		}
+	}
+}
+
+// TestDenseExpNonFinite checks that non-finite input fills the receiver with
+// NaN. Exp runs under a deadline because +Inf norms used to hang it (NS43QA).
+func TestDenseExpNonFinite(t *testing.T) {
+	t.Parallel()
+	nan, inf := math.NaN(), math.Inf(1)
+	dense := func(r int, data ...float64) *Dense { return NewDense(r, r, data) }
+	for _, test := range []struct {
+		name string
+		a    Matrix
+	}{
+		{name: "Inf entry", a: dense(2, 1, inf, 1, 1)},
+		{name: "-Inf entry", a: dense(2, 1, -inf, 1, 1)},
+		{name: "overflowed column sum", a: dense(2, 1e308, 1e308, -1e308, 1e308)},
+		{name: "Inf and NaN", a: dense(2, inf, nan, nan, inf)},
+		{name: "Inf 3x3", a: dense(3, 1, 2, 3, 4, inf, 6, 7, 8, 9)},
+		{name: "NaN entry", a: dense(2, 1, nan, 1, 1)},
+		{name: "NaN entry large norm", a: dense(2, 100, nan, 1, 100)},
+		{name: "NaN entry 3x3", a: dense(3, 1, 2, 3, 4, nan, 6, 7, 8, 9)},
+		{name: "NaN in zeros", a: dense(2, 0, nan, 0, 0)},
+		{name: "NaN in zeros transposed", a: dense(2, 0, nan, 0, 0).T()},
+		{name: "Inf transposed", a: dense(2, 1, inf, 1, 1).T()},
+		{name: "NaN non-Normer small norm", a: asBasicMatrix(dense(2, 0, nan, 0, 0))},
+		{name: "NaN non-Normer large norm", a: asBasicMatrix(dense(2, 100, 1, nan, 100))},
+		{name: "Inf non-Normer", a: asBasicMatrix(dense(2, 1, inf, 1, 1))},
+		{name: "NaN diagonal small norm", a: NewDiagDense(2, []float64{0.001, nan})},
+		{name: "NaN diagonal theta branch", a: NewDiagDense(2, []float64{1, nan})},
+		{name: "NaN diagonal large norm", a: NewDiagDense(2, []float64{100, nan})},
+	} {
+		var got Dense
+		if !expWithDeadline(t, test.name, &got, test.a) {
+			continue
+		}
+		checkAllNaN(t, test.name, &got)
+
+		if d, ok := test.a.(*Dense); ok {
+			alias := DenseCopyOf(d)
+			if !expWithDeadline(t, test.name+" aliased", alias, alias) {
+				continue
+			}
+			checkAllNaN(t, test.name+" aliased", alias)
+		}
+
+		r, _ := test.a.Dims()
+		const sentinel = 42
+		parent := NewDense(r+2, r+2, nil)
+		for i := 0; i < r+2; i++ {
+			for j := 0; j < r+2; j++ {
+				parent.Set(i, j, sentinel)
+			}
+		}
+		view := parent.Slice(1, r+1, 1, r+1).(*Dense)
+		if !expWithDeadline(t, test.name+" sliced", view, test.a) {
+			continue
+		}
+		checkAllNaN(t, test.name+" sliced", view)
+		for i := 0; i < r+2; i++ {
+			for j := 0; j < r+2; j++ {
+				if 1 <= i && i <= r && 1 <= j && j <= r {
+					continue
+				}
+				if v := parent.At(i, j); v != sentinel {
+					t.Errorf("%s: element (%d,%d) outside receiver view changed to %v", test.name, i, j, v)
+				}
+			}
+		}
+	}
+}
+
+// TestDenseExpNonFiniteScalar checks that the 1×1 case stays the scalar exponential.
+func TestDenseExpNonFiniteScalar(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		a, want float64
+	}{
+		{a: math.Inf(1), want: math.Inf(1)},
+		{a: math.Inf(-1), want: 0},
+		{a: math.NaN(), want: math.NaN()},
+	} {
+		var got Dense
+		got.Exp(NewDense(1, 1, []float64{test.a}))
+		if v := got.At(0, 0); v != test.want && !(math.IsNaN(v) && math.IsNaN(test.want)) {
+			t.Errorf("unexpected 1×1 Exp(%v): got:%v want:%v", test.a, v, test.want)
+		}
+	}
+}
+
+// expWithDeadline reports whether m.Exp(a) returned without panicking in time.
+func expWithDeadline(t *testing.T, name string, m *Dense, a Matrix) bool {
+	t.Helper()
+	done := make(chan any, 1)
+	go func() {
+		defer func() { done <- recover() }()
+		m.Exp(a)
+	}()
+	select {
+	case r := <-done:
+		if r != nil {
+			t.Errorf("%s: Exp panicked: %v", name, r)
+			return false
+		}
+		return true
+	case <-time.After(10 * time.Second):
+		t.Errorf("%s: Exp did not return", name)
+		return false
+	}
+}
+
+func checkAllNaN(t *testing.T, name string, m *Dense) {
+	t.Helper()
+	r, c := m.Dims()
+	for i := 0; i < r; i++ {
+		for j := 0; j < c; j++ {
+			if !math.IsNaN(m.At(i, j)) {
+				t.Errorf("%s: element (%d,%d) is not NaN:\n%v", name, i, j, Formatted(m))
+				return
+			}
 		}
 	}
 }
