@@ -783,6 +783,8 @@ type Normer interface {
 //	Inf - The maximum absolute row sum
 //
 // If a is a Normer, its Norm method will be used to calculate the norm.
+// Otherwise, and for every Normer in this package, the norm of a matrix with a
+// NaN in its stored elements is NaN.
 //
 // Norm will panic with ErrNormOrder if an illegal norm is specified and with
 // ErrShape if the matrix has zero size.
@@ -813,7 +815,7 @@ func Norm(a Matrix, norm float64) float64 {
 			for i := 0; i < r; i++ {
 				sum += math.Abs(a.At(i, j))
 			}
-			if sum > max {
+			if sum > max || math.IsNaN(sum) {
 				max = sum
 			}
 		}
@@ -834,7 +836,7 @@ func Norm(a Matrix, norm float64) float64 {
 			for j := 0; j < c; j++ {
 				sum += math.Abs(a.At(i, j))
 			}
-			if sum > max {
+			if sum > max || math.IsNaN(sum) {
 				max = sum
 			}
 		}

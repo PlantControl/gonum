@@ -457,18 +457,6 @@ func (m *Dense) Mul(a, b Matrix) {
 	}
 }
 
-// hasNaN returns whether any element of m is NaN.
-func (m *Dense) hasNaN() bool {
-	for i := 0; i < m.mat.Rows; i++ {
-		for _, v := range m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+m.mat.Cols] {
-			if math.IsNaN(v) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // strictCopy copies a into m panicking if the shape of a and m differ.
 func strictCopy(m *Dense, a Matrix) {
 	r, c := m.Copy(a)
@@ -535,10 +523,9 @@ func (m *Dense) Exp(a Matrix) {
 	defer putDenseWorkspace(a2)
 
 	n1 := Norm(a, 1)
-	// The check of a1 is needed because Norm may skip NaN elements for some
-	// matrix types. A NaN norm would otherwise take the first Padé branch below,
-	// and an infinite norm would never leave the squaring loop.
-	if math.IsNaN(n1) || math.IsInf(n1, 0) || a1.hasNaN() {
+	// A NaN norm would otherwise take the first Padé branch below, and an
+	// infinite norm would never leave the squaring loop.
+	if math.IsNaN(n1) || math.IsInf(n1, 0) {
 		for i := 0; i < r; i++ {
 			row := m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+r]
 			for j := range row {
