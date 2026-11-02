@@ -270,6 +270,8 @@ func (v *VecDense) CopyVec(a Vector) int {
 //	2 - The Euclidean norm, the square root of the sum of the squares of the elements
 //	Inf - The maximum element magnitude
 //
+// The norm is NaN if any element is NaN.
+//
 // Norm will panic with ErrNormOrder if an illegal norm is specified and with
 // ErrZeroLength if the vector has zero size.
 func (v *VecDense) Norm(norm float64) float64 {
@@ -284,9 +286,23 @@ func (v *VecDense) Norm(norm float64) float64 {
 	case 2:
 		return blas64.Nrm2(v.mat)
 	case math.Inf(1):
-		imax := blas64.Iamax(v.mat)
-		return math.Abs(v.at(imax))
+		return maxAbs(v.mat)
 	}
+}
+
+// maxAbs returns the largest element magnitude of x, or NaN if any element is
+// NaN. blas64.Iamax cannot be used because it skips NaN.
+func maxAbs(x blas64.Vector) float64 {
+	var max float64
+	for i := 0; i < x.N; i++ {
+		a := math.Abs(x.Data[i*x.Inc])
+		if a > max {
+			max = a
+		} else if math.IsNaN(a) {
+			return a
+		}
+	}
+	return max
 }
 
 // ScaleVec scales the vector a by alpha, placing the result in the receiver.
