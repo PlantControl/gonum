@@ -46,12 +46,16 @@ type Basis struct {
 // bounded variables (Bixby, "Implementing the simplex method: the initial
 // basis", ORSA J. Computing 4(3), 1992; Chvátal, Linear Programming, ch. 8).
 // Phase 1 minimizes the sum of one artificial variable per row. Each pivot
-// reuses a dense LU factorization of an earlier basis through product-form
-// eta updates, refactorizing periodically, so a pivot costs O(m²) rather
-// than a fresh O(m³) factorization. Pricing is Dantzig's rule; the ratio
+// reuses an LU factorization of an earlier basis through product-form eta
+// updates, refactorizing periodically. The factorization is sparse, with
+// Markowitz pivot selection, unless A is dense, so the cost of a pivot
+// follows the nonzeros of the factors rather than m². Pricing is Dantzig's rule; the ratio
 // test is Harris's two-pass test. After a run of degenerate pivots it
 // switches to Bland's rule until the objective moves, which prevents
 // cycling.
+//
+// If A implements mat.ColNonZeroDoer, only its nonzero elements are read,
+// so a sparse A with many columns need not be stored densely.
 //
 // tol is the optimality and feasibility tolerance; zero selects 1e-9.
 // BoundedSimplex returns ErrInfeasible, ErrUnbounded, ErrSingular if a
@@ -72,7 +76,7 @@ func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper
 	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol)
 }
 
-func boundedSimplex(factor func(m int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
 	m, n := A.Dims()
 	if len(c) != n || len(b) != m || len(lower) != n || len(upper) != n {
 		panic(badShape)
@@ -134,6 +138,7 @@ type bounded struct {
 	head         []int // head[i] is the variable basic in row i
 
 	lu         basisFactor
+	rows       []int // ratio test candidates
 	y          []float64
 	alpha      []float64
 	work       []float64
@@ -144,17 +149,25 @@ type bounded struct {
 	iterations int
 }
 
-func newBounded(factor func(m int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
+func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
 	m, n := A.Dims()
 	s := &bounded{m: m, n: n, total: n + m, tol: tol}
 	s.start = make([]int, 0, n+m+1)
+	add := func(i, _ int, v float64) {
+		if v != 0 {
+			s.index = append(s.index, i)
+			s.value = append(s.value, v)
+		}
+	}
+	cols, sparse := A.(mat.ColNonZeroDoer)
 	for j := range n {
 		s.start = append(s.start, len(s.index))
+		if sparse {
+			cols.DoColNonZero(j, add)
+			continue
+		}
 		for i := range m {
-			if v := A.At(i, j); v != 0 {
-				s.index = append(s.index, i)
-				s.value = append(s.value, v)
-			}
+			add(i, j, A.At(i, j))
 		}
 	}
 	s.start = append(s.start, len(s.index))
@@ -206,7 +219,7 @@ func newBounded(factor func(m int) basisFactor, c []float64, A mat.Matrix, b, lo
 	}
 	s.y = make([]float64, m)
 	s.alpha = make([]float64, m)
-	s.lu = factor(m)
+	s.lu = factor(m, n, s.start[n])
 	s.work = make([]float64, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
@@ -461,8 +474,14 @@ func (s *bounded) ratio(q, dir int) (float64, int, bool) {
 		return math.Inf(1)
 	}
 	// Harris pass 1: the largest step with bounds relaxed by tol.
+	// Only rows with a nonzero pivot entry can limit the step.
 	relaxed := math.Inf(1)
-	for i := range s.m {
+	s.rows = s.rows[:0]
+	for i, a := range s.alpha {
+		if math.Abs(a) <= pivotTol {
+			continue
+		}
+		s.rows = append(s.rows, i)
 		relaxed = math.Min(relaxed, limit(i, s.tol))
 	}
 	flip := s.upper[q] - s.lower[q]
@@ -478,7 +497,7 @@ func (s *bounded) ratio(q, dir int) (float64, int, bool) {
 	// Pass 2: among rows within that step, the largest pivot; Bland's rule
 	// takes the smallest variable index instead.
 	row, size := -1, 0.0
-	for i := range s.m {
+	for _, i := range s.rows {
 		if limit(i, 0) > relaxed {
 			continue
 		}

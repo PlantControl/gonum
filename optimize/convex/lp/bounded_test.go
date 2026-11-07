@@ -12,6 +12,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
+	"slices"
 	"testing"
 
 	"plantcontrol.org/v1/gonum/floats/scalar"
@@ -20,12 +21,13 @@ import (
 
 type factorKind struct {
 	name string
-	new  func(m int) basisFactor
+	new  func(m, n, nnz int) basisFactor
 }
 
 var factorKinds = []factorKind{
-	{"dense", func(m int) basisFactor { return newDenseLU(m) }},
-	{"sparse", func(m int) basisFactor { return newSparseLU(m) }},
+	{"dense", func(m, _, _ int) basisFactor { return newDenseLU(m) }},
+	{"sparse", func(m, _, _ int) basisFactor { return newSparseLU(m) }},
+	{"auto", newFactor},
 }
 
 func (fk factorKind) solve(start *Basis, c []float64, a mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
@@ -352,10 +354,28 @@ func TestBoundedSimplexWarm(t *testing.T) {
 // dispatchLP is a ramp-coupled economic dispatch: units × hours of output
 // with capacity bounds, ramp rows, and one demand row per hour.
 func dispatchLP(units, hours int) (c []float64, a *mat.Dense, b, lower, upper []float64) {
+	c, csc, b, lower, upper := sparseDispatchLP(units, hours)
+	a = mat.NewDense(csc.m, csc.n, nil)
+	for j := range csc.n {
+		csc.DoColNonZero(j, a.Set)
+	}
+	return c, a, b, lower, upper
+}
+
+func sparseDispatchLP(units, hours int) (c []float64, a *cscMatrix, b, lower, upper []float64) {
 	rnd := rand.New(rand.NewPCG(5, uint64(hours)))
 	n := units*hours + 2*units*(hours-1)
 	m := hours + 2*units*(hours-1)
-	a = mat.NewDense(m, n, nil)
+	cols := make([][]struct {
+		i int
+		v float64
+	}, n)
+	set := func(i, j int, v float64) {
+		cols[j] = append(cols[j], struct {
+			i int
+			v float64
+		}{i, v})
+	}
 	b = make([]float64, m)
 	c = make([]float64, n)
 	lower, upper = make([]float64, n), make([]float64, n)
@@ -366,7 +386,7 @@ func dispatchLP(units, hours int) (c []float64, a *mat.Dense, b, lower, upper []
 	slack, row := units*hours, 0
 	for t := range hours {
 		for u := range units {
-			a.Set(row, p(u, t), 1)
+			set(row, p(u, t), 1)
 			upper[p(u, t)] = 30
 		}
 		b[row] = 300 + 200*rnd.Float64()
@@ -378,21 +398,62 @@ func dispatchLP(units, hours int) (c []float64, a *mat.Dense, b, lower, upper []
 			c[p(u, t)] = cost
 		}
 		for t := 1; t < hours; t++ {
-			a.Set(row, p(u, t), 1)
-			a.Set(row, p(u, t-1), -1)
-			a.Set(row, slack, 1)
+			set(row, p(u, t), 1)
+			set(row, p(u, t-1), -1)
+			set(row, slack, 1)
 			b[row] = 10
 			slack++
 			row++
-			a.Set(row, p(u, t-1), 1)
-			a.Set(row, p(u, t), -1)
-			a.Set(row, slack, 1)
+			set(row, p(u, t-1), 1)
+			set(row, p(u, t), -1)
+			set(row, slack, 1)
 			b[row] = 10
 			slack++
 			row++
 		}
 	}
+	a = &cscMatrix{m: m, n: n, start: []int{0}}
+	for _, col := range cols {
+		slices.SortFunc(col, func(x, y struct {
+			i int
+			v float64
+		}) int {
+			return x.i - y.i
+		})
+		for _, e := range col {
+			a.index = append(a.index, e.i)
+			a.value = append(a.value, e.v)
+		}
+		a.start = append(a.start, len(a.index))
+	}
 	return c, a, b, lower, upper
+}
+
+// cscMatrix is a compressed sparse column matrix implementing
+// mat.ColNonZeroDoer.
+type cscMatrix struct {
+	m, n         int
+	start, index []int
+	value        []float64
+}
+
+func (a *cscMatrix) Dims() (int, int) { return a.m, a.n }
+
+func (a *cscMatrix) At(i, j int) float64 {
+	for k := a.start[j]; k < a.start[j+1]; k++ {
+		if a.index[k] == i {
+			return a.value[k]
+		}
+	}
+	return 0
+}
+
+func (a *cscMatrix) T() mat.Matrix { return mat.Transpose{Matrix: a} }
+
+func (a *cscMatrix) DoColNonZero(j int, fn func(i, j int, v float64)) {
+	for k := a.start[j]; k < a.start[j+1]; k++ {
+		fn(a.index[k], j, a.value[k])
+	}
 }
 
 func TestBoundedSimplexDispatch(t *testing.T) {
@@ -412,20 +473,24 @@ func TestBoundedSimplexDispatch(t *testing.T) {
 }
 
 func BenchmarkBoundedSimplexDispatch(b *testing.B) {
-	for _, hours := range []int{2, 4, 8, 16, 24, 48} {
-		c, a, rhs, lower, upper := dispatchLP(30, hours)
-		m, _ := a.Dims()
-		b.Run(fmt.Sprintf("rows=%d", m), func(b *testing.B) {
-			var it int
-			for b.Loop() {
-				res, err := BoundedSimplex(c, a, rhs, lower, upper, 0)
-				if err != nil {
-					b.Fatal(err)
-				}
-				it = res.Iterations
+	for _, hours := range []int{2, 4, 8, 16, 24, 48, 96, 168} {
+		c, a, rhs, lower, upper := sparseDispatchLP(30, hours)
+		for _, fk := range factorKinds {
+			if fk.name == "dense" && a.m > 1500 {
+				continue
 			}
-			b.ReportMetric(float64(it), "pivots")
-		})
+			b.Run(fmt.Sprintf("rows=%d/%s", a.m, fk.name), func(b *testing.B) {
+				var it int
+				for b.Loop() {
+					res, err := fk.solve(nil, c, a, rhs, lower, upper, 0)
+					if err != nil {
+						b.Fatal(err)
+					}
+					it = res.Iterations
+				}
+				b.ReportMetric(float64(it), "pivots")
+			})
+		}
 	}
 }
 
@@ -480,5 +545,31 @@ func TestBoundedSimplexWarmChain(t *testing.T) {
 				basis = warm.Basis
 			}
 		})
+	}
+}
+
+func BenchmarkBoundedSimplexRandom(b *testing.B) {
+	for _, size := range []int{5, 15, 40} {
+		rnd := rand.New(rand.NewPCG(9, uint64(size)))
+		type problem struct {
+			c, b, lower, upper []float64
+			a                  *mat.Dense
+		}
+		var problems []problem
+		for range 50 {
+			n := size + rnd.IntN(size)
+			m := 1 + rnd.IntN(n)
+			c, a, rhs, lower, upper := boundedProblem(rnd, m, n)
+			problems = append(problems, problem{c, rhs, lower, upper, a})
+		}
+		for _, fk := range factorKinds {
+			b.Run(fmt.Sprintf("n=%d/%s", size, fk.name), func(b *testing.B) {
+				for b.Loop() {
+					for _, p := range problems {
+						fk.solve(nil, p.c, p.a, p.b, p.lower, p.upper, 0)
+					}
+				}
+			})
+		}
 	}
 }
