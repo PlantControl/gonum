@@ -8,9 +8,6 @@ import (
 	"errors"
 	"math"
 
-	"plantcontrol.org/v1/gonum/blas"
-	"plantcontrol.org/v1/gonum/blas/blas64"
-	"plantcontrol.org/v1/gonum/lapack/lapack64"
 	"plantcontrol.org/v1/gonum/mat"
 )
 
@@ -27,7 +24,8 @@ type BoundedResult struct {
 	// nonnegative where x is at its lower bound, nonpositive where x is at
 	// its upper bound, and zero where x is strictly between its bounds.
 	Dual []float64
-	// Iterations counts simplex pivots and bound flips over both phases.
+	// Iterations counts primal simplex pivots and bound flips over both
+	// phases, and dual simplex pivots, whose bound flips are not counted.
 	Iterations int
 	// Basis is the optimal basis, for a warm start with BoundedSimplexFrom.
 	Basis *Basis
@@ -49,12 +47,16 @@ type Basis struct {
 // bounded variables (Bixby, "Implementing the simplex method: the initial
 // basis", ORSA J. Computing 4(3), 1992; Chvátal, Linear Programming, ch. 8).
 // Phase 1 minimizes the sum of one artificial variable per row. Each pivot
-// reuses a dense LU factorization of an earlier basis through product-form
-// eta updates, refactorizing periodically, so a pivot costs O(m²) rather
-// than a fresh O(m³) factorization. Pricing is Dantzig's rule; the ratio
+// reuses an LU factorization of an earlier basis through product-form eta
+// updates, refactorizing periodically. The factorization is sparse, with
+// Markowitz pivot selection, unless A is dense, so the cost of a pivot
+// follows the nonzeros of the factors rather than m². Pricing is Dantzig's rule; the ratio
 // test is Harris's two-pass test. After a run of degenerate pivots it
 // switches to Bland's rule until the objective moves, which prevents
 // cycling.
+//
+// If A implements mat.ColNonZeroDoer, only its nonzero elements are read,
+// so a sparse A with many columns need not be stored densely.
 //
 // tol is the optimality and feasibility tolerance; zero selects 1e-9.
 // BoundedSimplex returns ErrInfeasible, ErrUnbounded, ErrSingular if a
@@ -65,13 +67,23 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 }
 
 // BoundedSimplexFrom is BoundedSimplex started from the basis of an earlier
-// solve with the same rows. The earlier problem may have had fewer columns;
-// columns appended since start nonbasic at a finite bound, or at zero if
-// free. Costs and right-hand sides may change. If the basis is singular or
-// no longer primal feasible, BoundedSimplexFrom solves from scratch, so the
-// result never depends on whether the warm start was usable. A nil start
-// is the same as BoundedSimplex.
+// solve. Costs, right-hand sides and bounds may change. The earlier problem
+// may have had fewer columns, which start nonbasic at a finite bound or at
+// zero if free, and fewer rows, appended after its rows, which start with
+// their artificial variable basic.
+//
+// If the basis is still primal feasible, the primal simplex method continues
+// from it. Otherwise, if it is dual feasible, as after tightening bounds or
+// appending rows to an optimal basis, the dual simplex method restores
+// primal feasibility. If neither holds, or the basis is singular,
+// BoundedSimplexFrom solves from scratch, so the result never depends on
+// whether the warm start was usable. A nil start is the same as
+// BoundedSimplex.
 func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol)
+}
+
+func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
 	m, n := A.Dims()
 	if len(c) != n || len(b) != m || len(lower) != n || len(upper) != n {
 		panic(badShape)
@@ -84,16 +96,25 @@ func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper
 	if tol == 0 {
 		tol = 1e-9
 	}
-	if start != nil && (len(start.head) != m || len(start.status) > n) {
+	if start != nil && (len(start.head) > m || len(start.status) > n) {
 		panic(badShape)
 	}
-	s := newBounded(c, A, b, lower, upper, tol)
+	s := newBounded(factor, c, A, b, lower, upper, tol)
 	var err error
-	if start == nil || !s.warm(start) {
-		s = newBounded(c, A, b, lower, upper, tol)
-		err = s.solve()
-	} else {
+	switch {
+	case start == nil || !s.warm(start):
+		err = s.cold(factor, c, A, b, lower, upper, tol)
+	case s.primalFeasible():
 		err = s.run()
+	case s.dualStart():
+		if err = s.dual(); err == nil {
+			err = s.run()
+		}
+		if errors.Is(err, ErrSingular) || errors.Is(err, ErrIterationLimit) {
+			err = s.cold(factor, c, A, b, lower, upper, tol)
+		}
+	default:
+		err = s.cold(factor, c, A, b, lower, upper, tol)
 	}
 	if err != nil {
 		return BoundedResult{Iterations: s.iterations}, err
@@ -119,18 +140,10 @@ const (
 	basic
 )
 
-type eta struct {
-	row   int
-	alpha []float64
-}
-
 type bounded struct {
 	m, n, total int
 	tol         float64
-	// Columns of [A | artificial identity] in compressed sparse column form.
-	start []int
-	index []int
-	value []float64
+	columns     // [A | artificial identity]
 
 	b            []float64
 	cost         []float64 // phase cost
@@ -140,10 +153,8 @@ type bounded struct {
 	status       []int
 	head         []int // head[i] is the variable basic in row i
 
-	slab       []float64      // eta columns, refactorEvery × m
-	factor     blas64.General // LU of the last refactorized basis, row-major
-	ipiv       []int
-	etas       []eta
+	lu         basisFactor
+	rows       []int // ratio test candidates
 	y          []float64
 	alpha      []float64
 	work       []float64
@@ -154,17 +165,25 @@ type bounded struct {
 	iterations int
 }
 
-func newBounded(c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
+func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
 	m, n := A.Dims()
 	s := &bounded{m: m, n: n, total: n + m, tol: tol}
 	s.start = make([]int, 0, n+m+1)
+	add := func(i, _ int, v float64) {
+		if v != 0 {
+			s.index = append(s.index, i)
+			s.value = append(s.value, v)
+		}
+	}
+	cols, sparse := A.(mat.ColNonZeroDoer)
 	for j := range n {
 		s.start = append(s.start, len(s.index))
+		if sparse {
+			cols.DoColNonZero(j, add)
+			continue
+		}
 		for i := range m {
-			if v := A.At(i, j); v != 0 {
-				s.index = append(s.index, i)
-				s.value = append(s.value, v)
-			}
+			add(i, j, A.At(i, j))
 		}
 	}
 	s.start = append(s.start, len(s.index))
@@ -216,13 +235,16 @@ func newBounded(c []float64, A mat.Matrix, b, lower, upper []float64, tol float6
 	}
 	s.y = make([]float64, m)
 	s.alpha = make([]float64, m)
-	s.slab = make([]float64, refactorEvery*m)
-	s.etas = make([]eta, 0, refactorEvery)
-	s.factor = blas64.General{Rows: m, Cols: m, Stride: max(m, 1), Data: make([]float64, m*m)}
-	s.ipiv = make([]int, m)
+	s.lu = factor(m, n, s.start[n])
 	s.work = make([]float64, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
+}
+
+// cold replaces s with a fresh solver and solves from the artificial basis.
+func (s *bounded) cold(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) error {
+	*s = *newBounded(factor, c, A, b, lower, upper, tol)
+	return s.solve()
 }
 
 func (s *bounded) solve() error {
@@ -255,7 +277,7 @@ func (s *bounded) solve() error {
 }
 
 // warm installs a previous basis for phase 2 and reports whether it is
-// nonsingular and primal feasible.
+// nonsingular. Rows beyond those of start keep their artificial basic.
 func (s *bounded) warm(start *Basis) bool {
 	n := s.n
 	for i := range s.m {
@@ -278,10 +300,13 @@ func (s *bounded) warm(start *Basis) bool {
 			s.x[j], s.status[j] = 0, atZero
 		}
 	}
-	for i, h := range start.head {
-		j := h
-		if h < 0 {
-			j = n + (-1 - h)
+	for i := range s.m {
+		j := n + i
+		if i < len(start.head) {
+			j = start.head[i]
+			if j < 0 {
+				j = n + (-1 - j)
+			}
 		}
 		if s.status[j] == basic {
 			return false
@@ -297,14 +322,19 @@ func (s *bounded) warm(start *Basis) bool {
 	if s.refactor() != nil {
 		return false
 	}
-	// The ratio test relaxes bounds by tol only, so a basic value further
-	// outside its bounds would block every step.
+	copy(s.cost, s.c)
+	return true
+}
+
+// primalFeasible reports whether the basic values are within their bounds.
+// The ratio test relaxes bounds by tol only, so a basic value further
+// outside would block every step.
+func (s *bounded) primalFeasible() bool {
 	for _, j := range s.head {
 		if s.x[j] < s.lower[j]-s.tol || s.x[j] > s.upper[j]+s.tol {
 			return false
 		}
 	}
-	copy(s.cost, s.c)
 	return true
 }
 
@@ -370,11 +400,7 @@ func (s *bounded) run() error {
 		}
 		s.head[row] = q
 		s.status[q] = basic
-		k := len(s.etas)
-		col := s.slab[k*s.m : (k+1)*s.m]
-		copy(col, s.alpha)
-		s.etas = append(s.etas, eta{row, col})
-		if len(s.etas) >= refactorEvery {
+		if s.lu.update(row, s.alpha) {
 			if err := s.refactor(); err != nil {
 				return err
 			}
@@ -385,19 +411,11 @@ func (s *bounded) run() error {
 // refactor factorizes the current basis and recomputes basic values from
 // the nonbasic ones to remove accumulated drift.
 func (s *bounded) refactor() error {
-	s.etas = s.etas[:0]
+	if err := s.lu.factorize(&s.columns, s.head); err != nil {
+		return err
+	}
 	if s.m == 0 {
 		return nil
-	}
-	a := s.factor.Data
-	clear(a)
-	for i, j := range s.head {
-		for k := s.start[j]; k < s.start[j+1]; k++ {
-			a[s.index[k]*s.m+i] = s.value[k]
-		}
-	}
-	if !lapack64.Getrf(s.factor, s.ipiv) {
-		return ErrSingular
 	}
 	r := s.work
 	copy(r, s.b)
@@ -408,79 +426,29 @@ func (s *bounded) refactor() error {
 			}
 		}
 	}
-	s.luSolve(r, false)
+	s.lu.ftran(r)
 	for i, j := range s.head {
 		s.x[j] = r[i]
 	}
 	return nil
 }
 
-// luSolve overwrites v with B₀⁻¹v, or B₀⁻ᵀv when trans, for the factorized
-// basis P B₀ = L U.
-func (s *bounded) luSolve(v []float64, trans bool) {
-	lower := blas64.Triangular{Uplo: blas.Lower, Diag: blas.Unit, N: s.m, Stride: s.factor.Stride, Data: s.factor.Data}
-	upper := blas64.Triangular{Uplo: blas.Upper, Diag: blas.NonUnit, N: s.m, Stride: s.factor.Stride, Data: s.factor.Data}
-	x := blas64.Vector{N: s.m, Inc: 1, Data: v}
-	if !trans {
-		for i, p := range s.ipiv {
-			v[i], v[p] = v[p], v[i]
-		}
-		blas64.Trsv(blas.NoTrans, lower, x)
-		blas64.Trsv(blas.NoTrans, upper, x)
-		return
-	}
-	blas64.Trsv(blas.Trans, upper, x)
-	blas64.Trsv(blas.Trans, lower, x)
-	for i := s.m - 1; i >= 0; i-- {
-		p := s.ipiv[i]
-		v[i], v[p] = v[p], v[i]
-	}
-}
-
 // btran sets y to solve Bᵀy = c_B.
 func (s *bounded) btran() {
-	if s.m == 0 {
-		return
-	}
-	v := s.y
 	for i, j := range s.head {
-		v[i] = s.cost[j]
+		s.y[i] = s.cost[j]
 	}
-	for k := len(s.etas) - 1; k >= 0; k-- {
-		e := s.etas[k]
-		sum := v[e.row]
-		for i, a := range e.alpha {
-			if i != e.row {
-				sum -= a * v[i]
-			}
-		}
-		v[e.row] = sum / e.alpha[e.row]
-	}
-	s.luSolve(v, true)
+	s.lu.btran(s.y)
 }
 
 // ftran sets alpha to solve B alpha = a_q.
 func (s *bounded) ftran(q int) {
-	if s.m == 0 {
-		return
-	}
 	z := s.alpha
 	clear(z)
 	for k := s.start[q]; k < s.start[q+1]; k++ {
 		z[s.index[k]] = s.value[k]
 	}
-	s.luSolve(z, false)
-	for _, e := range s.etas {
-		zr := z[e.row] / e.alpha[e.row]
-		if zr != 0 {
-			for i, a := range e.alpha {
-				if i != e.row {
-					z[i] -= a * zr
-				}
-			}
-		}
-		z[e.row] = zr
-	}
+	s.lu.ftran(z)
 }
 
 // price returns an entering variable and its direction (+1 increase, -1
@@ -536,8 +504,14 @@ func (s *bounded) ratio(q, dir int) (float64, int, bool) {
 		return math.Inf(1)
 	}
 	// Harris pass 1: the largest step with bounds relaxed by tol.
+	// Only rows with a nonzero pivot entry can limit the step.
 	relaxed := math.Inf(1)
-	for i := range s.m {
+	s.rows = s.rows[:0]
+	for i, a := range s.alpha {
+		if math.Abs(a) <= pivotTol {
+			continue
+		}
+		s.rows = append(s.rows, i)
 		relaxed = math.Min(relaxed, limit(i, s.tol))
 	}
 	flip := s.upper[q] - s.lower[q]
@@ -553,7 +527,7 @@ func (s *bounded) ratio(q, dir int) (float64, int, bool) {
 	// Pass 2: among rows within that step, the largest pivot; Bland's rule
 	// takes the smallest variable index instead.
 	row, size := -1, 0.0
-	for i := range s.m {
+	for _, i := range s.rows {
 		if limit(i, 0) > relaxed {
 			continue
 		}
