@@ -7,6 +7,7 @@ package lp
 import (
 	"math/rand/v2"
 	"testing"
+	"time"
 
 	"plantcontrol.org/v1/gonum/floats/scalar"
 	"plantcontrol.org/v1/gonum/mat"
@@ -135,6 +136,71 @@ func TestSimplex(t *testing.T) {
 	testRandomSimplex(t, 20000, 0, 10, rnd)
 	testRandomSimplex(t, 200, 0, 100, rnd)
 	testRandomSimplex(t, 2, 0, 400, rnd)
+}
+
+// TestSimplexStatus covers random LPs that Simplex once misreported or
+// cycled on. The first three are optimal with reduced costs that are zero
+// up to rounding; the last has a zero column with negative cost but no
+// feasible point.
+func TestSimplexStatus(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name    string
+		m, n    int
+		a, b, c []float64
+		f       float64
+		err     error
+	}{
+		{
+			name: "cycled",
+			m:    2, n: 3,
+			a: []float64{-1.4762065325834528, 0.2821679163446398, 0.0060369419910811795, 0.03732040795028546, 0, 0},
+			b: []float64{0.6771643625556305, 0},
+			c: []float64{0.23297849939115478, 0, 0},
+		},
+		{
+			name: "zero-cost ray",
+			m:    2, n: 3,
+			a: []float64{-0.3458203850035978, 0.8954406805521785, 0.42606214819809174, 0, 0.47988821358259437, 0},
+			b: []float64{0, 0},
+			c: []float64{0, -1.0682285911021907, 0},
+		},
+		{
+			name: "bland",
+			m:    2, n: 3,
+			a: []float64{0.4186249131659707, 0.8724694875808203, -2.5536341414517865, 0, 0, -0.9634885454601786},
+			b: []float64{0, 0},
+			c: []float64{0, 0, -1.26978082616696},
+		},
+		{
+			name: "infeasible with zero column",
+			m:    1, n: 2,
+			a:   []float64{0, 0.0913618510276733},
+			b:   []float64{-0.01125306603028109},
+			c:   []float64{-0.6804292178869924, 0.9551639924403099},
+			err: ErrInfeasible,
+		},
+	} {
+		type result struct {
+			f   float64
+			err error
+		}
+		done := make(chan result, 1)
+		go func() {
+			f, _, err := Simplex(test.c, mat.NewDense(test.m, test.n, test.a), test.b, 0, nil)
+			done <- result{f, err}
+		}()
+		select {
+		case r := <-done:
+			if r.err != test.err {
+				t.Errorf("%s: error %v, want %v", test.name, r.err, test.err)
+			} else if r.err == nil && !scalar.EqualWithinAbs(r.f, test.f, 1e-12) {
+				t.Errorf("%s: objective %v, want %v", test.name, r.f, test.f)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("%s: Simplex did not terminate", test.name)
+		}
+	}
 }
 
 func testRandomSimplex(t *testing.T, nTest int, pZero float64, maxN int, rnd *rand.Rand) {

@@ -53,6 +53,10 @@ const (
 	phaseIZeroTol = 1e-12
 	// blandZeroTol is the tolerance on testing if the bland solution can move.
 	blandZeroTol = 1e-12
+	// minTol is the smallest reduced cost tolerance. Below it, rounding
+	// noise in the reduced costs selects pivots that do not improve the
+	// objective, which can cycle or report a spurious unbounded ray.
+	minTol = 1e-10
 )
 
 // Simplex solves a linear program in standard form using Danzig's Simplex
@@ -63,7 +67,8 @@ const (
 //				x >= 0 .
 //
 // The input tol sets how close to the optimal solution is found (specifically,
-// when the maximal reduced cost is below tol). An error will be returned if the
+// when the maximal reduced cost is below tol). Values of tol below 1e-10 are
+// treated as 1e-10. An error will be returned if the
 // problem is infeasible or unbounded. In rare cases, numeric errors can cause
 // the Simplex to fail. In this case, an error will be returned along with the
 // most recently found feasible solution.
@@ -97,11 +102,17 @@ func simplex(initialBasic []int, c []float64, A mat.Matrix, b []float64, tol flo
 	err := verifyInputs(initialBasic, c, A, b)
 	if err != nil {
 		if err == ErrUnbounded {
+			// A zero column with negative cost is an unbounded ray only
+			// if the remaining columns admit a feasible point.
+			if err := feasibleWithoutZeroColumns(A, b); err != nil {
+				return math.NaN(), nil, nil, err
+			}
 			return math.Inf(-1), nil, nil, ErrUnbounded
 		}
 		return math.NaN(), nil, nil, err
 	}
 	m, n := A.Dims()
+	tol = math.Max(tol, minTol)
 
 	if m == n {
 		// Problem is exactly constrained, perform a linear solve.
@@ -442,6 +453,29 @@ func verifyInputs(initialBasic []int, c []float64, A mat.Matrix, b []float64) er
 		}
 	}
 	return nil
+}
+
+// feasibleWithoutZeroColumns reports whether A x = b, x >= 0 has a solution
+// using only the nonzero columns of A. It returns ErrInfeasible if not, and
+// ErrSingular if those columns do not have full row rank.
+func feasibleWithoutZeroColumns(A mat.Matrix, b []float64) error {
+	m, n := A.Dims()
+	var cols []int
+	for j := 0; j < n; j++ {
+		for i := 0; i < m; i++ {
+			if A.At(i, j) != 0 {
+				cols = append(cols, j)
+				break
+			}
+		}
+	}
+	if len(cols) < m {
+		return ErrSingular
+	}
+	nonzero := mat.NewDense(m, len(cols), nil)
+	extractColumns(nonzero, A, cols)
+	_, _, _, err := findInitialBasic(nonzero, b)
+	return err
 }
 
 // initializeFromBasic initializes the basic feasible solution given a set of
