@@ -66,12 +66,18 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 }
 
 // BoundedSimplexFrom is BoundedSimplex started from the basis of an earlier
-// solve with the same rows. The earlier problem may have had fewer columns;
-// columns appended since start nonbasic at a finite bound, or at zero if
-// free. Costs and right-hand sides may change. If the basis is singular or
-// no longer primal feasible, BoundedSimplexFrom solves from scratch, so the
-// result never depends on whether the warm start was usable. A nil start
-// is the same as BoundedSimplex.
+// solve. Costs, right-hand sides and bounds may change. The earlier problem
+// may have had fewer columns, which start nonbasic at a finite bound or at
+// zero if free, and fewer rows, appended after its rows, which start with
+// their artificial variable basic.
+//
+// If the basis is still primal feasible, the primal simplex method continues
+// from it. Otherwise, if it is dual feasible, as after tightening bounds or
+// appending rows to an optimal basis, the dual simplex method restores
+// primal feasibility. If neither holds, or the basis is singular,
+// BoundedSimplexFrom solves from scratch, so the result never depends on
+// whether the warm start was usable. A nil start is the same as
+// BoundedSimplex.
 func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
 	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol)
 }
@@ -89,16 +95,25 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 	if tol == 0 {
 		tol = 1e-9
 	}
-	if start != nil && (len(start.head) != m || len(start.status) > n) {
+	if start != nil && (len(start.head) > m || len(start.status) > n) {
 		panic(badShape)
 	}
 	s := newBounded(factor, c, A, b, lower, upper, tol)
 	var err error
-	if start == nil || !s.warm(start) {
-		s = newBounded(factor, c, A, b, lower, upper, tol)
-		err = s.solve()
-	} else {
+	switch {
+	case start == nil || !s.warm(start):
+		err = s.cold(factor, c, A, b, lower, upper, tol)
+	case s.primalFeasible():
 		err = s.run()
+	case s.dualStart():
+		if err = s.dual(); err == nil {
+			err = s.run()
+		}
+		if errors.Is(err, ErrSingular) || errors.Is(err, ErrIterationLimit) {
+			err = s.cold(factor, c, A, b, lower, upper, tol)
+		}
+	default:
+		err = s.cold(factor, c, A, b, lower, upper, tol)
 	}
 	if err != nil {
 		return BoundedResult{Iterations: s.iterations}, err
@@ -225,6 +240,12 @@ func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matri
 	return s
 }
 
+// cold replaces s with a fresh solver and solves from the artificial basis.
+func (s *bounded) cold(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) error {
+	*s = *newBounded(factor, c, A, b, lower, upper, tol)
+	return s.solve()
+}
+
 func (s *bounded) solve() error {
 	if err := s.refactor(); err != nil {
 		return err
@@ -255,7 +276,7 @@ func (s *bounded) solve() error {
 }
 
 // warm installs a previous basis for phase 2 and reports whether it is
-// nonsingular and primal feasible.
+// nonsingular. Rows beyond those of start keep their artificial basic.
 func (s *bounded) warm(start *Basis) bool {
 	n := s.n
 	for i := range s.m {
@@ -278,10 +299,13 @@ func (s *bounded) warm(start *Basis) bool {
 			s.x[j], s.status[j] = 0, atZero
 		}
 	}
-	for i, h := range start.head {
-		j := h
-		if h < 0 {
-			j = n + (-1 - h)
+	for i := range s.m {
+		j := n + i
+		if i < len(start.head) {
+			j = start.head[i]
+			if j < 0 {
+				j = n + (-1 - j)
+			}
 		}
 		if s.status[j] == basic {
 			return false
@@ -297,14 +321,19 @@ func (s *bounded) warm(start *Basis) bool {
 	if s.refactor() != nil {
 		return false
 	}
-	// The ratio test relaxes bounds by tol only, so a basic value further
-	// outside its bounds would block every step.
+	copy(s.cost, s.c)
+	return true
+}
+
+// primalFeasible reports whether the basic values are within their bounds.
+// The ratio test relaxes bounds by tol only, so a basic value further
+// outside would block every step.
+func (s *bounded) primalFeasible() bool {
 	for _, j := range s.head {
 		if s.x[j] < s.lower[j]-s.tol || s.x[j] > s.upper[j]+s.tol {
 			return false
 		}
 	}
-	copy(s.cost, s.c)
 	return true
 }
 
