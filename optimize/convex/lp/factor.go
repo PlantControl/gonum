@@ -32,6 +32,17 @@ type basisFactor interface {
 	update(row int, alpha []float64) bool
 }
 
+// sparseFrom is the basis size from which BoundedSimplex factorizes
+// sparsely. It is a variable so tests can exercise both factorizations.
+var sparseFrom = 0
+
+func newFactor(m int) basisFactor {
+	if m >= sparseFrom {
+		return newSparseLU(m)
+	}
+	return newDenseLU(m)
+}
+
 // etaFile holds product-form updates B = B₀ E₁ ⋯ E_k, where E_k is the
 // identity with column row replaced by alpha. Only nonzero off-diagonal
 // entries are stored.

@@ -69,6 +69,10 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 // result never depends on whether the warm start was usable. A nil start
 // is the same as BoundedSimplex.
 func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol)
+}
+
+func boundedSimplex(factor func(m int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
 	m, n := A.Dims()
 	if len(c) != n || len(b) != m || len(lower) != n || len(upper) != n {
 		panic(badShape)
@@ -84,10 +88,10 @@ func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper
 	if start != nil && (len(start.head) != m || len(start.status) > n) {
 		panic(badShape)
 	}
-	s := newBounded(c, A, b, lower, upper, tol)
+	s := newBounded(factor, c, A, b, lower, upper, tol)
 	var err error
 	if start == nil || !s.warm(start) {
-		s = newBounded(c, A, b, lower, upper, tol)
+		s = newBounded(factor, c, A, b, lower, upper, tol)
 		err = s.solve()
 	} else {
 		err = s.run()
@@ -140,7 +144,7 @@ type bounded struct {
 	iterations int
 }
 
-func newBounded(c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
+func newBounded(factor func(m int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
 	m, n := A.Dims()
 	s := &bounded{m: m, n: n, total: n + m, tol: tol}
 	s.start = make([]int, 0, n+m+1)
@@ -202,7 +206,7 @@ func newBounded(c []float64, A mat.Matrix, b, lower, upper []float64, tol float6
 	}
 	s.y = make([]float64, m)
 	s.alpha = make([]float64, m)
-	s.lu = newDenseLU(m)
+	s.lu = factor(m)
 	s.work = make([]float64, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s

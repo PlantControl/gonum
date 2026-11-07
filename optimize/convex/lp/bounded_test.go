@@ -18,6 +18,20 @@ import (
 	"plantcontrol.org/v1/gonum/mat"
 )
 
+type factorKind struct {
+	name string
+	new  func(m int) basisFactor
+}
+
+var factorKinds = []factorKind{
+	{"dense", func(m int) basisFactor { return newDenseLU(m) }},
+	{"sparse", func(m int) basisFactor { return newSparseLU(m) }},
+}
+
+func (fk factorKind) solve(start *Basis, c []float64, a mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+	return boundedSimplex(fk.new, start, c, a, b, lower, upper, tol)
+}
+
 // checkKKT verifies primal feasibility and the reduced-cost signs that
 // certify optimality, independently of how the result was found.
 func checkKKT(c []float64, a mat.Matrix, b, lower, upper []float64, res BoundedResult, tol float64) error {
@@ -75,43 +89,47 @@ func checkKKT(c []float64, a mat.Matrix, b, lower, upper []float64, res BoundedR
 
 func TestBoundedSimplexSmall(t *testing.T) {
 	t.Parallel()
-	inf := math.Inf(1)
-	for _, test := range []struct {
-		name         string
-		c            []float64
-		a            *mat.Dense
-		b            []float64
-		lower, upper []float64
-		f            float64
-		err          error
-	}{
-		{"standard", []float64{-1, -2, 0, 0}, mat.NewDense(2, 4, []float64{-1, 2, 1, 0, 3, 1, 0, 1}), []float64{4, 9},
-			[]float64{0, 0, 0, 0}, []float64{inf, inf, inf, inf}, -8, nil},
-		{"upper bounds bind", []float64{-1, -1}, mat.NewDense(1, 2, []float64{1, -1}), []float64{0},
-			[]float64{0, 0}, []float64{3, 5}, -6, nil},
-		{"free variable", []float64{1, 0}, mat.NewDense(1, 2, []float64{1, 1}), []float64{2},
-			[]float64{-inf, 0}, []float64{inf, 7}, -5, nil},
-		{"infeasible", []float64{1}, mat.NewDense(1, 1, []float64{1}), []float64{5},
-			[]float64{0}, []float64{3}, 0, ErrInfeasible},
-		{"unbounded", []float64{-1, 0}, mat.NewDense(1, 2, []float64{1, -1}), []float64{0},
-			[]float64{0, 0}, []float64{inf, inf}, 0, ErrUnbounded},
-		{"fixed", []float64{1, 1}, mat.NewDense(1, 2, []float64{1, 1}), []float64{3},
-			[]float64{1, 0}, []float64{1, 9}, 3, nil},
-	} {
-		res, err := BoundedSimplex(test.c, test.a, test.b, test.lower, test.upper, 0)
-		if !errors.Is(err, test.err) {
-			t.Errorf("%s: error %v, want %v", test.name, err, test.err)
-			continue
-		}
-		if err != nil {
-			continue
-		}
-		if math.Abs(res.F-test.f) > 1e-9 {
-			t.Errorf("%s: objective %v, want %v", test.name, res.F, test.f)
-		}
-		if err := checkKKT(test.c, test.a, test.b, test.lower, test.upper, res, 1e-9); err != nil {
-			t.Errorf("%s: %v", test.name, err)
-		}
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			inf := math.Inf(1)
+			for _, test := range []struct {
+				name         string
+				c            []float64
+				a            *mat.Dense
+				b            []float64
+				lower, upper []float64
+				f            float64
+				err          error
+			}{
+				{"standard", []float64{-1, -2, 0, 0}, mat.NewDense(2, 4, []float64{-1, 2, 1, 0, 3, 1, 0, 1}), []float64{4, 9},
+					[]float64{0, 0, 0, 0}, []float64{inf, inf, inf, inf}, -8, nil},
+				{"upper bounds bind", []float64{-1, -1}, mat.NewDense(1, 2, []float64{1, -1}), []float64{0},
+					[]float64{0, 0}, []float64{3, 5}, -6, nil},
+				{"free variable", []float64{1, 0}, mat.NewDense(1, 2, []float64{1, 1}), []float64{2},
+					[]float64{-inf, 0}, []float64{inf, 7}, -5, nil},
+				{"infeasible", []float64{1}, mat.NewDense(1, 1, []float64{1}), []float64{5},
+					[]float64{0}, []float64{3}, 0, ErrInfeasible},
+				{"unbounded", []float64{-1, 0}, mat.NewDense(1, 2, []float64{1, -1}), []float64{0},
+					[]float64{0, 0}, []float64{inf, inf}, 0, ErrUnbounded},
+				{"fixed", []float64{1, 1}, mat.NewDense(1, 2, []float64{1, 1}), []float64{3},
+					[]float64{1, 0}, []float64{1, 9}, 3, nil},
+			} {
+				res, err := fk.solve(nil, test.c, test.a, test.b, test.lower, test.upper, 0)
+				if !errors.Is(err, test.err) {
+					t.Errorf("%s: error %v, want %v", test.name, err, test.err)
+					continue
+				}
+				if err != nil {
+					continue
+				}
+				if math.Abs(res.F-test.f) > 1e-9 {
+					t.Errorf("%s: objective %v, want %v", test.name, res.F, test.f)
+				}
+				if err := checkKKT(test.c, test.a, test.b, test.lower, test.upper, res, 1e-9); err != nil {
+					t.Errorf("%s: %v", test.name, err)
+				}
+			}
+		})
 	}
 }
 
@@ -217,105 +235,117 @@ func boundedProblem(rnd *rand.Rand, m, n int) (c []float64, a *mat.Dense, b, low
 
 func TestBoundedSimplexKKT(t *testing.T) {
 	t.Parallel()
-	rnd := rand.New(rand.NewPCG(3, 3))
-	solved := 0
-	for range 3000 {
-		n := rnd.IntN(30) + 1
-		m := rnd.IntN(n) + 1
-		c, a, b, lower, upper := boundedProblem(rnd, m, n)
-		res, err := BoundedSimplex(c, a, b, lower, upper, 0)
-		switch {
-		case err == nil:
-			solved++
-			if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
-				t.Fatalf("m=%d n=%d: %v", m, n, e)
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			rnd := rand.New(rand.NewPCG(3, 3))
+			solved := 0
+			for range 3000 {
+				n := rnd.IntN(30) + 1
+				m := rnd.IntN(n) + 1
+				c, a, b, lower, upper := boundedProblem(rnd, m, n)
+				res, err := fk.solve(nil, c, a, b, lower, upper, 0)
+				switch {
+				case err == nil:
+					solved++
+					if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
+						t.Fatalf("m=%d n=%d: %v", m, n, e)
+					}
+				case errors.Is(err, ErrInfeasible):
+					t.Fatalf("m=%d n=%d: feasible by construction", m, n)
+				case errors.Is(err, ErrUnbounded), errors.Is(err, ErrSingular):
+				default:
+					t.Fatalf("m=%d n=%d: %v", m, n, err)
+				}
 			}
-		case errors.Is(err, ErrInfeasible):
-			t.Fatalf("m=%d n=%d: feasible by construction", m, n)
-		case errors.Is(err, ErrUnbounded), errors.Is(err, ErrSingular):
-		default:
-			t.Fatalf("m=%d n=%d: %v", m, n, err)
-		}
-	}
-	if solved < 1000 {
-		t.Fatalf("only %d of 3000 problems solved", solved)
+			if solved < 1000 {
+				t.Fatalf("only %d of 3000 problems solved", solved)
+			}
+		})
 	}
 }
 
 func TestBoundedSimplexDegenerate(t *testing.T) {
 	t.Parallel()
-	// Assignment polytopes are highly degenerate.
-	rnd := rand.New(rand.NewPCG(4, 4))
-	for size := 2; size <= 12; size++ {
-		n := size * size
-		a := mat.NewDense(2*size, n, nil)
-		b := make([]float64, 2*size)
-		c := make([]float64, n)
-		lower, upper := make([]float64, n), make([]float64, n)
-		for i := range size {
-			b[i], b[size+i] = 1, 1
-			for j := range size {
-				a.Set(i, i*size+j, 1)
-				a.Set(size+j, i*size+j, 1)
-				c[i*size+j] = float64(rnd.IntN(4))
-				upper[i*size+j] = 1
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			// Assignment polytopes are highly degenerate.
+			rnd := rand.New(rand.NewPCG(4, 4))
+			for size := 2; size <= 12; size++ {
+				n := size * size
+				a := mat.NewDense(2*size, n, nil)
+				b := make([]float64, 2*size)
+				c := make([]float64, n)
+				lower, upper := make([]float64, n), make([]float64, n)
+				for i := range size {
+					b[i], b[size+i] = 1, 1
+					for j := range size {
+						a.Set(i, i*size+j, 1)
+						a.Set(size+j, i*size+j, 1)
+						c[i*size+j] = float64(rnd.IntN(4))
+						upper[i*size+j] = 1
+					}
+				}
+				res, err := fk.solve(nil, c, a, b, lower, upper, 0)
+				if err != nil {
+					t.Fatalf("size %d: %v", size, err)
+				}
+				if e := checkKKT(c, a, b, lower, upper, res, 1e-9); e != nil {
+					t.Fatalf("size %d: %v", size, e)
+				}
 			}
-		}
-		res, err := BoundedSimplex(c, a, b, lower, upper, 0)
-		if err != nil {
-			t.Fatalf("size %d: %v", size, err)
-		}
-		if e := checkKKT(c, a, b, lower, upper, res, 1e-9); e != nil {
-			t.Fatalf("size %d: %v", size, e)
-		}
+		})
 	}
 }
 
 func TestBoundedSimplexWarm(t *testing.T) {
 	t.Parallel()
-	rnd := rand.New(rand.NewPCG(6, 6))
-	warmed, total := 0, 0
-	for range 500 {
-		n := rnd.IntN(25) + 2
-		m := rnd.IntN(n) + 1
-		c, a, b, lower, upper := boundedProblem(rnd, m, n)
-		first, err := BoundedSimplex(c, a, b, lower, upper, 0)
-		if err != nil {
-			continue
-		}
-		// New costs, then one appended column.
-		for j := range c {
-			c[j] += 0.3 * rnd.NormFloat64()
-		}
-		wide := mat.NewDense(m, n+1, nil)
-		wide.Slice(0, m, 0, n).(*mat.Dense).Copy(a)
-		for i := range m {
-			wide.Set(i, n, rnd.NormFloat64())
-		}
-		c = append(c, rnd.NormFloat64())
-		lower = append(lower, 0)
-		upper = append(upper, 1)
-		cold, errCold := BoundedSimplex(c, wide, b, lower, upper, 0)
-		warm, errWarm := BoundedSimplexFrom(first.Basis, c, wide, b, lower, upper, 0)
-		if (errCold == nil) != (errWarm == nil) {
-			t.Fatalf("cold %v, warm %v", errCold, errWarm)
-		}
-		if errCold != nil {
-			continue
-		}
-		total++
-		if warm.Iterations < cold.Iterations {
-			warmed++
-		}
-		if !scalar.EqualWithinAbsOrRel(cold.F, warm.F, 1e-8, 1e-8) {
-			t.Fatalf("cold %v, warm %v", cold.F, warm.F)
-		}
-		if e := checkKKT(c, wide, b, lower, upper, warm, 1e-8); e != nil {
-			t.Fatal(e)
-		}
-	}
-	if warmed*2 < total {
-		t.Fatalf("warm start saved pivots in only %d of %d solves", warmed, total)
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			rnd := rand.New(rand.NewPCG(6, 6))
+			warmed, total := 0, 0
+			for range 500 {
+				n := rnd.IntN(25) + 2
+				m := rnd.IntN(n) + 1
+				c, a, b, lower, upper := boundedProblem(rnd, m, n)
+				first, err := fk.solve(nil, c, a, b, lower, upper, 0)
+				if err != nil {
+					continue
+				}
+				// New costs, then one appended column.
+				for j := range c {
+					c[j] += 0.3 * rnd.NormFloat64()
+				}
+				wide := mat.NewDense(m, n+1, nil)
+				wide.Slice(0, m, 0, n).(*mat.Dense).Copy(a)
+				for i := range m {
+					wide.Set(i, n, rnd.NormFloat64())
+				}
+				c = append(c, rnd.NormFloat64())
+				lower = append(lower, 0)
+				upper = append(upper, 1)
+				cold, errCold := fk.solve(nil, c, wide, b, lower, upper, 0)
+				warm, errWarm := fk.solve(first.Basis, c, wide, b, lower, upper, 0)
+				if (errCold == nil) != (errWarm == nil) {
+					t.Fatalf("cold %v, warm %v", errCold, errWarm)
+				}
+				if errCold != nil {
+					continue
+				}
+				total++
+				if warm.Iterations < cold.Iterations {
+					warmed++
+				}
+				if !scalar.EqualWithinAbsOrRel(cold.F, warm.F, 1e-8, 1e-8) {
+					t.Fatalf("cold %v, warm %v", cold.F, warm.F)
+				}
+				if e := checkKKT(c, wide, b, lower, upper, warm, 1e-8); e != nil {
+					t.Fatal(e)
+				}
+			}
+			if warmed*2 < total {
+				t.Fatalf("warm start saved pivots in only %d of %d solves", warmed, total)
+			}
+		})
 	}
 }
 
@@ -367,13 +397,17 @@ func dispatchLP(units, hours int) (c []float64, a *mat.Dense, b, lower, upper []
 
 func TestBoundedSimplexDispatch(t *testing.T) {
 	t.Parallel()
-	c, a, b, lower, upper := dispatchLP(30, 8)
-	res, err := BoundedSimplex(c, a, b, lower, upper, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
-		t.Fatal(e)
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			c, a, b, lower, upper := dispatchLP(30, 8)
+			res, err := fk.solve(nil, c, a, b, lower, upper, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
+				t.Fatal(e)
+			}
+		})
 	}
 }
 
@@ -400,47 +434,51 @@ func BenchmarkBoundedSimplexDispatch(b *testing.B) {
 // columns are appended. Degenerate convexity rows made this cycle.
 func TestBoundedSimplexWarmChain(t *testing.T) {
 	t.Parallel()
-	f, err := os.Open("testdata/dw_master_chain.json.gz")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	z, err := gzip.NewReader(f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var chain []struct {
-		M, N                  int
-		C, A, B, Lower, Upper []float64
-	}
-	if err := json.NewDecoder(z).Decode(&chain); err != nil {
-		t.Fatal(err)
-	}
-	var basis *Basis
-	for round, lp := range chain {
-		for j := range lp.Upper {
-			if lp.Upper[j] >= 1e300 {
-				lp.Upper[j] = math.Inf(1)
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			f, err := os.Open("testdata/dw_master_chain.json.gz")
+			if err != nil {
+				t.Fatal(err)
 			}
-			if lp.Lower[j] <= -1e300 {
-				lp.Lower[j] = math.Inf(-1)
+			defer f.Close()
+			z, err := gzip.NewReader(f)
+			if err != nil {
+				t.Fatal(err)
 			}
-		}
-		a := mat.NewDense(lp.M, lp.N, lp.A)
-		cold, errCold := BoundedSimplex(lp.C, a, lp.B, lp.Lower, lp.Upper, 0)
-		if errCold != nil {
-			t.Fatalf("round %d cold: %v", round+1, errCold)
-		}
-		warm, err := BoundedSimplexFrom(basis, lp.C, a, lp.B, lp.Lower, lp.Upper, 0)
-		if err != nil {
-			t.Fatalf("round %d warm: %v", round+1, err)
-		}
-		if !scalar.EqualWithinAbsOrRel(cold.F, warm.F, 1e-7, 1e-9) {
-			t.Fatalf("round %d: cold %v, warm %v", round+1, cold.F, warm.F)
-		}
-		if e := checkKKT(lp.C, a, lp.B, lp.Lower, lp.Upper, warm, 1e-7); e != nil {
-			t.Fatalf("round %d: %v", round+1, e)
-		}
-		basis = warm.Basis
+			var chain []struct {
+				M, N                  int
+				C, A, B, Lower, Upper []float64
+			}
+			if err := json.NewDecoder(z).Decode(&chain); err != nil {
+				t.Fatal(err)
+			}
+			var basis *Basis
+			for round, lp := range chain {
+				for j := range lp.Upper {
+					if lp.Upper[j] >= 1e300 {
+						lp.Upper[j] = math.Inf(1)
+					}
+					if lp.Lower[j] <= -1e300 {
+						lp.Lower[j] = math.Inf(-1)
+					}
+				}
+				a := mat.NewDense(lp.M, lp.N, lp.A)
+				cold, errCold := fk.solve(nil, lp.C, a, lp.B, lp.Lower, lp.Upper, 0)
+				if errCold != nil {
+					t.Fatalf("round %d cold: %v", round+1, errCold)
+				}
+				warm, err := fk.solve(basis, lp.C, a, lp.B, lp.Lower, lp.Upper, 0)
+				if err != nil {
+					t.Fatalf("round %d warm: %v", round+1, err)
+				}
+				if !scalar.EqualWithinAbsOrRel(cold.F, warm.F, 1e-7, 1e-9) {
+					t.Fatalf("round %d: cold %v, warm %v", round+1, cold.F, warm.F)
+				}
+				if e := checkKKT(lp.C, a, lp.B, lp.Lower, lp.Upper, warm, 1e-7); e != nil {
+					t.Fatalf("round %d: %v", round+1, e)
+				}
+				basis = warm.Basis
+			}
+		})
 	}
 }
