@@ -78,7 +78,7 @@ func (s *bounded) dual() error {
 	tau := make([]float64, m)
 	flip := make([]float64, m)
 	var cand []candidate
-	rechecked := false
+	rechecked, retries := false, 0
 	s.bland, s.stall = false, 0
 	for {
 		if s.iterations >= s.limit {
@@ -89,9 +89,9 @@ func (s *bounded) dual() error {
 		for i, j := range s.head {
 			var inf float64
 			switch {
-			case s.x[j] < s.lower[j]-s.tol*math.Max(1, math.Abs(s.lower[j])):
+			case s.x[j] < s.lower[j]-s.tol:
 				inf = s.lower[j] - s.x[j]
-			case s.x[j] > s.upper[j]+s.tol*math.Max(1, math.Abs(s.upper[j])):
+			case s.x[j] > s.upper[j]+s.tol:
 				inf = s.x[j] - s.upper[j]
 			default:
 				continue
@@ -107,6 +107,7 @@ func (s *bounded) dual() error {
 			}
 		}
 		if r < 0 {
+			s.bland, s.stall = false, 0
 			return nil
 		}
 		leave := s.head[r]
@@ -162,6 +163,20 @@ func (s *bounded) dual() error {
 		if q < 0 {
 			return ErrInfeasible
 		}
+		s.ftran(q)
+		pivot := s.alpha[r]
+		if math.Abs(pivot) <= pivotTol {
+			// The pivot row and column disagree; refactorize and retry,
+			// leaving the cold solve to a basis that stays this unstable.
+			if retries++; retries > 2 {
+				return ErrSingular
+			}
+			if err := s.refactor(); err != nil {
+				return err
+			}
+			continue
+		}
+		retries = 0
 		// Primal update: flipped variables, then the entering variable.
 		if len(flips) > 0 {
 			clear(flip)
@@ -181,14 +196,6 @@ func (s *bounded) dual() error {
 			for i, a := range flip {
 				s.x[s.head[i]] -= a
 			}
-		}
-		s.ftran(q)
-		pivot := s.alpha[r]
-		if math.Abs(pivot) <= pivotTol {
-			if err := s.refactor(); err != nil {
-				return err
-			}
-			continue
 		}
 		target := s.lower[leave]
 		if sign < 0 {

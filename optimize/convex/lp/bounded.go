@@ -24,7 +24,8 @@ type BoundedResult struct {
 	// nonnegative where x is at its lower bound, nonpositive where x is at
 	// its upper bound, and zero where x is strictly between its bounds.
 	Dual []float64
-	// Iterations counts simplex pivots and bound flips over both phases.
+	// Iterations counts primal simplex pivots and bound flips over both
+	// phases, and dual simplex pivots, whose bound flips are not counted.
 	Iterations int
 	// Basis is the optimal basis, for a warm start with BoundedSimplexFrom.
 	Basis *Basis
