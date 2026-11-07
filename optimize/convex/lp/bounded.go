@@ -8,9 +8,6 @@ import (
 	"errors"
 	"math"
 
-	"plantcontrol.org/v1/gonum/blas"
-	"plantcontrol.org/v1/gonum/blas/blas64"
-	"plantcontrol.org/v1/gonum/lapack/lapack64"
 	"plantcontrol.org/v1/gonum/mat"
 )
 
@@ -119,18 +116,10 @@ const (
 	basic
 )
 
-type eta struct {
-	row   int
-	alpha []float64
-}
-
 type bounded struct {
 	m, n, total int
 	tol         float64
-	// Columns of [A | artificial identity] in compressed sparse column form.
-	start []int
-	index []int
-	value []float64
+	columns     // [A | artificial identity]
 
 	b            []float64
 	cost         []float64 // phase cost
@@ -140,10 +129,7 @@ type bounded struct {
 	status       []int
 	head         []int // head[i] is the variable basic in row i
 
-	slab       []float64      // eta columns, refactorEvery × m
-	factor     blas64.General // LU of the last refactorized basis, row-major
-	ipiv       []int
-	etas       []eta
+	lu         basisFactor
 	y          []float64
 	alpha      []float64
 	work       []float64
@@ -216,10 +202,7 @@ func newBounded(c []float64, A mat.Matrix, b, lower, upper []float64, tol float6
 	}
 	s.y = make([]float64, m)
 	s.alpha = make([]float64, m)
-	s.slab = make([]float64, refactorEvery*m)
-	s.etas = make([]eta, 0, refactorEvery)
-	s.factor = blas64.General{Rows: m, Cols: m, Stride: max(m, 1), Data: make([]float64, m*m)}
-	s.ipiv = make([]int, m)
+	s.lu = newDenseLU(m)
 	s.work = make([]float64, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
@@ -370,11 +353,7 @@ func (s *bounded) run() error {
 		}
 		s.head[row] = q
 		s.status[q] = basic
-		k := len(s.etas)
-		col := s.slab[k*s.m : (k+1)*s.m]
-		copy(col, s.alpha)
-		s.etas = append(s.etas, eta{row, col})
-		if len(s.etas) >= refactorEvery {
+		if s.lu.update(row, s.alpha) {
 			if err := s.refactor(); err != nil {
 				return err
 			}
@@ -385,19 +364,11 @@ func (s *bounded) run() error {
 // refactor factorizes the current basis and recomputes basic values from
 // the nonbasic ones to remove accumulated drift.
 func (s *bounded) refactor() error {
-	s.etas = s.etas[:0]
+	if err := s.lu.factorize(&s.columns, s.head); err != nil {
+		return err
+	}
 	if s.m == 0 {
 		return nil
-	}
-	a := s.factor.Data
-	clear(a)
-	for i, j := range s.head {
-		for k := s.start[j]; k < s.start[j+1]; k++ {
-			a[s.index[k]*s.m+i] = s.value[k]
-		}
-	}
-	if !lapack64.Getrf(s.factor, s.ipiv) {
-		return ErrSingular
 	}
 	r := s.work
 	copy(r, s.b)
@@ -408,79 +379,29 @@ func (s *bounded) refactor() error {
 			}
 		}
 	}
-	s.luSolve(r, false)
+	s.lu.ftran(r)
 	for i, j := range s.head {
 		s.x[j] = r[i]
 	}
 	return nil
 }
 
-// luSolve overwrites v with B₀⁻¹v, or B₀⁻ᵀv when trans, for the factorized
-// basis P B₀ = L U.
-func (s *bounded) luSolve(v []float64, trans bool) {
-	lower := blas64.Triangular{Uplo: blas.Lower, Diag: blas.Unit, N: s.m, Stride: s.factor.Stride, Data: s.factor.Data}
-	upper := blas64.Triangular{Uplo: blas.Upper, Diag: blas.NonUnit, N: s.m, Stride: s.factor.Stride, Data: s.factor.Data}
-	x := blas64.Vector{N: s.m, Inc: 1, Data: v}
-	if !trans {
-		for i, p := range s.ipiv {
-			v[i], v[p] = v[p], v[i]
-		}
-		blas64.Trsv(blas.NoTrans, lower, x)
-		blas64.Trsv(blas.NoTrans, upper, x)
-		return
-	}
-	blas64.Trsv(blas.Trans, upper, x)
-	blas64.Trsv(blas.Trans, lower, x)
-	for i := s.m - 1; i >= 0; i-- {
-		p := s.ipiv[i]
-		v[i], v[p] = v[p], v[i]
-	}
-}
-
 // btran sets y to solve Bᵀy = c_B.
 func (s *bounded) btran() {
-	if s.m == 0 {
-		return
-	}
-	v := s.y
 	for i, j := range s.head {
-		v[i] = s.cost[j]
+		s.y[i] = s.cost[j]
 	}
-	for k := len(s.etas) - 1; k >= 0; k-- {
-		e := s.etas[k]
-		sum := v[e.row]
-		for i, a := range e.alpha {
-			if i != e.row {
-				sum -= a * v[i]
-			}
-		}
-		v[e.row] = sum / e.alpha[e.row]
-	}
-	s.luSolve(v, true)
+	s.lu.btran(s.y)
 }
 
 // ftran sets alpha to solve B alpha = a_q.
 func (s *bounded) ftran(q int) {
-	if s.m == 0 {
-		return
-	}
 	z := s.alpha
 	clear(z)
 	for k := s.start[q]; k < s.start[q+1]; k++ {
 		z[s.index[k]] = s.value[k]
 	}
-	s.luSolve(z, false)
-	for _, e := range s.etas {
-		zr := z[e.row] / e.alpha[e.row]
-		if zr != 0 {
-			for i, a := range e.alpha {
-				if i != e.row {
-					z[i] -= a * zr
-				}
-			}
-		}
-		z[e.row] = zr
-	}
+	s.lu.ftran(z)
 }
 
 // price returns an entering variable and its direction (+1 increase, -1
