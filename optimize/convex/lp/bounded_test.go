@@ -153,61 +153,19 @@ func TestBoundedSimplexMatchesSimplex(t *testing.T) {
 			want, _, errWant := Simplex(c, a, b, 0, nil)
 			res, err := BoundedSimplex(c, a, b, lower, upper, 0)
 			switch {
+			case errWant == ErrSingular || errWant == ErrZeroRow || errWant == ErrZeroColumn:
+			case err != errWant:
+				t.Fatalf("m=%d n=%d: error %v, Simplex %v", m, n, err, errWant)
 			case err == nil:
-				// The KKT conditions certify optimality; Simplex can
-				// misreport such problems as unbounded.
 				if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
-					t.Fatalf("m=%d n=%d: %v (Simplex %v)", m, n, e, errWant)
+					t.Fatalf("m=%d n=%d: %v", m, n, e)
 				}
-				if errWant == nil && !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+				if !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
 					t.Fatalf("m=%d n=%d: objective %v, Simplex %v", m, n, res.F, want)
 				}
-			case err == ErrInfeasible:
-				// Simplex can misreport these; check with an independent phase 1.
-				if !phaseOneInfeasible(a, b) {
-					t.Fatalf("m=%d n=%d: reported infeasible, Simplex %v", m, n, errWant)
-				}
-			case errWant == ErrSingular || errWant == ErrZeroRow || errWant == ErrZeroColumn:
-			default:
-				if err != errWant {
-					t.Fatalf("m=%d n=%d: error %v, Simplex %v", m, n, err, errWant)
-				}
 			}
 		}
 	}
-}
-
-// phaseOneInfeasible solves min Σ s subject to A x + diag(sign b) s = b,
-// x, s ≥ 0 with Simplex and reports a positive optimum.
-func phaseOneInfeasible(a *mat.Dense, b []float64) bool {
-	m, cols := a.Dims()
-	var keep []int
-	for j := range cols {
-		for i := range m {
-			if a.At(i, j) != 0 {
-				keep = append(keep, j)
-				break
-			}
-		}
-	}
-	n := len(keep)
-	ext := mat.NewDense(m, n+m, nil)
-	c := make([]float64, n+m)
-	basic := make([]int, m)
-	for i := range m {
-		for k, j := range keep {
-			ext.Set(i, k, a.At(i, j))
-		}
-		sign := 1.0
-		if b[i] < 0 {
-			sign = -1
-		}
-		ext.Set(i, n+i, sign)
-		c[n+i] = 1
-		basic[i] = n + i
-	}
-	f, _, err := Simplex(c, ext, b, 0, basic)
-	return err == nil && f > 1e-9
 }
 
 // boundedProblem is feasible by construction: b = A x0 for x0 within the
