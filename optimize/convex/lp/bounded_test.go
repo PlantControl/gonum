@@ -5,10 +5,13 @@
 package lp
 
 import (
+	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"os"
 	"testing"
 
 	"plantcontrol.org/v1/gonum/floats/scalar"
@@ -150,30 +153,24 @@ func TestBoundedSimplexMatchesSimplex(t *testing.T) {
 			want, _, errWant := Simplex(c, a, b, 0, nil)
 			res, err := BoundedSimplex(c, a, b, lower, upper, 0)
 			switch {
-			case errWant == ErrSingular || errWant == ErrZeroRow || errWant == ErrZeroColumn:
-				if err == nil {
-					if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
-						t.Fatalf("m=%d n=%d: %v", m, n, e)
-					}
+			case err == nil:
+				// The KKT conditions certify optimality; Simplex can
+				// misreport such problems as unbounded.
+				if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
+					t.Fatalf("m=%d n=%d: %v (Simplex %v)", m, n, e, errWant)
+				}
+				if errWant == nil && !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+					t.Fatalf("m=%d n=%d: objective %v, Simplex %v", m, n, res.F, want)
 				}
 			case err == ErrInfeasible:
 				// Simplex can misreport these; check with an independent phase 1.
 				if !phaseOneInfeasible(a, b) {
 					t.Fatalf("m=%d n=%d: reported infeasible, Simplex %v", m, n, errWant)
 				}
-			case errWant != nil:
+			case errWant == ErrSingular || errWant == ErrZeroRow || errWant == ErrZeroColumn:
+			default:
 				if err != errWant {
 					t.Fatalf("m=%d n=%d: error %v, Simplex %v", m, n, err, errWant)
-				}
-			default:
-				if err != nil {
-					t.Fatalf("m=%d n=%d: error %v, Simplex optimal %v", m, n, err, want)
-				}
-				if !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
-					t.Fatalf("m=%d n=%d: objective %v, Simplex %v", m, n, res.F, want)
-				}
-				if e := checkKKT(c, a, b, lower, upper, res, 1e-8); e != nil {
-					t.Fatalf("m=%d n=%d: %v", m, n, e)
 				}
 			}
 		}
@@ -437,5 +434,55 @@ func BenchmarkBoundedSimplexDispatch(b *testing.B) {
 			}
 			b.ReportMetric(float64(it), "pivots")
 		})
+	}
+}
+
+// TestBoundedSimplexWarmChain replays the master LPs of a Dantzig–Wolfe
+// unit commitment dispatch, each warm-started from the previous basis as
+// columns are appended. Degenerate convexity rows made this cycle.
+func TestBoundedSimplexWarmChain(t *testing.T) {
+	t.Parallel()
+	f, err := os.Open("testdata/dw_master_chain.json.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	z, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var chain []struct {
+		M, N                  int
+		C, A, B, Lower, Upper []float64
+	}
+	if err := json.NewDecoder(z).Decode(&chain); err != nil {
+		t.Fatal(err)
+	}
+	var basis *Basis
+	for round, lp := range chain {
+		for j := range lp.Upper {
+			if lp.Upper[j] >= 1e300 {
+				lp.Upper[j] = math.Inf(1)
+			}
+			if lp.Lower[j] <= -1e300 {
+				lp.Lower[j] = math.Inf(-1)
+			}
+		}
+		a := mat.NewDense(lp.M, lp.N, lp.A)
+		cold, errCold := BoundedSimplex(lp.C, a, lp.B, lp.Lower, lp.Upper, 0)
+		if errCold != nil {
+			t.Fatalf("round %d cold: %v", round+1, errCold)
+		}
+		warm, err := BoundedSimplexFrom(basis, lp.C, a, lp.B, lp.Lower, lp.Upper, 0)
+		if err != nil {
+			t.Fatalf("round %d warm: %v", round+1, err)
+		}
+		if !scalar.EqualWithinAbsOrRel(cold.F, warm.F, 1e-7, 1e-9) {
+			t.Fatalf("round %d: cold %v, warm %v", round+1, cold.F, warm.F)
+		}
+		if e := checkKKT(lp.C, a, lp.B, lp.Lower, lp.Upper, warm, 1e-7); e != nil {
+			t.Fatalf("round %d: %v", round+1, e)
+		}
+		basis = warm.Basis
 	}
 }

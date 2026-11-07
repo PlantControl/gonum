@@ -148,6 +148,7 @@ type bounded struct {
 	alpha      []float64
 	work       []float64
 	bland      bool
+	objScale   float64 // magnitude of the phase objective, for progress tests
 	stall      int
 	limit      int
 	iterations int
@@ -296,12 +297,10 @@ func (s *bounded) warm(start *Basis) bool {
 	if s.refactor() != nil {
 		return false
 	}
-	scale := 1.0
-	for _, v := range s.b {
-		scale = math.Max(scale, math.Abs(v))
-	}
+	// The ratio test relaxes bounds by tol only, so a basic value further
+	// outside its bounds would block every step.
 	for _, j := range s.head {
-		if s.x[j] < s.lower[j]-s.tol*scale || s.x[j] > s.upper[j]+s.tol*scale {
+		if s.x[j] < s.lower[j]-s.tol || s.x[j] > s.upper[j]+s.tol {
 			return false
 		}
 	}
@@ -322,12 +321,16 @@ func (s *bounded) basis() *Basis {
 
 // run iterates the simplex method on the current phase cost.
 func (s *bounded) run() error {
+	s.objScale = 0
+	for j := range s.total {
+		s.objScale += math.Abs(s.cost[j] * s.x[j])
+	}
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
 		}
 		s.btran()
-		q, dir := s.price()
+		q, dir, gain := s.price()
 		if q < 0 {
 			return nil
 		}
@@ -337,7 +340,9 @@ func (s *bounded) run() error {
 			return ErrUnbounded
 		}
 		s.iterations++
-		if theta <= s.tol {
+		// A step that barely changes the objective counts as degenerate,
+		// so near-duplicate columns cannot alternate forever.
+		if theta*gain <= s.tol*math.Max(1, s.objScale) {
 			if s.stall++; s.stall >= blandAfter {
 				s.bland = true
 			}
@@ -480,35 +485,40 @@ func (s *bounded) ftran(q int) {
 
 // price returns an entering variable and its direction (+1 increase, -1
 // decrease), or -1 at optimality.
-func (s *bounded) price() (int, int) {
+func (s *bounded) price() (int, int, float64) {
 	best, q, dir := 0.0, -1, 0
 	for j := range s.total {
 		st := s.status[j]
 		if st == basic || s.lower[j] == s.upper[j] {
 			continue
 		}
-		d := s.cost[j]
+		// The tolerance scales with the terms of d, whose rounding error
+		// grows with them.
+		d, size := s.cost[j], math.Abs(s.cost[j])
 		for k := s.start[j]; k < s.start[j+1]; k++ {
-			d -= s.y[s.index[k]] * s.value[k]
+			t := s.y[s.index[k]] * s.value[k]
+			d -= t
+			size += math.Abs(t)
 		}
+		tol := s.tol * math.Max(1, size)
 		var gain float64
 		var way int
 		switch {
-		case d < -s.tol && (st == atLower || st == atZero):
+		case d < -tol && (st == atLower || st == atZero):
 			gain, way = -d, 1
-		case d > s.tol && (st == atUpper || st == atZero):
+		case d > tol && (st == atUpper || st == atZero):
 			gain, way = d, -1
 		default:
 			continue
 		}
 		if s.bland {
-			return j, way
+			return j, way, gain
 		}
 		if gain > best {
 			best, q, dir = gain, j, way
 		}
 	}
-	return q, dir
+	return q, dir, best
 }
 
 // ratio returns the step length, the leaving row, and whether the entering
@@ -531,6 +541,9 @@ func (s *bounded) ratio(q, dir int) (float64, int, bool) {
 		relaxed = math.Min(relaxed, limit(i, s.tol))
 	}
 	flip := s.upper[q] - s.lower[q]
+	if math.IsInf(flip, 1) && math.IsInf(relaxed, 1) {
+		return relaxed, -1, false
+	}
 	if flip <= relaxed {
 		return flip, -1, true
 	}
