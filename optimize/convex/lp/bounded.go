@@ -587,6 +587,10 @@ func (s *bounded) phase1() error {
 		}
 		return err
 	}
+	if s.fresh {
+		s.place()
+		return nil
+	}
 	return s.refactor()
 }
 
@@ -744,8 +748,14 @@ func (s *bounded) refactor() error {
 		return err
 	}
 	s.fresh = true
+	s.place()
+	return nil
+}
+
+// place recomputes the basic values from the nonbasic ones.
+func (s *bounded) place() {
 	if s.m == 0 {
-		return nil
+		return
 	}
 	r := s.work
 	copy(r, s.b)
@@ -760,7 +770,6 @@ func (s *bounded) refactor() error {
 	for i, j := range s.head {
 		s.x[j] = r[i]
 	}
-	return nil
 }
 
 // btran sets y to solve Bᵀy = c_B.

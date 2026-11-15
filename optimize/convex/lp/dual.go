@@ -9,8 +9,13 @@ import (
 	"slices"
 )
 
-// minWeight bounds the dual steepest-edge weights away from zero.
-const minWeight = 1e-4
+const (
+	// minWeight bounds the dual steepest-edge weights away from zero.
+	minWeight = 1e-4
+	// sortAfter is how many breakpoints the dual ratio test selects one
+	// by one before it sorts the rest.
+	sortAfter = 16
+)
 
 // reducedCost returns d_j = c_j - yᵀa_j and the tolerance for its sign,
 // which scales with the terms of the sum as in price.
@@ -47,6 +52,10 @@ func (s *bounded) dualStart() bool {
 		case st == atLower && d < -tol, st == atUpper && d > tol, st == atZero && math.Abs(d) > tol:
 			return false
 		}
+	}
+	if s.fresh {
+		s.place()
+		return true
 	}
 	return s.refactor() == nil
 }
@@ -329,18 +338,36 @@ func (s *bounded) dualRatio(cand []candidate, delta float64) (int, float64, []in
 		}
 		return q, t, nil
 	}
-	slices.SortFunc(cand, func(a, b candidate) int {
-		switch {
-		case a.ratio < b.ratio:
-			return -1
-		case a.ratio > b.ratio:
-			return 1
-		}
-		return a.j - b.j
-	})
-	// Pass breakpoints while the slope of the dual objective stays positive.
-	slope, k := delta, 0
+	// Pass breakpoints, in order of ratio, while the slope of the dual
+	// objective stays positive. Few are passed as a rule, so each is
+	// selected from the rest, and the rest is sorted only on a long run.
+	before := func(a, b candidate) bool {
+		return a.ratio < b.ratio || (a.ratio == b.ratio && a.j < b.j)
+	}
+	slope, k, sorted := delta, 0, false
 	for ; k < len(cand)-1; k++ {
+		switch {
+		case sorted:
+		case k == sortAfter:
+			slices.SortFunc(cand[k:], func(a, b candidate) int {
+				switch {
+				case before(a, b):
+					return -1
+				case before(b, a):
+					return 1
+				}
+				return 0
+			})
+			sorted = true
+		default:
+			first := k
+			for i := k + 1; i < len(cand); i++ {
+				if before(cand[i], cand[first]) {
+					first = i
+				}
+			}
+			cand[k], cand[first] = cand[first], cand[k]
+		}
 		j := cand[k].j
 		if math.IsInf(s.lower[j], -1) || math.IsInf(s.upper[j], 1) {
 			break
@@ -352,14 +379,18 @@ func (s *bounded) dualRatio(cand []candidate, delta float64) (int, float64, []in
 		slope = next
 	}
 	// Harris: among the remaining candidates within the relaxed step, the
-	// largest pivot.
+	// largest pivot, and of equal pivots the first in order.
 	relaxed := math.Inf(1)
 	for _, c := range cand[k:] {
 		relaxed = math.Min(relaxed, c.ratio+s.tol/c.alpha)
 	}
 	q := k
-	for i := k; i < len(cand) && cand[i].ratio <= relaxed; i++ {
-		if cand[i].alpha > cand[q].alpha {
+	for i := k + 1; i < len(cand); i++ {
+		c := cand[i]
+		if c.ratio > relaxed {
+			continue
+		}
+		if c.alpha > cand[q].alpha || (c.alpha == cand[q].alpha && before(c, cand[q])) {
 			q = i
 		}
 	}
