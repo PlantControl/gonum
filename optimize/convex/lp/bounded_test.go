@@ -299,6 +299,113 @@ func TestBoundedSimplexDegenerate(t *testing.T) {
 	}
 }
 
+// zeroRowsLP is a random sparse LP in which most rows have a zero
+// right-hand side and the coefficients spread over four magnitudes, so
+// long runs of degenerate pivots meet ties between pivots of very
+// different size.
+func zeroRowsLP(seed uint64, m, n int) (c []float64, a *cscMatrix, b, lower, upper []float64) {
+	type entry struct {
+		i int
+		v float64
+	}
+	rnd := rand.New(rand.NewPCG(seed, 7))
+	cols := make([][]entry, 0, n+m)
+	for range n {
+		var col []entry
+		for i := range m {
+			if rnd.Float64() < 4/float64(m) {
+				v := math.Pow(10, -4*rnd.Float64())
+				if rnd.IntN(2) == 0 {
+					v = -v
+				}
+				col = append(col, entry{i, v})
+			}
+		}
+		if len(col) == 0 {
+			col = append(col, entry{rnd.IntN(m), 1})
+		}
+		cols = append(cols, col)
+		c = append(c, -rnd.Float64())
+		lower = append(lower, 0)
+		upper = append(upper, 1+rnd.Float64())
+	}
+	b = make([]float64, m)
+	for i := range m {
+		if rnd.IntN(10) == 0 {
+			b[i] = rnd.Float64()
+		}
+		if rnd.IntN(8) == 0 {
+			continue
+		}
+		cols = append(cols, []entry{{i, 1}})
+		c = append(c, 0)
+		lower = append(lower, 0)
+		upper = append(upper, math.Inf(1))
+	}
+	a = &cscMatrix{m: m, n: len(cols), start: []int{0}}
+	for _, col := range cols {
+		for _, e := range col {
+			a.index = append(a.index, e.i)
+			a.value = append(a.value, e.v)
+		}
+		a.start = append(a.start, len(a.index))
+	}
+	return c, a, b, lower, upper
+}
+
+// With these seeds Bland's rule used to take the smallest index among tied
+// rows whatever its pivot, and the sparse factorization then failed with
+// ErrSingular.
+func TestBoundedSimplexBlandPivot(t *testing.T) {
+	t.Parallel()
+	for _, seed := range []uint64{5, 28} {
+		c, a, b, lower, upper := zeroRowsLP(seed, 80, 300)
+		var want float64
+		for k, fk := range factorKinds {
+			res, err := fk.solve(nil, c, a, b, lower, upper, 0)
+			if err != nil {
+				t.Fatalf("seed %d %s: %v", seed, fk.name, err)
+			}
+			if e := checkKKT(c, a, b, lower, upper, res, 1e-7); e != nil {
+				t.Fatalf("seed %d %s: %v", seed, fk.name, e)
+			}
+			if k == 0 {
+				want = res.F
+			} else if !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+				t.Errorf("seed %d %s: objective %v, dense %v", seed, fk.name, res.F, want)
+			}
+		}
+	}
+}
+
+func TestBlandRatioSkipsSmallPivot(t *testing.T) {
+	t.Parallel()
+	// Two basic variables at their lower bounds tie at a zero step.
+	for _, test := range []struct {
+		alpha []float64
+		want  int
+	}{
+		{[]float64{0.5, 1}, 0},
+		{[]float64{1e-8, 1}, 1},
+		{[]float64{1, 1e-8}, 0},
+	} {
+		inf := math.Inf(1)
+		s := &bounded{
+			tol:   1e-9,
+			bland: true,
+			alpha: test.alpha,
+			head:  []int{0, 1},
+			x:     []float64{0, 0, 0},
+			lower: []float64{0, 0, 0},
+			upper: []float64{inf, inf, inf},
+		}
+		theta, row, flip := s.ratio(2, 1)
+		if theta != 0 || row != test.want || flip {
+			t.Errorf("alpha %v: step %v, row %d, flip %v; want row %d", test.alpha, theta, row, flip, test.want)
+		}
+	}
+}
+
 func TestBoundedSimplexWarm(t *testing.T) {
 	t.Parallel()
 	for _, fk := range factorKinds {
