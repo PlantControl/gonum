@@ -19,7 +19,7 @@ import (
 // with the dual simplex method.
 func takesDualPath(fk factorKind, start *Basis, c []float64, a mat.Matrix, b, lower, upper []float64) bool {
 	s := newBounded(fk.new, c, a, b, lower, upper, 1e-9)
-	return s.warm(start) && !s.primalFeasible() && s.dualStart()
+	return s.warm(start) && !s.within(s.tol) && s.dualStart()
 }
 
 // perturb returns a copy of an LP with optimum x after one of: bounds
