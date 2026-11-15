@@ -40,32 +40,40 @@ type sparseLU struct {
 	work       []float64
 	etas       etaFile
 
-	// Active submatrix during factorization.
-	rowIdx  [][]int // basis positions
-	rowVal  [][]float64
-	colIdx  [][]int // matrix rows
-	rows    countList
-	cols    countList
-	scatter []float64
-	stamp   []int
-	seen    []int
+	// Active submatrix during factorization. Values are stored by row
+	// only, so reading a column costs a search of each of its rows.
+	// colBig caches each column's largest magnitude for the threshold
+	// test; colStale marks a cache whose largest entry shrank or left.
+	rowIdx   [][]int // basis positions
+	rowVal   [][]float64
+	colIdx   [][]int // matrix rows
+	colBig   []float64
+	colStale []bool
+	audit    func(j int) // test hook, called on each use of the cache
+	rows     countList
+	cols     countList
+	scatter  []float64
+	stamp    []int
+	seen     []int
 }
 
 func newSparseLU(m int) *sparseLU {
 	return &sparseLU{
-		m:       m,
-		prow:    make([]int, m),
-		pcol:    make([]int, m),
-		uDiag:   make([]float64, m),
-		work:    make([]float64, m),
-		rowIdx:  make([][]int, m),
-		rowVal:  make([][]float64, m),
-		colIdx:  make([][]int, m),
-		rows:    newCountList(m),
-		cols:    newCountList(m),
-		scatter: make([]float64, m),
-		stamp:   make([]int, m),
-		seen:    make([]int, m),
+		m:        m,
+		prow:     make([]int, m),
+		pcol:     make([]int, m),
+		uDiag:    make([]float64, m),
+		work:     make([]float64, m),
+		rowIdx:   make([][]int, m),
+		rowVal:   make([][]float64, m),
+		colIdx:   make([][]int, m),
+		colBig:   make([]float64, m),
+		colStale: make([]bool, m),
+		rows:     newCountList(m),
+		cols:     newCountList(m),
+		scatter:  make([]float64, m),
+		stamp:    make([]int, m),
+		seen:     make([]int, m),
 	}
 }
 
@@ -80,12 +88,15 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 		f.stamp[i], f.seen[i] = -1, -1
 	}
 	for pos, j := range head {
+		big := 0.0
 		for k := a.start[j]; k < a.start[j+1]; k++ {
 			r := a.index[k]
 			f.rowIdx[r] = append(f.rowIdx[r], pos)
 			f.rowVal[r] = append(f.rowVal[r], a.value[k])
 			f.colIdx[pos] = append(f.colIdx[pos], r)
+			big = math.Max(big, math.Abs(a.value[k]))
 		}
+		f.colBig[pos], f.colStale[pos] = big, false
 	}
 	f.rows.reset()
 	f.cols.reset()
@@ -121,6 +132,7 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 			f.scatter[j] = v
 			f.stamp[j] = k
 			f.colIdx[j] = removeInt(f.colIdx[j], p)
+			f.left(j, v)
 		}
 		f.uStart = append(f.uStart, len(f.uIndex))
 		diag := f.uDiag[k]
@@ -153,10 +165,16 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 					d := l * f.scatter[j]
 					v := val[t] - d
 					if math.Abs(v) <= dropTol*math.Max(math.Abs(val[t]), math.Abs(d)) {
+						f.left(j, val[t])
 						idx[t], val[t] = idx[len(idx)-1], val[len(val)-1]
 						idx, val = idx[:len(idx)-1], val[:len(val)-1]
 						f.colIdx[j] = removeInt(f.colIdx[j], i)
 						continue
+					}
+					if math.Abs(v) < f.colBig[j] {
+						f.left(j, val[t])
+					} else {
+						f.colBig[j] = math.Abs(v)
 					}
 					val[t] = v
 				}
@@ -170,6 +188,7 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 				idx = append(idx, j)
 				val = append(val, -l*f.scatter[j])
 				f.colIdx[j] = append(f.colIdx[j], i)
+				f.colBig[j] = math.Max(f.colBig[j], math.Abs(l*f.scatter[j]))
 			}
 			f.rowIdx[i], f.rowVal[i] = idx, val
 			f.rows.move(i, len(idx))
@@ -228,12 +247,34 @@ func (f *sparseLU) lookup(i, j int) float64 {
 	return 0
 }
 
+// colMax returns the largest magnitude in column j of the active
+// submatrix.
 func (f *sparseLU) colMax(j int) float64 {
+	if f.colStale[j] {
+		f.colBig[j], f.colStale[j] = f.colScan(j), false
+	}
+	if f.audit != nil {
+		f.audit(j)
+	}
+	return f.colBig[j]
+}
+
+// colScan reads column j through its rows.
+func (f *sparseLU) colScan(j int) float64 {
 	big := 0.0
 	for _, i := range f.colIdx[j] {
 		big = math.Max(big, math.Abs(f.lookup(i, j)))
 	}
 	return big
+}
+
+// left records that an entry of value v in column j was removed or
+// reduced. Only the loss of the largest entry invalidates the cached
+// maximum.
+func (f *sparseLU) left(j int, v float64) {
+	if math.Abs(v) >= f.colBig[j] {
+		f.colStale[j] = true
+	}
 }
 
 func removeInt(s []int, v int) []int {
