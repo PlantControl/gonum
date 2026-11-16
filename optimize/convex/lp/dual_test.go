@@ -19,7 +19,7 @@ import (
 // with the dual simplex method.
 func takesDualPath(fk factorKind, start *Basis, c []float64, a mat.Matrix, b, lower, upper []float64) bool {
 	s := newBounded(fk.new, c, a, b, lower, upper, 1e-9)
-	return s.warm(start) && !s.primalFeasible() && s.dualStart()
+	return s.warm(start) && !s.within(s.tol) && s.dualStart()
 }
 
 // perturb returns a copy of an LP with optimum x after one of: bounds
@@ -109,6 +109,63 @@ func TestBoundedSimplexDualWarm(t *testing.T) {
 			t.Logf("dual path %d, fewer pivots %d, infeasible %d", dual, fewer, infeasible)
 			if dual < 1000 || infeasible < 100 || 4*fewer < 3*(dual-infeasible) {
 				t.Fatalf("dual path %d, fewer pivots %d, infeasible %d", dual, fewer, infeasible)
+			}
+		})
+	}
+}
+
+// A warm basis that a change of costs and of constraints leaves neither
+// primal nor dual feasible goes through the dual phase 1, or to a feasible
+// point when no basis is dual feasible.
+func TestBoundedSimplexWarmNeither(t *testing.T) {
+	t.Parallel()
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			rnd := rand.New(rand.NewPCG(17, 17))
+			var neither, optimal, infeasible, unbounded int
+			for range 20000 {
+				n := rnd.IntN(25) + 2
+				m := rnd.IntN(n) + 1
+				c, a, b, lower, upper := boundedProblem(rnd, m, n)
+				first, err := fk.solve(nil, c, a, b, lower, upper, 0)
+				if err != nil {
+					continue
+				}
+				a2, b2, lower2, upper2 := perturb(rnd, first.X, a, b, lower, upper)
+				c2 := append([]float64(nil), c...)
+				for j := range c2 {
+					if c2[j] != 0 && rnd.IntN(2) == 0 {
+						c2[j] = rnd.NormFloat64()
+					}
+				}
+				s := newBounded(fk.new, c2, a2, b2, lower2, upper2, 1e-9)
+				if !s.warm(first.Basis) || s.within(s.tol) || s.dualStart() {
+					continue
+				}
+				neither++
+				cold, errCold := fk.solve(nil, c2, a2, b2, lower2, upper2, 0)
+				warm, errWarm := fk.solve(first.Basis, c2, a2, b2, lower2, upper2, 0)
+				if errCold != errWarm {
+					t.Fatalf("cold %v, warm %v", errCold, errWarm)
+				}
+				switch errCold {
+				case ErrInfeasible:
+					infeasible++
+				case ErrUnbounded:
+					unbounded++
+				case nil:
+					optimal++
+					if !scalar.EqualWithinAbsOrRel(cold.F, warm.F, 1e-7, 1e-7) {
+						t.Fatalf("cold %v, warm %v", cold.F, warm.F)
+					}
+					if e := checkKKT(c2, a2, b2, lower2, upper2, warm, 1e-7); e != nil {
+						t.Fatal(e)
+					}
+				}
+			}
+			t.Logf("neither %d: optimal %d, infeasible %d, unbounded %d", neither, optimal, infeasible, unbounded)
+			if optimal < 300 || infeasible < 100 || unbounded < 20 {
+				t.Fatalf("neither %d: optimal %d, infeasible %d, unbounded %d", neither, optimal, infeasible, unbounded)
 			}
 		})
 	}

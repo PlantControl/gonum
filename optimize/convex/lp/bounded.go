@@ -43,26 +43,44 @@ type Basis struct {
 //	s.t.		A x = b,
 //			lower ≤ x ≤ upper,
 //
-// where a bound may be infinite. It is a revised primal simplex method for
-// bounded variables (Bixby, "Implementing the simplex method: the initial
-// basis", ORSA J. Computing 4(3), 1992; Chvátal, Linear Programming, ch. 8).
-// Phase 1 minimizes the sum of one artificial variable per row. Each pivot
-// reuses an LU factorization of an earlier basis through product-form eta
-// updates, refactorizing periodically. The factorization is sparse, with
-// Markowitz pivot selection, unless A is dense, so the cost of a pivot
-// follows the nonzeros of the factors rather than m². Pricing is Dantzig's rule; the ratio
-// test is Harris's two-pass test. After a run of degenerate pivots it
-// switches to Bland's rule, among pivots that are not small, until the
-// objective moves. That limits cycling but does not rule it out; a
+// where a bound may be infinite. It is a revised simplex method for bounded
+// variables that starts from the basis of slack columns, one per row whose
+// only nonzero is in that row, with an artificial variable fixed at zero
+// where a row has none. From there the dual simplex method runs first
+// (Koberstein, "The dual simplex method, techniques for a fast and stable
+// implementation", PhD thesis, Paderborn, 2005): if the basis is not dual
+// feasible, a phase 1 finds one that is by solving the problem with a zero
+// right-hand side and each variable boxed around zero on the sides where
+// it has no finite bound (Koberstein and Suhl, "Progress in the dual
+// simplex method for large scale LP problems: practical dual phase 1
+// algorithms", 2007). A run of degenerate dual pivots perturbs the costs;
+// the primal simplex method removes what the perturbation leaves. If the dual method gives up, the
+// primal method solves from the artificial basis in two phases (Chvátal,
+// Linear Programming, ch. 8), with Dantzig pricing, Harris's two-pass ratio
+// test and, after a run of degenerate pivots, Bland's rule among pivots
+// that are not small. That limits cycling but does not rule it out; a
 // problem that still cycles ends in ErrIterationLimit.
+//
+// Each pivot reuses an LU factorization of an earlier basis through
+// product-form eta updates, refactorizing periodically. The factorization
+// is sparse, with Markowitz pivot selection, unless A is dense, so the cost
+// of a pivot follows the nonzeros of the factors rather than m².
+//
+// A result is returned only for a basis that is optimal on a fresh
+// factorization and satisfies A x = b. ErrInfeasible is returned only with
+// row multipliers y for which yᵀA x cannot reach yᵀb within the bounds,
+// and ErrUnbounded either from a primal ratio test with no limit or with a
+// feasible point and a direction of falling cost that keeps A x and the
+// finite bounds.
 //
 // If A implements mat.ColNonZeroDoer, only its nonzero elements are read,
 // so a sparse A with many columns need not be stored densely.
 //
 // tol is the optimality and feasibility tolerance; zero selects 1e-9.
-// BoundedSimplex returns ErrInfeasible, ErrUnbounded, ErrSingular if a
-// basis cannot be factorized, or ErrIterationLimit. It panics if the input
-// sizes do not match or a lower bound exceeds its upper bound.
+// BoundedSimplex returns ErrInfeasible, ErrUnbounded, ErrIterationLimit, or
+// ErrSingular if a basis cannot be factorized or no method reaches a
+// verdict it can check. It panics if the input sizes do not match or a
+// lower bound exceeds its upper bound.
 func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
 	return BoundedSimplexFrom(nil, c, A, b, lower, upper, tol)
 }
@@ -76,7 +94,8 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 // If the basis is still primal feasible, the primal simplex method continues
 // from it. Otherwise, if it is dual feasible, as after tightening bounds or
 // appending rows to an optimal basis, the dual simplex method restores
-// primal feasibility. If neither holds, or the basis is singular,
+// primal feasibility. If neither holds, the dual phase 1 starts from it. If
+// the basis is singular, or no verdict is reached from it,
 // BoundedSimplexFrom solves from scratch, so the result never depends on
 // whether the warm start was usable. A nil start is the same as
 // BoundedSimplex.
@@ -101,23 +120,38 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 		panic(badShape)
 	}
 	s := newBounded(factor, c, A, b, lower, upper, tol)
-	var err error
-	switch {
-	case start == nil || !s.warm(start):
-		err = s.cold(factor, c, A, b, lower, upper, tol)
-	case s.primalFeasible():
-		err = s.run()
-	case s.dualStart():
-		if err = s.dual(); err == nil {
-			err = s.run()
+	restart := func() {
+		spent := s.iterations
+		*s = *newBounded(factor, c, A, b, lower, upper, tol)
+		s.iterations = spent
+		s.limit += spent
+	}
+	err := errUnsettled
+	if start != nil {
+		if s.warm(start) {
+			err = s.settle()
 		}
-		if errors.Is(err, ErrSingular) || errors.Is(err, ErrIterationLimit) {
-			err = s.cold(factor, c, A, b, lower, upper, tol)
+		if unsettled(err) {
+			restart()
 		}
-	default:
-		err = s.cold(factor, c, A, b, lower, upper, tol)
+	}
+	if unsettled(err) {
+		// From the basis of slack columns the dual simplex method needs no
+		// artificial variables to move.
+		if s.warm(s.slackBasis()) {
+			s.dualFirst = true
+			s.limit = s.iterations + dualFactor*(n+m+1)
+			err = s.settle()
+		}
+	}
+	if unsettled(err) {
+		restart()
+		err = s.solve()
 	}
 	if err != nil {
+		if errors.Is(err, errUnsettled) {
+			err = ErrSingular
+		}
 		return BoundedResult{Iterations: s.iterations}, err
 	}
 	res := BoundedResult{X: s.x[:n:n], Dual: s.y, Iterations: s.iterations, Basis: s.basis()}
@@ -132,7 +166,26 @@ const (
 	blandAfter      = 50
 	pivotTol        = 1e-9
 	iterationFactor = 50
+	// dualFactor bounds the dual simplex attempt from the slack basis, so
+	// that a failure leaves most of the pivots to the primal method.
+	dualFactor   = 10
+	settleRounds = 20
+	// stablePivot is the smallest dual simplex pivot accepted, as a
+	// fraction of the largest entry of its column.
+	stablePivot = 1e-7
+	// costShift scales the cost perturbation that separates tied dual
+	// ratios.
+	costShift = 1e-6
 )
+
+// errUnsettled reports that a method gave up without a verdict, so another
+// should be tried.
+var errUnsettled = errors.New("lp: no verdict")
+
+// unsettled reports whether err leaves the problem undecided.
+func unsettled(err error) bool {
+	return err != nil && !errors.Is(err, ErrInfeasible) && !errors.Is(err, ErrUnbounded)
+}
 
 // blandPivot is the smallest pivot Bland's rule takes, as a fraction of the
 // largest among the rows that tie. Taking the smallest index whatever its
@@ -162,6 +215,13 @@ type bounded struct {
 	head         []int // head[i] is the variable basic in row i
 
 	lu         basisFactor
+	fresh      bool   // no update since the last factorization
+	barred     []bool // per row: its pivot was unstable in this basis
+	bars       []int
+	shifted    []bool // per variable: its cost is perturbed
+	ray        bool   // phase 1 found a direction of unbounded descent
+	dualFirst  bool   // seek a dual feasible basis before any primal pivot
+	seed       uint64
 	rows       []int // ratio test candidates
 	y          []float64
 	alpha      []float64
@@ -245,16 +305,13 @@ func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matri
 	s.alpha = make([]float64, m)
 	s.lu = factor(m, n, s.start[n])
 	s.work = make([]float64, m)
+	s.barred = make([]bool, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
 }
 
-// cold replaces s with a fresh solver and solves from the artificial basis.
-func (s *bounded) cold(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) error {
-	*s = *newBounded(factor, c, A, b, lower, upper, tol)
-	return s.solve()
-}
-
+// solve is the primal simplex method in two phases from the artificial
+// basis.
 func (s *bounded) solve() error {
 	if err := s.refactor(); err != nil {
 		return err
@@ -269,7 +326,16 @@ func (s *bounded) solve() error {
 		scale = math.Max(scale, math.Abs(s.b[i]))
 	}
 	if infeasibility > s.tol*scale*float64(max(s.m, 1)) {
-		return ErrInfeasible
+		if !s.fresh {
+			if err := s.refactor(); err != nil {
+				return err
+			}
+		}
+		s.btran()
+		if s.certify(s.y) {
+			return ErrInfeasible
+		}
+		return errUnsettled
 	}
 	// Phase 2: artificials are fixed at zero; basic ones may still leave.
 	for i := range s.m {
@@ -281,7 +347,250 @@ func (s *bounded) solve() error {
 	}
 	copy(s.cost, s.c)
 	s.bland, s.stall = false, 0
-	return s.run()
+	if err := s.run(); err != nil {
+		return err
+	}
+	return s.settle()
+}
+
+// settle brings an installed phase 2 basis to optimality: by the primal
+// simplex method if it is primal feasible, by the dual if it is dual
+// feasible, and otherwise after a dual phase 1. It returns nil only for a
+// basis that is optimal on a fresh factorization.
+func (s *bounded) settle() error {
+	started, reached := false, false
+	for range settleRounds {
+		if !s.fresh {
+			if err := s.refactor(); err != nil {
+				return err
+			}
+		}
+		if s.within(2*s.tol) && s.optimal() {
+			return s.residual()
+		}
+		if s.ray && s.within(s.tol) && s.residual() == nil {
+			return ErrUnbounded
+		}
+		switch {
+		case s.within(s.tol) && (started || !s.dualFirst):
+			s.bland, s.stall = false, 0
+			if err := s.run(); err != nil {
+				return err
+			}
+		case s.dualStart():
+			if err := s.dual(); err != nil {
+				return err
+			}
+		case !started:
+			started = true
+			if err := s.phase1(); err != nil {
+				return err
+			}
+		case !reached:
+			// No dual feasible basis was found. A feasible point decides
+			// it: with the ray of phase 1 the problem is unbounded, and
+			// without one the primal method goes on from there.
+			reached = true
+			if err := s.reach(); err != nil {
+				return err
+			}
+		default:
+			return errUnsettled
+		}
+	}
+	return errUnsettled
+}
+
+// falls reports whether x, a point of the phase 1 problem, has a negative
+// cost. Such a point is a direction that keeps A x and every finite bound
+// of the original problem, so from a feasible point the objective falls
+// without limit along it.
+func (s *bounded) falls() bool {
+	if !s.fresh {
+		if s.refactor() != nil {
+			return false
+		}
+	}
+	if !s.within(s.tol) || s.residual() != nil {
+		return false
+	}
+	f, size := 0.0, 0.0
+	for j := range s.n {
+		f += s.c[j] * s.x[j]
+		size += math.Abs(s.c[j] * s.x[j])
+	}
+	return f < -math.Max(1e3*s.tol, 1e-9)*math.Max(1, size)
+}
+
+// reach moves an installed basis to a primal feasible one by the dual
+// simplex method with zero costs, for which every basis is dual feasible.
+func (s *bounded) reach() error {
+	c := s.c
+	s.c = make([]float64, s.total)
+	clear(s.cost)
+	err := errUnsettled
+	if s.dualStart() {
+		err = s.dual()
+	}
+	s.c = c
+	copy(s.cost, c)
+	return err
+}
+
+// optimal reports whether no nonbasic variable prices out, and leaves the
+// multipliers of the true costs in y.
+func (s *bounded) optimal() bool {
+	s.bland = false
+	s.btran()
+	q, _, _ := s.price()
+	return q < 0
+}
+
+// residual checks A x = b, which holds after a factorization unless the
+// basis is too ill-conditioned for its factors to mean anything.
+func (s *bounded) residual() error {
+	r, size := s.work, s.alpha
+	for i := range r {
+		r[i], size[i] = s.b[i], math.Abs(s.b[i])
+	}
+	for j := range s.total {
+		if s.x[j] == 0 {
+			continue
+		}
+		for k := s.start[j]; k < s.start[j+1]; k++ {
+			t := s.value[k] * s.x[j]
+			r[s.index[k]] -= t
+			size[s.index[k]] += math.Abs(t)
+		}
+	}
+	tol := math.Max(1e3*s.tol, 1e-9)
+	for i := range r {
+		if !(math.Abs(r[i]) <= tol*math.Max(1, size[i])) {
+			return errUnsettled
+		}
+	}
+	return nil
+}
+
+// certify reports whether y proves the problem infeasible: over the bounds,
+// yᵀA x cannot reach yᵀb. Entries of yᵀA below the pivot tolerance count as
+// zero.
+func (s *bounded) certify(y []float64) bool {
+	rhs, size := 0.0, 0.0
+	for i, v := range y {
+		rhs += v * s.b[i]
+		size += math.Abs(v * s.b[i])
+	}
+	lo, hi := 0.0, 0.0
+	for j := range s.n {
+		z := 0.0
+		for k := s.start[j]; k < s.start[j+1]; k++ {
+			z += y[s.index[k]] * s.value[k]
+		}
+		if math.Abs(z) <= pivotTol {
+			continue
+		}
+		l, u := z*s.lower[j], z*s.upper[j]
+		if z < 0 {
+			l, u = u, l
+		}
+		lo += l
+		hi += u
+		if !math.IsInf(l, 0) {
+			size += math.Abs(l)
+		}
+		if !math.IsInf(u, 0) {
+			size += math.Abs(u)
+		}
+	}
+	margin := s.tol * math.Max(1, size)
+	return rhs > hi+margin || rhs < lo-margin
+}
+
+// slackBasis is the basis of one column per row whose only nonzero is in
+// that row, the widest by its bounds, and of the row's artificial variable
+// where there is none.
+func (s *bounded) slackBasis() *Basis {
+	b := &Basis{head: make([]int, s.m), status: make([]int, s.n)}
+	for i := range b.head {
+		b.head[i] = -1 - i
+	}
+	for j := range s.n {
+		if s.start[j+1]-s.start[j] != 1 || s.lower[j] == s.upper[j] {
+			continue
+		}
+		i := s.index[s.start[j]]
+		if k := b.head[i]; k >= 0 {
+			if s.upper[k]-s.lower[k] >= s.upper[j]-s.lower[j] {
+				continue
+			}
+			b.status[k] = atLower
+		}
+		b.head[i], b.status[j] = j, basic
+	}
+	return b
+}
+
+// phase1 moves an installed basis to a dual feasible one by the dual
+// simplex method on the problem with a zero right-hand side whose
+// variables are boxed around zero on the sides where they have no finite
+// bound to rest on (Koberstein and Suhl, 2007). Its optimal basis is dual
+// feasible for the original problem if any basis is.
+func (s *bounded) phase1() error {
+	lower := append([]float64(nil), s.lower...)
+	upper := append([]float64(nil), s.upper...)
+	b := append([]float64(nil), s.b...)
+	clear(s.b)
+	for j := range s.n {
+		lo, up := !math.IsInf(lower[j], -1), !math.IsInf(upper[j], 1)
+		switch {
+		case lo && up:
+			s.lower[j], s.upper[j] = 0, 0
+		case lo:
+			s.lower[j], s.upper[j] = 0, 1
+		case up:
+			s.lower[j], s.upper[j] = -1, 0
+		default:
+			s.lower[j], s.upper[j] = -1000, 1000
+		}
+		if s.status[j] != basic {
+			s.x[j], s.status[j] = s.lower[j], atLower
+		}
+	}
+	err := errUnsettled
+	if s.dualStart() {
+		err = s.dual()
+	}
+	if err == nil {
+		s.ray = s.falls()
+	}
+	copy(s.lower, lower)
+	copy(s.upper, upper)
+	copy(s.b, b)
+	for j := range s.n {
+		if s.status[j] == basic {
+			continue
+		}
+		switch {
+		case !math.IsInf(lower[j], -1):
+			s.x[j], s.status[j] = lower[j], atLower
+		case !math.IsInf(upper[j], 1):
+			s.x[j], s.status[j] = upper[j], atUpper
+		default:
+			s.x[j], s.status[j] = 0, atZero
+		}
+	}
+	if err != nil {
+		if errors.Is(err, ErrInfeasible) {
+			err = errUnsettled
+		}
+		return err
+	}
+	if s.fresh {
+		s.place()
+		return nil
+	}
+	return s.refactor()
 }
 
 // warm installs a previous basis for phase 2 and reports whether it is
@@ -334,12 +643,12 @@ func (s *bounded) warm(start *Basis) bool {
 	return true
 }
 
-// primalFeasible reports whether the basic values are within their bounds.
-// The ratio test relaxes bounds by tol only, so a basic value further
-// outside would block every step.
-func (s *bounded) primalFeasible() bool {
+// within reports whether the basic values are within their bounds relaxed
+// by tol. The ratio test relaxes bounds by s.tol only, so a basic value
+// further outside would block every primal step.
+func (s *bounded) within(tol float64) bool {
 	for _, j := range s.head {
-		if s.x[j] < s.lower[j]-s.tol || s.x[j] > s.upper[j]+s.tol {
+		if s.x[j] < s.lower[j]-tol || s.x[j] > s.upper[j]+tol {
 			return false
 		}
 	}
@@ -408,12 +717,27 @@ func (s *bounded) run() error {
 		}
 		s.head[row] = q
 		s.status[q] = basic
-		if s.lu.update(row, s.alpha) {
-			if err := s.refactor(); err != nil {
-				return err
-			}
+		if err := s.pivoted(row); err != nil {
+			return err
 		}
 	}
+}
+
+func (s *bounded) unbar() {
+	for _, i := range s.bars {
+		s.barred[i] = false
+	}
+	s.bars = s.bars[:0]
+}
+
+// pivoted records that alpha replaced the basis column of row.
+func (s *bounded) pivoted(row int) error {
+	s.unbar()
+	s.fresh = false
+	if s.lu.update(row, s.alpha) {
+		return s.refactor()
+	}
+	return nil
 }
 
 // refactor factorizes the current basis and recomputes basic values from
@@ -422,8 +746,15 @@ func (s *bounded) refactor() error {
 	if err := s.lu.factorize(&s.columns, s.head); err != nil {
 		return err
 	}
+	s.fresh = true
+	s.place()
+	return nil
+}
+
+// place recomputes the basic values from the nonbasic ones.
+func (s *bounded) place() {
 	if s.m == 0 {
-		return nil
+		return
 	}
 	r := s.work
 	copy(r, s.b)
@@ -438,7 +769,6 @@ func (s *bounded) refactor() error {
 	for i, j := range s.head {
 		s.x[j] = r[i]
 	}
-	return nil
 }
 
 // btran sets y to solve Bᵀy = c_B.

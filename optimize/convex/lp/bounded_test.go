@@ -299,6 +299,168 @@ func TestBoundedSimplexDegenerate(t *testing.T) {
 	}
 }
 
+// zeroRowsLP is a random sparse LP in which most rows have a zero
+// right-hand side and the coefficients spread over four magnitudes, so
+// long runs of degenerate pivots meet ties between pivots of very
+// different size. If open, about half the columns have no upper bound, and
+// most problems are unbounded.
+func zeroRowsLP(seed uint64, m, n int, open bool) (c []float64, a *cscMatrix, b, lower, upper []float64) {
+	type entry struct {
+		i int
+		v float64
+	}
+	rnd := rand.New(rand.NewPCG(seed, 7))
+	cols := make([][]entry, 0, n+m)
+	for range n {
+		var col []entry
+		for i := range m {
+			if rnd.Float64() < 4/float64(m) {
+				v := math.Pow(10, -4*rnd.Float64())
+				if rnd.IntN(2) == 0 {
+					v = -v
+				}
+				col = append(col, entry{i, v})
+			}
+		}
+		if len(col) == 0 {
+			col = append(col, entry{rnd.IntN(m), 1})
+		}
+		cols = append(cols, col)
+		c = append(c, -rnd.Float64())
+		lower = append(lower, 0)
+		upper = append(upper, 1+rnd.Float64())
+		if open && rnd.IntN(2) == 0 {
+			upper[len(upper)-1] = math.Inf(1)
+			if rnd.IntN(10) < 7 {
+				c[len(c)-1] = rnd.Float64()
+			}
+		}
+	}
+	b = make([]float64, m)
+	for i := range m {
+		if rnd.IntN(10) == 0 {
+			b[i] = rnd.Float64()
+		}
+		if rnd.IntN(8) == 0 {
+			continue
+		}
+		cols = append(cols, []entry{{i, 1}})
+		c = append(c, 0)
+		lower = append(lower, 0)
+		upper = append(upper, math.Inf(1))
+	}
+	a = &cscMatrix{m: m, n: len(cols), start: []int{0}}
+	for _, col := range cols {
+		for _, e := range col {
+			a.index = append(a.index, e.i)
+			a.value = append(a.value, e.v)
+		}
+		a.start = append(a.start, len(a.index))
+	}
+	return c, a, b, lower, upper
+}
+
+// With these seeds Bland's rule used to take the smallest index among tied
+// rows whatever its pivot, and the sparse factorization then failed with
+// ErrSingular.
+func TestBoundedSimplexBlandPivot(t *testing.T) {
+	t.Parallel()
+	for _, seed := range []uint64{5, 28} {
+		c, a, b, lower, upper := zeroRowsLP(seed, 80, 300, false)
+		var want float64
+		for k, fk := range factorKinds {
+			res, err := fk.solve(nil, c, a, b, lower, upper, 0)
+			if err != nil {
+				t.Fatalf("seed %d %s: %v", seed, fk.name, err)
+			}
+			if e := checkKKT(c, a, b, lower, upper, res, 1e-7); e != nil {
+				t.Fatalf("seed %d %s: %v", seed, fk.name, e)
+			}
+			if k == 0 {
+				want = res.F
+			} else if !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+				t.Errorf("seed %d %s: objective %v, dense %v", seed, fk.name, res.F, want)
+			}
+		}
+	}
+}
+
+// The verdicts and objectives are those of HiGHS without presolve at
+// tolerances of 1e-9. On each of these the primal simplex method from the
+// artificial basis failed with ErrSingular or ErrIterationLimit, or, for
+// seed 74, returned an optimum of -2.5e17.
+func TestBoundedSimplexZeroRows(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		m, n int
+		open bool
+		seed uint64
+		err  error
+		f    float64
+	}{
+		{40, 120, false, 169, nil, -59.05114276428671},
+		{80, 300, false, 97, nil, -198.17994043201563},
+		{150, 600, false, 16, nil, -357.15887093514783},
+		{150, 600, false, 19, nil, -348.0467155951103},
+		{80, 300, false, 118, ErrInfeasible, 0},
+		{150, 600, false, 5, ErrInfeasible, 0},
+		{150, 600, false, 13, ErrInfeasible, 0},
+		{20, 60, true, 74, ErrUnbounded, 0},
+		{20, 60, true, 88, ErrUnbounded, 0},
+		{150, 600, true, 0, ErrUnbounded, 0},
+	} {
+		c, a, b, lower, upper := zeroRowsLP(test.seed, test.m, test.n, test.open)
+		for _, fk := range factorKinds {
+			name := fmt.Sprintf("%dx%d open=%t seed %d %s", test.m, test.n, test.open, test.seed, fk.name)
+			res, err := fk.solve(nil, c, a, b, lower, upper, 0)
+			if !errors.Is(err, test.err) || (err == nil) != (test.err == nil) {
+				t.Errorf("%s: got %v, want %v", name, err, test.err)
+				continue
+			}
+			if err != nil {
+				continue
+			}
+			if e := checkKKT(c, a, b, lower, upper, res, 1e-7); e != nil {
+				t.Errorf("%s: %v", name, e)
+			}
+			if !scalar.EqualWithinAbsOrRel(res.F, test.f, 1e-7, 1e-7) {
+				t.Errorf("%s: objective %v, want %v", name, res.F, test.f)
+			}
+		}
+	}
+}
+
+func TestCertify(t *testing.T) {
+	t.Parallel()
+	// x₀ + x₁ = b with 0 ≤ x ≤ 1, and a third column with no upper bound.
+	a := mat.NewDense(1, 3, []float64{1, 1, 0})
+	lower := []float64{0, 0, 0}
+	upper := []float64{1, 1, math.Inf(1)}
+	for _, test := range []struct {
+		b    float64
+		y    float64
+		want bool
+	}{
+		{3, 1, true},
+		{3, -2, true},
+		{-0.5, 1, true},
+		{2, 1, false},
+		{2 + 1e-12, 1, false},
+		{1, 1, false},
+	} {
+		s := newBounded(newFactor, make([]float64, 3), a, []float64{test.b}, lower, upper, 1e-9)
+		if got := s.certify([]float64{test.y}); got != test.want {
+			t.Errorf("b = %v, y = %v: certified %t, want %t", test.b, test.y, got, test.want)
+		}
+	}
+	// A multiplier that reaches the unbounded column proves nothing.
+	a.Set(0, 2, 1)
+	s := newBounded(newFactor, make([]float64, 3), a, []float64{3}, lower, upper, 1e-9)
+	if s.certify([]float64{1}) {
+		t.Error("certified through a column with no upper bound")
+	}
+}
+
 func TestBlandRatioSkipsSmallPivot(t *testing.T) {
 	t.Parallel()
 	// Two basic variables at their lower bounds tie at a zero step.

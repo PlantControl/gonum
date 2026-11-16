@@ -9,8 +9,13 @@ import (
 	"slices"
 )
 
-// minWeight bounds the dual steepest-edge weights away from zero.
-const minWeight = 1e-4
+const (
+	// minWeight bounds the dual steepest-edge weights away from zero.
+	minWeight = 1e-4
+	// sortAfter is how many breakpoints the dual ratio test selects one
+	// by one before it sorts the rest.
+	sortAfter = 16
+)
 
 // reducedCost returns d_j = c_j - yᵀa_j and the tolerance for its sign,
 // which scales with the terms of the sum as in price.
@@ -48,6 +53,10 @@ func (s *bounded) dualStart() bool {
 			return false
 		}
 	}
+	if s.fresh {
+		s.place()
+		return true
+	}
 	return s.refactor() == nil
 }
 
@@ -64,10 +73,13 @@ type candidate struct {
 // thesis, Paderborn, 2005). The leaving row is chosen by dual steepest edge
 // with unit initial weights; the ratio test passes breakpoints of boxed
 // variables, flipping them to their other bound, while the primal
-// infeasibility of the leaving row still decreases. After a run of
-// degenerate pivots it uses Bland's rule without flips until the dual
-// objective moves. It returns ErrInfeasible if a row cannot be made
-// feasible.
+// infeasibility of the leaving row still decreases. A run of degenerate
+// pivots perturbs the costs of the nonbasic variables, which the caller
+// finds restored and must clean up after; once every cost is perturbed it
+// uses Bland's rule without flips until the dual objective moves. It
+// returns ErrInfeasible if a row cannot be made feasible and its row of
+// the basis inverse certifies that, and errUnsettled if the certificate
+// fails or only rows with unstable pivots are left.
 func (s *bounded) dual() error {
 	m := s.m
 	weight := make([]float64, m)
@@ -78,14 +90,22 @@ func (s *bounded) dual() error {
 	tau := make([]float64, m)
 	flip := make([]float64, m)
 	var cand []candidate
-	rechecked, retries := false, 0
 	s.bland, s.stall = false, 0
+	s.unbar()
+	shake := false
+	defer s.unshift()
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
 		}
+		if shake {
+			shake = false
+			if !s.shift() {
+				s.bland = true
+			}
+		}
 		r, delta := -1, 0.0
-		best := 0.0
+		best, unstable := 0.0, false
 		for i, j := range s.head {
 			var inf float64
 			switch {
@@ -94,6 +114,10 @@ func (s *bounded) dual() error {
 			case s.x[j] > s.upper[j]+s.tol:
 				inf = s.x[j] - s.upper[j]
 			default:
+				continue
+			}
+			if s.barred[i] {
+				unstable = true
 				continue
 			}
 			if s.bland {
@@ -107,6 +131,9 @@ func (s *bounded) dual() error {
 			}
 		}
 		if r < 0 {
+			if unstable {
+				return errUnsettled
+			}
 			s.bland, s.stall = false, 0
 			return nil
 		}
@@ -148,35 +175,39 @@ func (s *bounded) dual() error {
 			cand = append(cand, candidate{j, d / math.Abs(a), math.Abs(a)})
 		}
 		if len(cand) == 0 {
-			// Confirm on a fresh factorization before reporting a dual ray.
-			if !rechecked {
-				rechecked = true
+			// A dual ray: confirm it on a fresh factorization, then
+			// against the problem data.
+			if !s.fresh {
 				if err := s.refactor(); err != nil {
 					return err
 				}
 				continue
 			}
-			return ErrInfeasible
+			if s.certify(rho) {
+				return ErrInfeasible
+			}
+			return errUnsettled
 		}
-		rechecked = false
 		q, t, flips := s.dualRatio(cand, delta)
 		if q < 0 {
-			return ErrInfeasible
+			return errUnsettled
 		}
 		s.ftran(q)
 		pivot := s.alpha[r]
-		if math.Abs(pivot) <= pivotTol {
-			// The pivot row and column disagree; refactorize and retry,
-			// leaving the cold solve to a basis that stays this unstable.
-			if retries++; retries > 2 {
-				return ErrSingular
+		if math.Abs(pivot) <= pivotTol || !s.stable(r) {
+			// The pivot row and column disagree, or the pivot is at
+			// rounding level against its column: look again on fresh
+			// factors, then leave the row until the basis changes.
+			if !s.fresh {
+				if err := s.refactor(); err != nil {
+					return err
+				}
+				continue
 			}
-			if err := s.refactor(); err != nil {
-				return err
-			}
+			s.barred[r] = true
+			s.bars = append(s.bars, r)
 			continue
 		}
-		retries = 0
 		// Primal update: flipped variables, then the entering variable.
 		if len(flips) > 0 {
 			clear(flip)
@@ -207,17 +238,25 @@ func (s *bounded) dual() error {
 		}
 		s.x[q] += theta
 		s.iterations++
+		// A run of degenerate pivots first perturbs the costs, which
+		// separates the tied ratios, and only then falls back on Bland's
+		// rule.
 		if t*delta <= s.tol*math.Max(1, s.objScale) {
-			if s.stall++; s.stall >= blandAfter {
-				s.bland = true
+			if s.stall++; s.stall >= blandAfter && !s.bland {
+				s.stall, shake = 0, true
 			}
 		} else {
 			s.stall, s.bland = 0, false
 		}
-		// Dual steepest-edge weights (Forrest and Goldfarb, 1992).
+		// Dual steepest-edge weights (Forrest and Goldfarb, 1992). The
+		// weight of the leaving row is computed, not carried: an error in
+		// it would spread to every other weight.
 		copy(tau, rho)
 		s.lu.ftran(tau)
-		wr := weight[r]
+		wr := 0.0
+		for _, v := range rho {
+			wr += v * v
+		}
 		for i, a := range s.alpha {
 			if i == r {
 				continue
@@ -233,11 +272,55 @@ func (s *bounded) dual() error {
 		}
 		s.head[r] = q
 		s.status[q] = basic
-		if s.lu.update(r, s.alpha) {
-			if err := s.refactor(); err != nil {
-				return err
-			}
+		if err := s.pivoted(r); err != nil {
+			return err
 		}
+	}
+}
+
+// stable reports whether the entry of alpha in row is large enough,
+// against the rest of alpha, to pivot on.
+func (s *bounded) stable(row int) bool {
+	big := 0.0
+	for _, a := range s.alpha {
+		big = math.Max(big, math.Abs(a))
+	}
+	return math.Abs(s.alpha[row]) >= stablePivot*big
+}
+
+// shift perturbs the cost of each nonbasic variable not yet perturbed, away
+// from zero reduced cost, and reports whether there was one. The basis
+// stays dual feasible and ties between dual ratios separate.
+func (s *bounded) shift() bool {
+	if s.shifted == nil {
+		s.shifted = make([]bool, s.n)
+		s.seed = 0x9e3779b97f4a7c15
+	}
+	any := false
+	for j := range s.n {
+		st := s.status[j]
+		if s.shifted[j] || (st != atLower && st != atUpper) || s.lower[j] == s.upper[j] {
+			continue
+		}
+		s.seed ^= s.seed << 13
+		s.seed ^= s.seed >> 7
+		s.seed ^= s.seed << 17
+		e := costShift * (1 + math.Abs(s.c[j])) * (0.5 + 0.5*float64(s.seed>>11)/(1<<53))
+		if st == atUpper {
+			e = -e
+		}
+		s.cost[j] += e
+		s.shifted[j], any = true, true
+	}
+	return any
+}
+
+// unshift restores the true costs, leaving any reduced cost of the wrong
+// sign to the primal simplex method.
+func (s *bounded) unshift() {
+	if s.shifted != nil {
+		copy(s.cost, s.c)
+		s.shifted = nil
 	}
 }
 
@@ -255,18 +338,36 @@ func (s *bounded) dualRatio(cand []candidate, delta float64) (int, float64, []in
 		}
 		return q, t, nil
 	}
-	slices.SortFunc(cand, func(a, b candidate) int {
-		switch {
-		case a.ratio < b.ratio:
-			return -1
-		case a.ratio > b.ratio:
-			return 1
-		}
-		return a.j - b.j
-	})
-	// Pass breakpoints while the slope of the dual objective stays positive.
-	slope, k := delta, 0
+	// Pass breakpoints, in order of ratio, while the slope of the dual
+	// objective stays positive. Few are passed as a rule, so each is
+	// selected from the rest, and the rest is sorted only on a long run.
+	before := func(a, b candidate) bool {
+		return a.ratio < b.ratio || (a.ratio == b.ratio && a.j < b.j)
+	}
+	slope, k, sorted := delta, 0, false
 	for ; k < len(cand)-1; k++ {
+		switch {
+		case sorted:
+		case k == sortAfter:
+			slices.SortFunc(cand[k:], func(a, b candidate) int {
+				switch {
+				case before(a, b):
+					return -1
+				case before(b, a):
+					return 1
+				}
+				return 0
+			})
+			sorted = true
+		default:
+			first := k
+			for i := k + 1; i < len(cand); i++ {
+				if before(cand[i], cand[first]) {
+					first = i
+				}
+			}
+			cand[k], cand[first] = cand[first], cand[k]
+		}
 		j := cand[k].j
 		if math.IsInf(s.lower[j], -1) || math.IsInf(s.upper[j], 1) {
 			break
@@ -278,14 +379,18 @@ func (s *bounded) dualRatio(cand []candidate, delta float64) (int, float64, []in
 		slope = next
 	}
 	// Harris: among the remaining candidates within the relaxed step, the
-	// largest pivot.
+	// largest pivot, and of equal pivots the first in order.
 	relaxed := math.Inf(1)
 	for _, c := range cand[k:] {
 		relaxed = math.Min(relaxed, c.ratio+s.tol/c.alpha)
 	}
 	q := k
-	for i := k; i < len(cand) && cand[i].ratio <= relaxed; i++ {
-		if cand[i].alpha > cand[q].alpha {
+	for i := k + 1; i < len(cand); i++ {
+		c := cand[i]
+		if c.ratio > relaxed {
+			continue
+		}
+		if c.alpha > cand[q].alpha || (c.alpha == cand[q].alpha && before(c, cand[q])) {
 			q = i
 		}
 	}
