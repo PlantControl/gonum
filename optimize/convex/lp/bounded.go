@@ -67,11 +67,15 @@ type Basis struct {
 // of a pivot follows the nonzeros of the factors rather than m².
 //
 // A result is returned only for a basis that is optimal on a fresh
-// factorization and satisfies A x = b. ErrInfeasible is returned only with
-// row multipliers y for which yᵀA x cannot reach yᵀb within the bounds,
-// and ErrUnbounded either from a primal ratio test with no limit or with a
-// feasible point and a direction of falling cost that keeps A x and the
-// finite bounds.
+// factorization and satisfies A x = b. ErrInfeasible comes with row
+// multipliers y for which yᵀA x cannot reach yᵀb within the bounds, and
+// ErrUnbounded with a feasible point and a direction of falling cost that
+// leaves A x unchanged and keeps the finite bounds. In both proofs a
+// coefficient counts as zero only at rounding level; a small one is passed
+// over only if it would take a move of more than 1e9 for it to matter.
+// When a proof holds only with every entry below 1e-9 taken for zero, the
+// other methods are tried first, and its verdict is returned if none of
+// them reaches one.
 //
 // If A implements mat.ColNonZeroDoer, only its nonzero elements are read,
 // so a sparse A with many columns need not be stored densely.
@@ -121,9 +125,9 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 	}
 	s := newBounded(factor, c, A, b, lower, upper, tol)
 	restart := func() {
-		spent := s.iterations
+		spent, weak := s.iterations, s.weak
 		*s = *newBounded(factor, c, A, b, lower, upper, tol)
-		s.iterations = spent
+		s.iterations, s.weak = spent, weak
 		s.limit += spent
 	}
 	err := errUnsettled
@@ -147,6 +151,9 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 	if unsettled(err) {
 		restart()
 		err = s.solve()
+	}
+	if unsettled(err) && s.weak != nil {
+		err = s.weak
 	}
 	if err != nil {
 		if errors.Is(err, errUnsettled) {
@@ -176,6 +183,9 @@ const (
 	// costShift scales the cost perturbation that separates tied dual
 	// ratios.
 	costShift = 1e-6
+	// roundTol is the size, against the terms of a sum, below which the
+	// sum counts as rounding error when a verdict is checked.
+	roundTol = 1e-12
 )
 
 // errUnsettled reports that a method gave up without a verdict, so another
@@ -218,9 +228,10 @@ type bounded struct {
 	fresh      bool   // no update since the last factorization
 	barred     []bool // per row: its pivot was unstable in this basis
 	bars       []int
-	shifted    []bool // per variable: its cost is perturbed
-	ray        bool   // phase 1 found a direction of unbounded descent
-	dualFirst  bool   // seek a dual feasible basis before any primal pivot
+	shifted    []bool    // per variable: its cost is perturbed
+	ray        []float64 // a direction of falling cost found by phase 1
+	weak       error     // the verdict of a proof that holds only to tolerance
+	dualFirst  bool      // seek a dual feasible basis before any primal pivot
 	seed       uint64
 	rows       []int // ratio test candidates
 	y          []float64
@@ -368,8 +379,15 @@ func (s *bounded) settle() error {
 		if s.within(2*s.tol) && s.optimal() {
 			return s.residual()
 		}
-		if s.ray && s.within(s.tol) && s.residual() == nil {
-			return ErrUnbounded
+		if s.ray != nil && s.within(s.tol) && s.residual() == nil {
+			if s.recedes(s.ray) {
+				return ErrUnbounded
+			}
+			// The ray keeps the bounds only to the tolerance of phase 1.
+			if s.weak == nil {
+				s.weak = ErrUnbounded
+			}
+			s.ray = nil
 		}
 		switch {
 		case s.within(s.tol) && (started || !s.dualFirst):
@@ -473,38 +491,66 @@ func (s *bounded) residual() error {
 }
 
 // certify reports whether y proves the problem infeasible: over the bounds,
-// yᵀA x cannot reach yᵀb. Entries of yᵀA below the pivot tolerance count as
-// zero.
+// yᵀA x cannot reach yᵀb. A column with no bound on the side that would
+// help is passed over only if closing the gap would move it by more than
+// 1/pivotTol, or if its entry of yᵀA is at rounding level against its
+// terms. An entry that is merely small does not qualify: on such a column
+// it moves yᵀA x as far as the gap asks. A proof that holds only with
+// every entry below the pivot tolerance taken for zero is recorded as
+// weak.
 func (s *bounded) certify(y []float64) bool {
 	rhs, size := 0.0, 0.0
 	for i, v := range y {
 		rhs += v * s.b[i]
 		size += math.Abs(v * s.b[i])
 	}
-	lo, hi := 0.0, 0.0
+	// lo and hi bound yᵀA x over the finite bounds; openLo and openHi are
+	// the largest entries on columns that could carry it past them.
+	lo, hi, openLo, openHi := 0.0, 0.0, 0.0, 0.0
 	for j := range s.n {
-		z := 0.0
+		z, terms := 0.0, 0.0
 		for k := s.start[j]; k < s.start[j+1]; k++ {
-			z += y[s.index[k]] * s.value[k]
+			t := y[s.index[k]] * s.value[k]
+			z += t
+			terms += math.Abs(t)
 		}
-		if math.Abs(z) <= pivotTol {
+		if math.Abs(z) <= roundTol*terms {
 			continue
 		}
-		l, u := z*s.lower[j], z*s.upper[j]
+		l, u := s.lower[j], s.upper[j]
 		if z < 0 {
 			l, u = u, l
 		}
-		lo += l
-		hi += u
-		if !math.IsInf(l, 0) {
-			size += math.Abs(l)
+		if math.IsInf(l, 0) {
+			openLo = math.Max(openLo, math.Abs(z))
+		} else {
+			lo += z * l
+			size += math.Abs(z * l)
 		}
-		if !math.IsInf(u, 0) {
-			size += math.Abs(u)
+		if math.IsInf(u, 0) {
+			openHi = math.Max(openHi, math.Abs(z))
+		} else {
+			hi += z * u
+			size += math.Abs(z * u)
 		}
 	}
 	margin := s.tol * math.Max(1, size)
-	return rhs > hi+margin || rhs < lo-margin
+	for _, side := range [][2]float64{{rhs - hi, openHi}, {lo - rhs, openLo}} {
+		gap, open := side[0], side[1]
+		if gap <= margin {
+			continue
+		}
+		if open <= pivotTol*gap {
+			return true
+		}
+		// With open columns taken for zero below the pivot tolerance
+		// alone, the proof holds only if they stay within 1/pivotTol of
+		// the gap.
+		if open <= pivotTol && s.weak == nil {
+			s.weak = ErrInfeasible
+		}
+	}
+	return false
 }
 
 // slackBasis is the basis of one column per row whose only nonzero is in
@@ -562,7 +608,9 @@ func (s *bounded) phase1() error {
 		err = s.dual()
 	}
 	if err == nil {
-		s.ray = s.falls()
+		if s.falls() {
+			s.ray = append([]float64(nil), s.x...)
+		}
 	}
 	copy(s.lower, lower)
 	copy(s.upper, upper)
@@ -684,7 +732,25 @@ func (s *bounded) run() error {
 		s.ftran(q)
 		theta, row, flip := s.ratio(q, dir)
 		if math.IsInf(theta, 1) {
-			return ErrUnbounded
+			// Confirm the ray on a fresh factorization and against the
+			// problem data. If only stale factors showed it, go on.
+			stale := !s.fresh
+			if stale {
+				if err := s.refactor(); err != nil {
+					return err
+				}
+			}
+			if s.descends(q, dir) {
+				return ErrUnbounded
+			}
+			if stale {
+				continue
+			}
+			// The ratio test passed over a row that stops the step.
+			s.ftran(q)
+			if theta, row = s.blocker(dir); row < 0 {
+				return errUnsettled
+			}
 		}
 		s.iterations++
 		// A step that barely changes the objective counts as degenerate,
@@ -721,6 +787,102 @@ func (s *bounded) run() error {
 			return err
 		}
 	}
+}
+
+// descends reports whether moving nonbasic q in direction dir from the
+// current point, with alpha solving B alpha = a_q, is a ray of the problem
+// along which the cost falls. With the costs of the first phase it never
+// is, since that phase is bounded below by zero.
+func (s *bounded) descends(q, dir int) bool {
+	for i := range s.m {
+		if s.cost[s.n+i] != 0 {
+			return false
+		}
+	}
+	if !s.within(s.tol) || s.residual() != nil {
+		return false
+	}
+	s.ftran(q) // residual used alpha
+	d := make([]float64, s.total)
+	d[q] = float64(dir)
+	for i, a := range s.alpha {
+		d[s.head[i]] = -float64(dir) * a
+	}
+	return s.recedes(d)
+}
+
+// blocker returns the row whose basic variable first reaches a bound as the
+// entering variable moves in direction dir, among the entries of alpha above
+// rounding level, and the step to it. The ratio test ignores entries below
+// the pivot tolerance, which is right unless the variable has almost no
+// room: then a small entry still ends the step at a moderate length.
+func (s *bounded) blocker(dir int) (float64, int) {
+	big := 1.0
+	for _, a := range s.alpha {
+		big = math.Max(big, math.Abs(a))
+	}
+	theta, row := math.Inf(1), -1
+	for i, a := range s.alpha {
+		if math.Abs(a) <= roundTol*big {
+			continue
+		}
+		j := s.head[i]
+		room := s.upper[j] - s.x[j]
+		if float64(dir)*a > 0 {
+			room = s.x[j] - s.lower[j]
+		}
+		if t := math.Max(room, 0) / math.Abs(a); t < theta {
+			theta, row = t, i
+		}
+	}
+	return theta, row
+}
+
+// recedes reports whether the objective falls without limit along d from
+// the current point, which must be feasible: d keeps every finite bound
+// over a step that moves its largest entry by 1/pivotTol, leaves A x
+// unchanged to the accuracy asked of a solution, and lowers the cost. The
+// bound test is more than a sign test: a small entry towards a bound with
+// little room left stops the step early. Entries at rounding level against
+// the largest count as zero.
+func (s *bounded) recedes(d []float64) bool {
+	big := 0.0
+	for _, v := range d {
+		big = math.Max(big, math.Abs(v))
+	}
+	r, terms, scale := s.work, s.y, s.alpha
+	clear(r)
+	clear(terms)
+	clear(scale)
+	fall, size := 0.0, 0.0
+	for j, v := range d {
+		if v == 0 {
+			continue
+		}
+		room := s.upper[j] - s.x[j]
+		if v < 0 {
+			room = s.x[j] - s.lower[j]
+		}
+		if math.Abs(v) > big*math.Max(pivotTol*(math.Max(room, 0)+s.tol), roundTol) {
+			return false
+		}
+		for k := s.start[j]; k < s.start[j+1]; k++ {
+			i, t := s.index[k], s.value[k]*v
+			r[i] += t
+			terms[i] += math.Abs(t)
+			scale[i] = math.Max(scale[i], math.Abs(s.value[k]))
+		}
+		fall += s.c[j] * v
+		size += math.Abs(s.c[j] * v)
+	}
+	tol := math.Max(1e3*s.tol, 1e-9)
+	for i := range r {
+		// The second term covers entries of d that are rounding error.
+		if !(math.Abs(r[i]) <= tol*terms[i]+roundTol*scale[i]*big) {
+			return false
+		}
+	}
+	return fall < -s.tol*math.Max(big, size)
 }
 
 func (s *bounded) unbar() {
