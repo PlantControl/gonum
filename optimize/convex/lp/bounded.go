@@ -52,8 +52,9 @@ type Basis struct {
 // Markowitz pivot selection, unless A is dense, so the cost of a pivot
 // follows the nonzeros of the factors rather than m². Pricing is Dantzig's rule; the ratio
 // test is Harris's two-pass test. After a run of degenerate pivots it
-// switches to Bland's rule until the objective moves, which prevents
-// cycling.
+// switches to Bland's rule, among pivots that are not small, until the
+// objective moves. That limits cycling but does not rule it out; a
+// problem that still cycles ends in ErrIterationLimit.
 //
 // If A implements mat.ColNonZeroDoer, only its nonzero elements are read,
 // so a sparse A with many columns need not be stored densely.
@@ -132,6 +133,13 @@ const (
 	pivotTol        = 1e-9
 	iterationFactor = 50
 )
+
+// blandPivot is the smallest pivot Bland's rule takes, as a fraction of the
+// largest among the rows that tie. Taking the smallest index whatever its
+// pivot can choose one at rounding level, after which the basis cannot be
+// factorized. A larger fraction leaves fewer such bases but lets more
+// degenerate problems cycle to the iteration limit.
+const blandPivot = 1e-5
 
 const (
 	atLower = iota
@@ -525,19 +533,22 @@ func (s *bounded) ratio(q, dir int) (float64, int, bool) {
 		return relaxed, -1, false
 	}
 	// Pass 2: among rows within that step, the largest pivot; Bland's rule
-	// takes the smallest variable index instead.
+	// takes the smallest variable index instead, among pivots that are not
+	// small against the largest.
 	row, size := -1, 0.0
 	for _, i := range s.rows {
 		if limit(i, 0) > relaxed {
 			continue
 		}
-		a := math.Abs(s.alpha[i])
-		if s.bland {
-			if row < 0 || s.head[i] < s.head[row] {
-				row, size = i, a
-			}
-		} else if a > size {
+		if a := math.Abs(s.alpha[i]); a > size {
 			row, size = i, a
+		}
+	}
+	if s.bland && row >= 0 {
+		for _, i := range s.rows {
+			if s.head[i] < s.head[row] && math.Abs(s.alpha[i]) >= blandPivot*size && limit(i, 0) <= relaxed {
+				row = i
+			}
 		}
 	}
 	if row < 0 {

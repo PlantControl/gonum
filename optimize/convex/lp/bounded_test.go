@@ -299,6 +299,34 @@ func TestBoundedSimplexDegenerate(t *testing.T) {
 	}
 }
 
+func TestBlandRatioSkipsSmallPivot(t *testing.T) {
+	t.Parallel()
+	// Two basic variables at their lower bounds tie at a zero step.
+	for _, test := range []struct {
+		alpha []float64
+		want  int
+	}{
+		{[]float64{0.5, 1}, 0},
+		{[]float64{1e-8, 1}, 1},
+		{[]float64{1, 1e-8}, 0},
+	} {
+		inf := math.Inf(1)
+		s := &bounded{
+			tol:   1e-9,
+			bland: true,
+			alpha: test.alpha,
+			head:  []int{0, 1},
+			x:     []float64{0, 0, 0},
+			lower: []float64{0, 0, 0},
+			upper: []float64{inf, inf, inf},
+		}
+		theta, row, flip := s.ratio(2, 1)
+		if theta != 0 || row != test.want || flip {
+			t.Errorf("alpha %v: step %v, row %d, flip %v; want row %d", test.alpha, theta, row, flip, test.want)
+		}
+	}
+}
+
 func TestBoundedSimplexWarm(t *testing.T) {
 	t.Parallel()
 	for _, fk := range factorKinds {
