@@ -183,6 +183,9 @@ const (
 	// costShift scales the cost perturbation that separates tied dual
 	// ratios.
 	costShift = 1e-6
+	// rowDensity is the fraction of nonzeros in a row of the basis inverse
+	// below which the pivot row is formed from the rows of A.
+	rowDensity = 0.5
 	// roundTol is the size, against the terms of a sum, below which the
 	// sum counts as rounding error when a verdict is checked.
 	roundTol = 1e-12
@@ -237,6 +240,11 @@ type bounded struct {
 	y          []float64
 	alpha      []float64
 	work       []float64
+	rho        []float64 // a row of the basis inverse
+	arow       []float64 // per variable: its entry of the pivot row
+	d          []float64 // per nonbasic variable: its reduced cost, updated at each pivot
+	dtol       []float64 // the tolerance for the sign of d
+	byRow      *columns  // the columns of A by rows, built when first used
 	bland      bool
 	objScale   float64 // magnitude of the phase objective, for progress tests
 	stall      int
@@ -316,6 +324,10 @@ func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matri
 	s.alpha = make([]float64, m)
 	s.lu = factor(m, n, s.start[n])
 	s.work = make([]float64, m)
+	s.rho = make([]float64, m)
+	s.arow = make([]float64, n+m)
+	s.d = make([]float64, n+m)
+	s.dtol = make([]float64, n+m)
 	s.barred = make([]bool, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
@@ -958,6 +970,88 @@ func (s *bounded) ftran(q int) {
 		z[s.index[k]] = s.value[k]
 	}
 	s.lu.ftran(z)
+}
+
+// reprice sets y to the multipliers of the phase costs, and d and dtol to
+// the reduced cost of each nonbasic variable that is not fixed and the
+// tolerance for its sign.
+func (s *bounded) reprice() {
+	s.btran()
+	for j := range s.total {
+		if s.status[j] == basic || s.lower[j] == s.upper[j] {
+			continue
+		}
+		s.d[j], s.dtol[j] = s.reducedCost(j)
+	}
+}
+
+// pivotRow sets arow to row r of B⁻¹[A | artificials] and rho to row r of
+// B⁻¹. The entries of basic and of fixed variables are not meaningful.
+//
+// A sparse rho is multiplied by the rows of A, which costs their nonzeros
+// rather than all of A's. Both orders add the terms of an entry by
+// increasing row when the columns are stored that way, so they agree to the
+// last bit.
+func (s *bounded) pivotRow(r int) {
+	rho := s.rho
+	clear(rho)
+	rho[r] = 1
+	s.lu.btran(rho)
+	nz := 0
+	for _, v := range rho {
+		if v != 0 {
+			nz++
+		}
+	}
+	if float64(nz) > rowDensity*float64(s.m) {
+		for j := range s.total {
+			if s.status[j] == basic || s.lower[j] == s.upper[j] {
+				continue
+			}
+			a := 0.0
+			for k := s.start[j]; k < s.start[j+1]; k++ {
+				a += rho[s.index[k]] * s.value[k]
+			}
+			s.arow[j] = a
+		}
+		return
+	}
+	if s.byRow == nil {
+		s.byRow = s.transpose()
+	}
+	rows := s.byRow
+	clear(s.arow[:s.n])
+	for i, v := range rho {
+		if v == 0 {
+			s.arow[s.n+i] = 0
+			continue
+		}
+		for k := rows.start[i]; k < rows.start[i+1]; k++ {
+			s.arow[rows.index[k]] += v * rows.value[k]
+		}
+		s.arow[s.n+i] = v * s.value[s.start[s.n+i]]
+	}
+}
+
+// transpose returns the n columns of A stored by rows.
+func (s *bounded) transpose() *columns {
+	nnz := s.start[s.n]
+	t := &columns{start: make([]int, s.m+1), index: make([]int, nnz), value: make([]float64, nnz)}
+	for _, i := range s.index[:nnz] {
+		t.start[i+1]++
+	}
+	for i := range s.m {
+		t.start[i+1] += t.start[i]
+	}
+	next := append([]int(nil), t.start[:s.m]...)
+	for j := range s.n {
+		for k := s.start[j]; k < s.start[j+1]; k++ {
+			at := next[s.index[k]]
+			next[s.index[k]]++
+			t.index[at], t.value[at] = j, s.value[k]
+		}
+	}
+	return t
 }
 
 // price returns an entering variable and its direction (+1 increase, -1

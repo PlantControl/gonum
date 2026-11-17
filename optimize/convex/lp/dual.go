@@ -86,7 +86,7 @@ func (s *bounded) dual() error {
 	for i := range weight {
 		weight[i] = 1
 	}
-	rho := make([]float64, m)
+	rho := s.rho
 	tau := make([]float64, m)
 	flip := make([]float64, m)
 	var cand []candidate
@@ -94,9 +94,14 @@ func (s *bounded) dual() error {
 	s.unbar()
 	shake := false
 	defer s.unshift()
+	priced := false
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
+		}
+		if !priced {
+			s.reprice()
+			priced = true
 		}
 		if shake {
 			shake = false
@@ -142,28 +147,21 @@ func (s *bounded) dual() error {
 		if s.x[leave] > s.upper[leave] {
 			sign = -1
 		}
-		clear(rho)
-		rho[r] = 1
-		s.lu.btran(rho)
-		s.btran()
+		s.pivotRow(r)
 		cand = cand[:0]
 		for j := range s.total {
 			st := s.status[j]
 			if st == basic || s.lower[j] == s.upper[j] {
 				continue
 			}
-			a := 0.0
-			for k := s.start[j]; k < s.start[j+1]; k++ {
-				a += rho[s.index[k]] * s.value[k]
-			}
-			a *= sign
+			a := sign * s.arow[j]
 			if math.Abs(a) <= pivotTol {
 				continue
 			}
 			if (st == atLower && a > 0) || (st == atUpper && a < 0) {
 				continue
 			}
-			d, _ := s.reducedCost(j)
+			d := s.d[j]
 			if st == atLower {
 				d = math.Max(d, 0)
 			} else {
@@ -181,6 +179,7 @@ func (s *bounded) dual() error {
 				if err := s.refactor(); err != nil {
 					return err
 				}
+				priced = false
 				continue
 			}
 			if s.certify(rho) {
@@ -202,6 +201,7 @@ func (s *bounded) dual() error {
 				if err := s.refactor(); err != nil {
 					return err
 				}
+				priced = false
 				continue
 			}
 			s.barred[r] = true
@@ -228,6 +228,18 @@ func (s *bounded) dual() error {
 				s.x[s.head[i]] -= a
 			}
 		}
+		// The dual step moves the multipliers along rho, and so each reduced
+		// cost along its entry of the pivot row.
+		step := s.d[q] / s.arow[q]
+		for j := range s.total {
+			if s.status[j] == basic || s.lower[j] == s.upper[j] {
+				continue
+			}
+			if a := s.arow[j]; a != 0 {
+				s.d[j] -= step * a
+			}
+		}
+		s.d[q], s.d[leave] = 0, -step
 		target := s.lower[leave]
 		if sign < 0 {
 			target = s.upper[leave]
@@ -275,6 +287,9 @@ func (s *bounded) dual() error {
 		if err := s.pivoted(r); err != nil {
 			return err
 		}
+		// Fresh factors give the reduced costs without the drift of the
+		// updates.
+		priced = !s.fresh
 	}
 }
 
@@ -310,6 +325,7 @@ func (s *bounded) shift() bool {
 			e = -e
 		}
 		s.cost[j] += e
+		s.d[j] += e
 		s.shifted[j], any = true, true
 	}
 	return any
