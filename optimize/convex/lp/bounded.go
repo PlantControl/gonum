@@ -54,13 +54,14 @@ type Basis struct {
 // it has no finite bound (Koberstein and Suhl, "Progress in the dual
 // simplex method for large scale LP problems: practical dual phase 1
 // algorithms", 2007). A run of degenerate dual pivots perturbs the costs;
-// the primal simplex method removes what the perturbation leaves. If the dual method gives up, the
-// primal method solves from the artificial basis in two phases (Chvátal,
-// Linear Programming, ch. 8), with devex pricing (Forrest and Goldfarb,
-// "Steepest-edge simplex algorithms for linear programming", 1992),
-// Harris's two-pass ratio test and, after a run of degenerate pivots,
-// Bland's rule among pivots that are not small. That limits cycling but does not rule it out; a
-// problem that still cycles ends in ErrIterationLimit.
+// the primal simplex method removes what the perturbation leaves. If the
+// dual method gives up, the primal method solves from the artificial basis
+// in two phases (Chvátal, Linear Programming, ch. 8), with devex pricing
+// (Forrest and Goldfarb, "Steepest-edge simplex algorithms for linear
+// programming", 1992), Harris's two-pass ratio test and, after a run of
+// degenerate pivots, Bland's rule among pivots that are not small. That
+// limits cycling but does not rule it out; a problem that still cycles ends
+// in ErrIterationLimit.
 //
 // Each pivot reuses an LU factorization of an earlier basis through
 // product-form eta updates, and updates the reduced costs from its row of

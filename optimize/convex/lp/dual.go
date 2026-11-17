@@ -75,10 +75,12 @@ type candidate struct {
 // thesis, Paderborn, 2005). The leaving row is chosen by dual steepest edge
 // with unit initial weights; the ratio test passes breakpoints of boxed
 // variables, flipping them to their other bound, while the primal
-// infeasibility of the leaving row still decreases. A run of degenerate
-// pivots perturbs the costs of the nonbasic variables, which the caller
-// finds restored and must clean up after; once every cost is perturbed it
-// uses Bland's rule without flips until the dual objective moves. It
+// infeasibility of the leaving row still decreases. Each pivot updates the
+// reduced costs from its row of the tableau, and each factorization
+// computes them again. A run of degenerate pivots perturbs the costs of
+// the nonbasic variables, which the caller finds restored and must clean up
+// after; once every cost is perturbed it uses Bland's rule without flips
+// until the dual objective moves. It
 // returns ErrInfeasible if a row cannot be made feasible and its row of
 // the basis inverse certifies that, and errUnsettled if the certificate
 // fails or only rows with unstable pivots are left.

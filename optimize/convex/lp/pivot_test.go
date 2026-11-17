@@ -221,3 +221,20 @@ func TestSparseLUUpdateDue(t *testing.T) {
 		}
 	}
 }
+
+// TestSolveRepricesBetweenPhases solves a problem whose first phase ends
+// without a pivot, so that its reduced costs, all zero, are still at hand
+// on fresh factors when the second phase starts. Taken for those of the
+// true costs they would make the starting point optimal.
+func TestSolveRepricesBetweenPhases(t *testing.T) {
+	a := &cscMatrix{m: 2, n: 2, start: []int{0, 2, 4}, index: []int{0, 1, 0, 1}, value: []float64{1, -1, -1, 1}}
+	c, b := []float64{-1, 0.5}, []float64{0, 0}
+	lower, upper := []float64{0, 0}, []float64{4, 10}
+	s := newBounded(newFactor, c, a, b, lower, upper, 1e-9)
+	if err := s.solve(); err != nil {
+		t.Fatal(err)
+	}
+	if s.x[0] != 4 || s.x[1] != 4 {
+		t.Fatalf("x = %v, want [4 4]", s.x[:2])
+	}
+}
