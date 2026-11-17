@@ -18,7 +18,7 @@ const (
 )
 
 // reducedCost returns d_j = c_j - yᵀa_j and the tolerance for its sign,
-// which scales with the terms of the sum as in price.
+// which scales with the terms of the sum, as their rounding error does.
 func (s *bounded) reducedCost(j int) (d, tol float64) {
 	d, size := s.cost[j], math.Abs(s.cost[j])
 	for k := s.start[j]; k < s.start[j+1]; k++ {
@@ -34,13 +34,15 @@ func (s *bounded) reducedCost(j int) (d, tol float64) {
 // its reduced cost favours; it reports false if a variable with at most one
 // finite bound has a reduced cost of the wrong sign.
 func (s *bounded) dualStart() bool {
-	s.btran()
+	if !s.priced {
+		s.reprice()
+	}
 	for j := range s.total {
 		st := s.status[j]
 		if st == basic || s.lower[j] == s.upper[j] {
 			continue
 		}
-		d, tol := s.reducedCost(j)
+		d, tol := s.d[j], s.dtol[j]
 		lo, up := !math.IsInf(s.lower[j], -1), !math.IsInf(s.upper[j], 1)
 		switch {
 		case lo && up:
@@ -93,15 +95,17 @@ func (s *bounded) dual() error {
 	s.bland, s.stall = false, 0
 	s.unbar()
 	shake := false
-	defer s.unshift()
-	priced := false
+	defer func() {
+		s.unshift()
+		// The multipliers were not updated with the reduced costs.
+		s.priced = false
+	}()
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
 		}
-		if !priced {
+		if !s.priced {
 			s.reprice()
-			priced = true
 		}
 		if shake {
 			shake = false
@@ -179,7 +183,6 @@ func (s *bounded) dual() error {
 				if err := s.refactor(); err != nil {
 					return err
 				}
-				priced = false
 				continue
 			}
 			if s.certify(rho) {
@@ -201,7 +204,6 @@ func (s *bounded) dual() error {
 				if err := s.refactor(); err != nil {
 					return err
 				}
-				priced = false
 				continue
 			}
 			s.barred[r] = true
@@ -276,9 +278,6 @@ func (s *bounded) dual() error {
 		if err := s.pivoted(r); err != nil {
 			return err
 		}
-		// Fresh factors give the reduced costs without the drift of the
-		// updates.
-		priced = !s.fresh
 	}
 }
 
@@ -328,6 +327,7 @@ func (s *bounded) unshift() {
 	if s.shifted != nil {
 		copy(s.cost, s.c)
 		s.shifted = nil
+		s.priced = false
 	}
 }
 

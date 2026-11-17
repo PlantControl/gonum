@@ -251,6 +251,7 @@ type bounded struct {
 	arow       []float64 // per variable: its entry of the pivot row
 	d          []float64 // per nonbasic variable: its reduced cost, updated at each pivot
 	dtol       []float64 // the tolerance for the sign of d
+	priced     bool      // y, d and dtol belong to the basis and the phase costs
 	devex      []float64 // per nonbasic variable: its reference weight in primal pricing
 	byRow      *columns  // the columns of A by rows, built when first used
 	bland      bool
@@ -332,10 +333,10 @@ func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matri
 	s.alpha = make([]float64, m)
 	s.lu = factor(m, n, s.start[n])
 	s.work = make([]float64, m)
-	s.rho = make([]float64, m)
-	s.arow = make([]float64, n+m)
-	s.d = make([]float64, n+m)
-	s.dtol = make([]float64, n+m)
+	buf := make([]float64, 3*(n+m)+m)
+	s.arow, buf = buf[:n+m:n+m], buf[n+m:]
+	s.d, buf = buf[:n+m:n+m], buf[n+m:]
+	s.dtol, s.rho = buf[:n+m:n+m], buf[n+m:]
 	s.barred = make([]bool, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
@@ -377,6 +378,7 @@ func (s *bounded) solve() error {
 		}
 	}
 	copy(s.cost, s.c)
+	s.priced = false
 	s.bland, s.stall = false, 0
 	if err := s.run(); err != nil {
 		return err
@@ -466,12 +468,14 @@ func (s *bounded) reach() error {
 	c := s.c
 	s.c = make([]float64, s.total)
 	clear(s.cost)
+	s.priced = false
 	err := errUnsettled
 	if s.dualStart() {
 		err = s.dual()
 	}
 	s.c = c
 	copy(s.cost, c)
+	s.priced = false
 	return err
 }
 
@@ -479,9 +483,15 @@ func (s *bounded) reach() error {
 // multipliers of the true costs in y.
 func (s *bounded) optimal() bool {
 	s.bland = false
-	s.btran()
-	q, _, _ := s.price()
-	return q < 0
+	if !s.priced {
+		s.reprice()
+	}
+	for j := range s.total {
+		if s.way(j) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // residual checks A x = b, which holds after a factorization unless the
@@ -607,6 +617,7 @@ func (s *bounded) phase1() error {
 	upper := append([]float64(nil), s.upper...)
 	b := append([]float64(nil), s.b...)
 	clear(s.b)
+	s.priced = false
 	for j := range s.n {
 		lo, up := !math.IsInf(lower[j], -1), !math.IsInf(upper[j], 1)
 		switch {
@@ -635,6 +646,7 @@ func (s *bounded) phase1() error {
 	copy(s.lower, lower)
 	copy(s.upper, upper)
 	copy(s.b, b)
+	s.priced = false
 	for j := range s.n {
 		if s.status[j] == basic {
 			continue
@@ -754,23 +766,23 @@ func (s *bounded) run() error {
 	for j := range s.devex {
 		s.devex[j] = 1
 	}
-	// priced: y, d and dtol belong to the current basis. exact: they were
-	// computed from it, with no update since.
-	priced, exact := false, false
+	// exact: the reduced costs were computed from the multipliers of this
+	// basis, with no update since.
+	exact := s.priced
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
 		}
-		if !priced {
+		if !s.priced {
 			s.reprice()
-			priced, exact = true, true
+			exact = true
 		}
 		q, dir := s.enter()
 		if q < 0 {
 			if exact {
 				return nil
 			}
-			priced = false
+			s.priced = false
 			continue
 		}
 		if !exact {
@@ -795,14 +807,14 @@ func (s *bounded) run() error {
 			if s.descends(q, dir) {
 				return ErrUnbounded
 			}
-			// descends used y.
-			priced = false
 			if stale {
 				continue
 			}
 			// The ratio test passed over a row that stops the step.
-			s.reprice()
-			priced, exact = true, true
+			if !s.priced {
+				s.reprice()
+				exact = true
+			}
 			s.ftran(q)
 			if theta, row = s.blocker(dir); row < 0 {
 				return errUnsettled
@@ -846,7 +858,6 @@ func (s *bounded) run() error {
 			if err := s.refactor(); err != nil {
 				return err
 			}
-			priced = false
 			continue
 		}
 		s.reduce(q, leave, row)
@@ -856,7 +867,6 @@ func (s *bounded) run() error {
 		if err := s.pivoted(row); err != nil {
 			return err
 		}
-		priced = !s.fresh
 	}
 }
 
@@ -868,28 +878,34 @@ func (s *bounded) enter() (q, dir int) {
 	best := 0.0
 	q = -1
 	for j := range s.total {
-		st := s.status[j]
-		if st == basic || s.lower[j] == s.upper[j] {
-			continue
-		}
-		d, tol := s.d[j], s.dtol[j]
-		var way int
-		switch {
-		case d < -tol && (st == atLower || st == atZero):
-			way = 1
-		case d > tol && (st == atUpper || st == atZero):
-			way = -1
-		default:
+		way := s.way(j)
+		if way == 0 {
 			continue
 		}
 		if s.bland {
 			return j, way
 		}
-		if score := d * d / s.devex[j]; score > best {
-			best, q, dir = score, j, way
+		if d := s.d[j]; d*d > best*s.devex[j] {
+			best, q, dir = d*d/s.devex[j], j, way
 		}
 	}
 	return q, dir
+}
+
+// way returns the direction in which nonbasic j prices out by its reduced
+// cost in d, or 0 if it does not.
+func (s *bounded) way(j int) int {
+	st := s.status[j]
+	if st == basic || s.lower[j] == s.upper[j] {
+		return 0
+	}
+	switch d, tol := s.d[j], s.dtol[j]; {
+	case d < -tol && (st == atLower || st == atZero):
+		return 1
+	case d > tol && (st == atUpper || st == atZero):
+		return -1
+	}
+	return 0
 }
 
 // exchange updates the reduced costs for the pivot in which nonbasic q
@@ -998,6 +1014,7 @@ func (s *bounded) recedes(d []float64) bool {
 		big = math.Max(big, math.Abs(v))
 	}
 	r, terms, scale := s.work, s.y, s.alpha
+	s.priced = false
 	clear(r)
 	clear(terms)
 	clear(scale)
@@ -1052,6 +1069,7 @@ func (s *bounded) pivoted(row int) error {
 // refactor factorizes the current basis and recomputes basic values from
 // the nonbasic ones to remove accumulated drift.
 func (s *bounded) refactor() error {
+	s.priced = false
 	if err := s.lu.factorize(&s.columns, s.head); err != nil {
 		return err
 	}
@@ -1100,7 +1118,9 @@ func (s *bounded) ftran(q int) {
 
 // reprice sets y to the multipliers of the phase costs, and d and dtol to
 // the reduced cost of each nonbasic variable that is not fixed and the
-// tolerance for its sign.
+// tolerance for its sign. They stay valid, through the updates of each
+// pivot, until the costs, the bounds that fix a variable or the
+// factorization change, or y is used as work space.
 func (s *bounded) reprice() {
 	s.btran()
 	for j := range s.total {
@@ -1109,6 +1129,7 @@ func (s *bounded) reprice() {
 		}
 		s.d[j], s.dtol[j] = s.reducedCost(j)
 	}
+	s.priced = true
 }
 
 // pivotRow sets arow to row r of B⁻¹[A | artificials] and rho to row r of
@@ -1182,44 +1203,6 @@ func (s *bounded) transpose() *columns {
 		}
 	}
 	return t
-}
-
-// price returns an entering variable and its direction (+1 increase, -1
-// decrease), or -1 at optimality.
-func (s *bounded) price() (int, int, float64) {
-	best, q, dir := 0.0, -1, 0
-	for j := range s.total {
-		st := s.status[j]
-		if st == basic || s.lower[j] == s.upper[j] {
-			continue
-		}
-		// The tolerance scales with the terms of d, whose rounding error
-		// grows with them.
-		d, size := s.cost[j], math.Abs(s.cost[j])
-		for k := s.start[j]; k < s.start[j+1]; k++ {
-			t := s.y[s.index[k]] * s.value[k]
-			d -= t
-			size += math.Abs(t)
-		}
-		tol := s.tol * math.Max(1, size)
-		var gain float64
-		var way int
-		switch {
-		case d < -tol && (st == atLower || st == atZero):
-			gain, way = -d, 1
-		case d > tol && (st == atUpper || st == atZero):
-			gain, way = d, -1
-		default:
-			continue
-		}
-		if s.bland {
-			return j, way, gain
-		}
-		if gain > best {
-			best, q, dir = gain, j, way
-		}
-	}
-	return q, dir, best
 }
 
 // ratio returns the step length, the leaving row, and whether the entering
