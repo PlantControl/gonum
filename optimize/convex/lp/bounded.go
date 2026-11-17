@@ -1120,9 +1120,11 @@ func (s *bounded) pivotRow(r int) {
 			if s.status[j] == basic || s.lower[j] == s.upper[j] {
 				continue
 			}
+			index := s.index[s.start[j]:s.start[j+1]]
+			value := s.value[s.start[j]:s.start[j+1]]
 			a := 0.0
-			for k := s.start[j]; k < s.start[j+1]; k++ {
-				a += rho[s.index[k]] * s.value[k]
+			for k, i := range index {
+				a += rho[i] * value[k]
 			}
 			s.arow[j] = a
 		}
@@ -1138,8 +1140,10 @@ func (s *bounded) pivotRow(r int) {
 			s.arow[s.n+i] = 0
 			continue
 		}
-		for k := rows.start[i]; k < rows.start[i+1]; k++ {
-			s.arow[rows.index[k]] += v * rows.value[k]
+		index := rows.index[rows.start[i]:rows.start[i+1]]
+		value := rows.value[rows.start[i]:rows.start[i+1]]
+		for k, j := range index {
+			s.arow[j] += v * value[k]
 		}
 		s.arow[s.n+i] = v * s.value[s.start[s.n+i]]
 	}

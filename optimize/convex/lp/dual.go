@@ -298,7 +298,9 @@ func (s *bounded) dual() error {
 func (s *bounded) stable(row int) bool {
 	big := 0.0
 	for _, a := range s.alpha {
-		big = math.Max(big, math.Abs(a))
+		if a := math.Abs(a); a > big {
+			big = a
+		}
 	}
 	return math.Abs(s.alpha[row]) >= stablePivot*big
 }
