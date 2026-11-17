@@ -186,6 +186,9 @@ const (
 	// rowDensity is the fraction of nonzeros in a row of the basis inverse
 	// below which the pivot row is formed from the rows of A.
 	rowDensity = 0.5
+	// devexReset is the reference weight above which primal pricing starts
+	// a new reference framework.
+	devexReset = 1e7
 	// roundTol is the size, against the terms of a sum, below which the
 	// sum counts as rounding error when a verdict is checked.
 	roundTol = 1e-12
@@ -244,6 +247,7 @@ type bounded struct {
 	arow       []float64 // per variable: its entry of the pivot row
 	d          []float64 // per nonbasic variable: its reduced cost, updated at each pivot
 	dtol       []float64 // the tolerance for the sign of d
+	devex      []float64 // per nonbasic variable: its reference weight in primal pricing
 	byRow      *columns  // the columns of A by rows, built when first used
 	bland      bool
 	objScale   float64 // magnitude of the phase objective, for progress tests
@@ -726,21 +730,53 @@ func (s *bounded) basis() *Basis {
 	return b
 }
 
-// run iterates the simplex method on the current phase cost.
+// run iterates the primal simplex method on the current phase cost. The
+// entering variable has the largest reduced cost against its devex
+// reference weight (Forrest and Goldfarb, "Steepest-edge simplex algorithms
+// for linear programming", Math. Programming 57, 1992, section 5). Reduced
+// costs, multipliers and weights are updated from the pivot row, and the
+// first two recomputed after each factorization; the reduced cost of the
+// variable chosen is always recomputed from the multipliers, and run
+// returns only when a pricing of every column from fresh multipliers finds
+// none.
 func (s *bounded) run() error {
 	s.objScale = 0
 	for j := range s.total {
 		s.objScale += math.Abs(s.cost[j] * s.x[j])
 	}
+	if s.devex == nil {
+		s.devex = make([]float64, s.total)
+	}
+	for j := range s.devex {
+		s.devex[j] = 1
+	}
+	// priced: y, d and dtol belong to the current basis. exact: they were
+	// computed from it, with no update since.
+	priced, exact := false, false
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
 		}
-		s.btran()
-		q, dir, gain := s.price()
-		if q < 0 {
-			return nil
+		if !priced {
+			s.reprice()
+			priced, exact = true, true
 		}
+		q, dir := s.enter()
+		if q < 0 {
+			if exact {
+				return nil
+			}
+			priced = false
+			continue
+		}
+		if !exact {
+			// Updated values chose q; the multipliers decide.
+			s.d[q], s.dtol[q] = s.reducedCost(q)
+			if d := float64(dir) * s.d[q]; d >= -s.dtol[q] {
+				continue
+			}
+		}
+		gain := math.Abs(s.d[q])
 		s.ftran(q)
 		theta, row, flip := s.ratio(q, dir)
 		if math.IsInf(theta, 1) {
@@ -755,10 +791,14 @@ func (s *bounded) run() error {
 			if s.descends(q, dir) {
 				return ErrUnbounded
 			}
+			// descends used y.
+			priced = false
 			if stale {
 				continue
 			}
 			// The ratio test passed over a row that stops the step.
+			s.reprice()
+			priced, exact = true, true
 			s.ftran(q)
 			if theta, row = s.blocker(dir); row < 0 {
 				return errUnsettled
@@ -793,19 +833,91 @@ func (s *bounded) run() error {
 		} else {
 			s.x[leave], s.status[leave] = s.upper[leave], atUpper
 		}
-		s.head[row] = q
-		s.status[q] = basic
 		if !s.stable(row) {
 			// An update on a pivot this small against its column would
 			// multiply the error in every later solve; factorize instead.
+			s.head[row] = q
+			s.status[q] = basic
 			s.unbar()
 			if err := s.refactor(); err != nil {
 				return err
 			}
+			priced = false
 			continue
 		}
+		s.reduce(q, leave, row)
+		exact = false
+		s.head[row] = q
+		s.status[q] = basic
 		if err := s.pivoted(row); err != nil {
 			return err
+		}
+		priced = !s.fresh
+	}
+}
+
+// enter returns the entering variable and its direction (+1 increase, -1
+// decrease) by the reduced costs in d, or -1 if none prices out: the first
+// under Bland's rule, and otherwise the one with the largest reduced cost
+// against its reference weight.
+func (s *bounded) enter() (q, dir int) {
+	best := 0.0
+	q = -1
+	for j := range s.total {
+		st := s.status[j]
+		if st == basic || s.lower[j] == s.upper[j] {
+			continue
+		}
+		d, tol := s.d[j], s.dtol[j]
+		var way int
+		switch {
+		case d < -tol && (st == atLower || st == atZero):
+			way = 1
+		case d > tol && (st == atUpper || st == atZero):
+			way = -1
+		default:
+			continue
+		}
+		if s.bland {
+			return j, way
+		}
+		if score := d * d / s.devex[j]; score > best {
+			best, q, dir = score, j, way
+		}
+	}
+	return q, dir
+}
+
+// reduce updates the multipliers, the reduced costs and the reference
+// weights for the pivot in which q, whose column is in alpha, replaces the
+// basic variable of row, which is leave.
+func (s *bounded) reduce(q, leave, row int) {
+	s.pivotRow(row)
+	pivot := s.alpha[row]
+	step := s.d[q] / pivot
+	wq := s.devex[q]
+	for j := range s.total {
+		if s.status[j] == basic || s.lower[j] == s.upper[j] {
+			continue
+		}
+		a := s.arow[j]
+		if a == 0 {
+			continue
+		}
+		s.d[j] -= step * a
+		if w := a / pivot; w*w*wq > s.devex[j] {
+			s.devex[j] = w * w * wq
+		}
+	}
+	for i, v := range s.rho {
+		s.y[i] += step * v
+	}
+	s.d[q] = 0
+	s.d[leave], s.dtol[leave] = s.reducedCost(leave)
+	s.devex[leave] = math.Max(wq/(pivot*pivot), 1)
+	if s.devex[leave] > devexReset {
+		for j := range s.devex {
+			s.devex[j] = 1
 		}
 	}
 }
