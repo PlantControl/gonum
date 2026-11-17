@@ -480,3 +480,21 @@ func TestRecedes(t *testing.T) {
 		}
 	}
 }
+
+// On these unbounded problems the primal method from the artificial basis
+// took pivots a millionth of a millionth of their column, updated the
+// factors on them, and ended with a basis it could not factorize. A pivot
+// that small is now followed by a fresh factorization.
+func TestBoundedSimplexSmallPrimalPivot(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		seed uint64
+		m, n int
+	}{{74, 20, 60}, {187, 40, 120}} {
+		c, a, b, lower, upper := zeroRowsLP(test.seed, test.m, test.n, true)
+		s := newBounded(newFactor, c, a, b, lower, upper, 1e-9)
+		if err := s.solve(); !errors.Is(err, ErrUnbounded) {
+			t.Errorf("seed %d: primal method returned %v, want ErrUnbounded", test.seed, err)
+		}
+	}
+}

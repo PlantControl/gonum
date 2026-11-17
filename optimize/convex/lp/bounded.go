@@ -783,6 +783,15 @@ func (s *bounded) run() error {
 		}
 		s.head[row] = q
 		s.status[q] = basic
+		if !s.stable(row) {
+			// An update on a pivot this small against its column would
+			// multiply the error in every later solve; factorize instead.
+			s.unbar()
+			if err := s.refactor(); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := s.pivoted(row); err != nil {
 			return err
 		}
