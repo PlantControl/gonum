@@ -228,18 +228,7 @@ func (s *bounded) dual() error {
 				s.x[s.head[i]] -= a
 			}
 		}
-		// The dual step moves the multipliers along rho, and so each reduced
-		// cost along its entry of the pivot row.
-		step := s.d[q] / s.arow[q]
-		for j := range s.total {
-			if s.status[j] == basic || s.lower[j] == s.upper[j] {
-				continue
-			}
-			if a := s.arow[j]; a != 0 {
-				s.d[j] -= step * a
-			}
-		}
-		s.d[q], s.d[leave] = 0, -step
+		s.exchange(q, leave)
 		target := s.lower[leave]
 		if sign < 0 {
 			target = s.upper[leave]

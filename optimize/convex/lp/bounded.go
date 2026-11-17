@@ -56,15 +56,19 @@ type Basis struct {
 // algorithms", 2007). A run of degenerate dual pivots perturbs the costs;
 // the primal simplex method removes what the perturbation leaves. If the dual method gives up, the
 // primal method solves from the artificial basis in two phases (Chvátal,
-// Linear Programming, ch. 8), with Dantzig pricing, Harris's two-pass ratio
-// test and, after a run of degenerate pivots, Bland's rule among pivots
-// that are not small. That limits cycling but does not rule it out; a
+// Linear Programming, ch. 8), with devex pricing (Forrest and Goldfarb,
+// "Steepest-edge simplex algorithms for linear programming", 1992),
+// Harris's two-pass ratio test and, after a run of degenerate pivots,
+// Bland's rule among pivots that are not small. That limits cycling but does not rule it out; a
 // problem that still cycles ends in ErrIterationLimit.
 //
 // Each pivot reuses an LU factorization of an earlier basis through
-// product-form eta updates, refactorizing periodically. The factorization
-// is sparse, with Markowitz pivot selection, unless A is dense, so the cost
-// of a pivot follows the nonzeros of the factors rather than m².
+// product-form eta updates, and updates the reduced costs from its row of
+// the tableau. The basis is factorized again after 64 updates, or sooner
+// when the updates have come to cost more than a factorization saves. The
+// factorization is sparse, with Markowitz pivot selection, unless A is
+// dense, so the cost of a pivot follows the nonzeros of the factors rather
+// than m².
 //
 // A result is returned only for a basis that is optimal on a fresh
 // factorization and satisfies A x = b. ErrInfeasible comes with row
@@ -888,32 +892,42 @@ func (s *bounded) enter() (q, dir int) {
 	return q, dir
 }
 
-// reduce updates the multipliers, the reduced costs and the reference
-// weights for the pivot in which q, whose column is in alpha, replaces the
-// basic variable of row, which is leave.
-func (s *bounded) reduce(q, leave, row int) {
-	s.pivotRow(row)
-	pivot := s.alpha[row]
-	step := s.d[q] / pivot
-	wq := s.devex[q]
+// exchange updates the reduced costs for the pivot in which nonbasic q
+// replaces leave, the basic variable of the row whose pivot row is in arow,
+// and returns the step of the multipliers along rho.
+func (s *bounded) exchange(q, leave int) float64 {
+	step := s.d[q] / s.arow[q]
 	for j := range s.total {
 		if s.status[j] == basic || s.lower[j] == s.upper[j] {
 			continue
 		}
-		a := s.arow[j]
-		if a == 0 {
-			continue
-		}
-		s.d[j] -= step * a
-		if w := a / pivot; w*w*wq > s.devex[j] {
-			s.devex[j] = w * w * wq
+		if a := s.arow[j]; a != 0 {
+			s.d[j] -= step * a
 		}
 	}
+	s.d[q], s.d[leave] = 0, -step
+	return step
+}
+
+// reduce updates the reduced costs, the multipliers and the reference
+// weights for the primal pivot in which q replaces leave, the basic
+// variable of row.
+func (s *bounded) reduce(q, leave, row int) {
+	s.pivotRow(row)
+	step := s.exchange(q, leave)
 	for i, v := range s.rho {
 		s.y[i] += step * v
 	}
-	s.d[q] = 0
 	s.d[leave], s.dtol[leave] = s.reducedCost(leave)
+	pivot, wq := s.arow[q], s.devex[q]
+	for j := range s.total {
+		if s.status[j] == basic || s.lower[j] == s.upper[j] {
+			continue
+		}
+		if w := s.arow[j] / pivot; w*w*wq > s.devex[j] {
+			s.devex[j] = w * w * wq
+		}
+	}
 	s.devex[leave] = math.Max(wq/(pivot*pivot), 1)
 	if s.devex[leave] > devexReset {
 		for j := range s.devex {
