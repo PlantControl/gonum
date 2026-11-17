@@ -14,6 +14,9 @@ const (
 	// markowitzSearch is how many rows or columns are examined for a pivot
 	// once one is available (Suhl and Suhl, ORSA J. Computing 2(4), 1990).
 	markowitzSearch = 4
+	// factorWeight is the cost of an entry of an eliminated row against
+	// that of an eta entry in a pass.
+	factorWeight = 8
 	// dropTol drops an updated entry that has cancelled to this fraction of
 	// the magnitudes that formed it.
 	dropTol = 1e-14
@@ -39,6 +42,10 @@ type sparseLU struct {
 	uValue     []float64
 	work       []float64
 	etas       etaFile
+	// factorWork counts the entries of the basis and of the rows eliminated
+	// in the last factorization, and etaWork those of the etas passed over
+	// since, once for each pivot.
+	factorWork, etaWork int
 
 	// Active submatrix during factorization. Values are stored by row
 	// only, so reading a column costs a search of each of its rows.
@@ -83,6 +90,7 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 	if m == 0 {
 		return nil
 	}
+	f.factorWork, f.etaWork = 2*m, 0
 	for i := range m {
 		f.rowIdx[i], f.rowVal[i], f.colIdx[i] = f.rowIdx[i][:0], f.rowVal[i][:0], f.colIdx[i][:0]
 		f.stamp[i], f.seen[i] = -1, -1
@@ -96,6 +104,7 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 			f.colIdx[pos] = append(f.colIdx[pos], r)
 			big = math.Max(big, math.Abs(a.value[k]))
 		}
+		f.factorWork += a.start[j+1] - a.start[j]
 		f.colBig[pos], f.colStale[pos] = big, false
 	}
 	f.rows.reset()
@@ -191,6 +200,7 @@ func (f *sparseLU) factorize(a *columns, head []int) error {
 				f.colBig[j] = math.Max(f.colBig[j], math.Abs(l*f.scatter[j]))
 			}
 			f.rowIdx[i], f.rowVal[i] = idx, val
+			f.factorWork += len(idx)
 			f.rows.move(i, len(idx))
 		}
 		f.lStart = append(f.lStart, len(f.lIndex))
@@ -336,9 +346,15 @@ func (f *sparseLU) btran(v []float64) {
 	copy(v, w)
 }
 
+// update asks for a factorization once another would pay for itself: when
+// a pass over the etas costs more than the average, over the pivots since
+// the last factorization, of that factorization and the passes so far.
 func (f *sparseLU) update(row int, alpha []float64) bool {
 	f.etas.add(row, alpha)
-	return f.etas.len() >= refactorEvery
+	k := f.etas.len()
+	pass := len(f.etas.index) + k
+	f.etaWork += pass
+	return k >= refactorEvery || k*pass >= factorWeight*f.factorWork+f.etaWork
 }
 
 // countList keeps items in doubly linked lists by count, for finding rows
