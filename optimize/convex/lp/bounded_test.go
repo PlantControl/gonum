@@ -789,6 +789,28 @@ func TestBoundedSimplexPoolDegenerate(t *testing.T) {
 	}
 }
 
+// TestPhaseOneStopsFeasible checks that the first primal phase from the
+// artificial basis stops once the artificial variables are zero. On this
+// pooling relaxation it went on pivoting at a phase objective of 1e-16 to
+// the iteration limit, 229,150 pivots.
+func TestPhaseOneStopsFeasible(t *testing.T) {
+	t.Parallel()
+	lp := loadPoolLP(t, "testdata/pool_node_degenerate.json.gz")
+	s := newBounded(newFactor, lp.c, lp.a, lp.b, lp.lower, lp.upper, 1e-9)
+	if err := s.refactor(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.run(); err != nil {
+		t.Fatal(err)
+	}
+	if !s.fresh || !s.artificialsClear() {
+		t.Error("phase 1 returned with an artificial variable above the tolerance")
+	}
+	if limit := lp.a.n + lp.a.m + 1; s.iterations > limit {
+		t.Errorf("%d pivots, want at most %d", s.iterations, limit)
+	}
+}
+
 // TestExpand checks that expand widens the finite bounds of basic structural
 // variables only, and that unexpand restores every bound exactly and puts
 // nonbasic variables back on them.
