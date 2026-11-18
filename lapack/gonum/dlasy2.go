@@ -4,11 +4,7 @@
 
 package gonum
 
-import (
-	"math"
-
-	blasgonum "plantcontrol.org/v1/gonum/blas/gonum"
-)
+import "math"
 
 // Dlasy2 solves the Sylvester matrix equation where the matrices are of order 1
 // or 2. It computes the unknown n1×n2 matrix X so that
@@ -111,7 +107,16 @@ func (impl Implementation) Dlasy2(tranl, tranr bool, isgn, n1, n2 int, tl []floa
 		// Solve 2×2 system using complete pivoting.
 		// Set pivots less than smin to smin.
 
-		ipiv := blasgonum.Implementation{}.Idamax(len(tmp), tmp[:], 1)
+		// Scan tmp column-wise as the reference DLASY2 does, so that tied
+		// entries pick the same pivot.
+		ipiv := 0
+		tmax := math.Abs(tmp[0])
+		for _, k := range [3]int{2, 1, 3} {
+			if v := math.Abs(tmp[k]); v > tmax {
+				tmax = v
+				ipiv = k
+			}
+		}
 		// Compute the upper triangular matrix [u11 u12].
 		//                                     [  0 u22]
 		u11 := tmp[ipiv]
@@ -167,6 +172,11 @@ func (impl Implementation) Dlasy2(tranl, tranr bool, isgn, n1, n2 int, tl []floa
 	//
 	// Solve equivalent 4×4 system using complete pivoting.
 	// Set pivots less than smin to smin.
+	//
+	// The unknowns are ordered X11, X21, X12, X22 as in the reference
+	// DLASY2. The diagonal and off-diagonal entries of the 4×4 system repeat,
+	// so the pivot order, the scale factor and any perturbed solution depend
+	// on this ordering.
 
 	smin := math.Max(math.Abs(tr[0]), math.Abs(tr[1]))
 	smin = math.Max(smin, math.Max(math.Abs(tr[ldtr]), math.Abs(tr[ldtr+1])))
@@ -176,36 +186,36 @@ func (impl Implementation) Dlasy2(tranl, tranr bool, isgn, n1, n2 int, tl []floa
 
 	var t [4][4]float64
 	t[0][0] = tl[0] + sgn*tr[0]
-	t[1][1] = tl[0] + sgn*tr[ldtr+1]
-	t[2][2] = tl[ldtl+1] + sgn*tr[0]
+	t[1][1] = tl[ldtl+1] + sgn*tr[0]
+	t[2][2] = tl[0] + sgn*tr[ldtr+1]
 	t[3][3] = tl[ldtl+1] + sgn*tr[ldtr+1]
 	if tranl {
-		t[0][2] = tl[ldtl]
-		t[1][3] = tl[ldtl]
-		t[2][0] = tl[1]
-		t[3][1] = tl[1]
+		t[0][1] = tl[ldtl]
+		t[1][0] = tl[1]
+		t[2][3] = tl[ldtl]
+		t[3][2] = tl[1]
 	} else {
-		t[0][2] = tl[1]
-		t[1][3] = tl[1]
-		t[2][0] = tl[ldtl]
-		t[3][1] = tl[ldtl]
+		t[0][1] = tl[1]
+		t[1][0] = tl[ldtl]
+		t[2][3] = tl[1]
+		t[3][2] = tl[ldtl]
 	}
 	if tranr {
-		t[0][1] = sgn * tr[1]
-		t[1][0] = sgn * tr[ldtr]
-		t[2][3] = sgn * tr[1]
-		t[3][2] = sgn * tr[ldtr]
+		t[0][2] = sgn * tr[1]
+		t[1][3] = sgn * tr[1]
+		t[2][0] = sgn * tr[ldtr]
+		t[3][1] = sgn * tr[ldtr]
 	} else {
-		t[0][1] = sgn * tr[ldtr]
-		t[1][0] = sgn * tr[1]
-		t[2][3] = sgn * tr[ldtr]
-		t[3][2] = sgn * tr[1]
+		t[0][2] = sgn * tr[ldtr]
+		t[1][3] = sgn * tr[ldtr]
+		t[2][0] = sgn * tr[1]
+		t[3][1] = sgn * tr[1]
 	}
 
 	var btmp [4]float64
 	btmp[0] = b[0]
-	btmp[1] = b[1]
-	btmp[2] = b[ldb]
+	btmp[1] = b[ldb]
+	btmp[2] = b[1]
 	btmp[3] = b[ldb+1]
 
 	// Perform elimination.
@@ -283,9 +293,9 @@ func (impl Implementation) Dlasy2(tranl, tranr bool, isgn, n1, n2 int, tl []floa
 		}
 	}
 	x[0] = tmp[0]
-	x[1] = tmp[1]
-	x[ldx] = tmp[2]
+	x[ldx] = tmp[1]
+	x[1] = tmp[2]
 	x[ldx+1] = tmp[3]
-	xnorm = math.Max(math.Abs(tmp[0])+math.Abs(tmp[1]), math.Abs(tmp[2])+math.Abs(tmp[3]))
+	xnorm = math.Max(math.Abs(tmp[0])+math.Abs(tmp[2]), math.Abs(tmp[1])+math.Abs(tmp[3]))
 	return scale, xnorm, ok
 }

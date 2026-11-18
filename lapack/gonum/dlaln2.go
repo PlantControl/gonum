@@ -161,6 +161,9 @@ func (impl Implementation) Dlaln2(trans bool, na, nw int, smin, ca float64, a []
 		crv[2] = ca * a[1]
 	}
 
+	// crv holds C11, C12, C21, C22; the reference scans C11, C21, C12, C22.
+	dlaln2ScanOrder := [4]int{0, 2, 1, 3}
+
 	pivot := [4][4]int{
 		{0, 1, 2, 3},
 		{1, 0, 3, 2},
@@ -171,11 +174,12 @@ func (impl Implementation) Dlaln2(trans bool, na, nw int, smin, ca float64, a []
 	if nw == 1 {
 		// Real 2×2 system (w is real).
 
-		// Find the largest element in C.
+		// Find the largest element in C, scanning column-wise as the
+		// reference DLALN2 does so that ties pick the same pivot.
 		var cmax float64
 		var icmax int
-		for j, v := range crv {
-			v = math.Abs(v)
+		for _, j := range dlaln2ScanOrder {
+			v := math.Abs(crv[j])
 			if v > cmax {
 				cmax = v
 				icmax = j
@@ -258,7 +262,8 @@ func (impl Implementation) Dlaln2(trans bool, na, nw int, smin, ca float64, a []
 
 	// Complex 2×2 system (w is complex).
 
-	// Find the largest element in C.
+	// Find the largest element in C, scanning column-wise as the reference
+	// DLALN2 does.
 	civ := [4]float64{
 		-wi * d1,
 		0,
@@ -267,8 +272,8 @@ func (impl Implementation) Dlaln2(trans bool, na, nw int, smin, ca float64, a []
 	}
 	var cmax float64
 	var icmax int
-	for j, v := range crv {
-		v := math.Abs(v)
+	for _, j := range dlaln2ScanOrder {
+		v := math.Abs(crv[j])
 		if v+math.Abs(civ[j]) > cmax {
 			cmax = v + math.Abs(civ[j])
 			icmax = j

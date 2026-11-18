@@ -439,16 +439,18 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 
 				// Solve the (I,J)-subsystem.
 				if mb == 1 && nb == 1 {
-					// Build a 2×2 system:
-					// [Aᵀ[I,I]  Dᵀ[I,I]] [R] = [C[I,J]]
-					// [Bᵀ[J,J]  Eᵀ[J,J]] [L]   [-F[I,J]]
+					// Build a 2×2 system with the second equation negated
+					// as in DTGSY2; the sign matters when Dgetc2 perturbs
+					// a pivot:
+					// [ Aᵀ[I,I]   Dᵀ[I,I]] [R] = [C[I,J]]
+					// [-Bᵀ[J,J]  -Eᵀ[J,J]] [L]   [F[I,J]]
 					z[0] = a[is*lda+is]
 					z[1] = d[is*ldd+is]
-					z[ldz] = b[js*ldb+js]
-					z[ldz+1] = e[js*lde+js]
+					z[ldz] = -b[js*ldb+js]
+					z[ldz+1] = -e[js*lde+js]
 
 					rhs[0] = c[is*ldc+js]
-					rhs[1] = -f[is*ldf+js]
+					rhs[1] = f[is*ldf+js]
 
 					k := impl.Dgetc2(2, z[:], ldz, ipiv[:2], jpiv[:2])
 					if k >= 0 {
@@ -480,21 +482,21 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[ldz+2] = 0
 					z[ldz+3] = d[is*ldd+is]
 
-					// Rows 2,3: -F[is,js] and -F[is,js+1] from R*Bᵀ + L*Eᵀ
-					z[2*ldz] = b[js*ldb+js]
-					z[2*ldz+1] = b[js*ldb+js+1]
-					z[2*ldz+2] = e[js*lde+js]
-					z[2*ldz+3] = e[js*lde+js+1]
+					// Rows 2,3: F[is,js] and F[is,js+1] from -(R*Bᵀ + L*Eᵀ)
+					z[2*ldz] = -b[js*ldb+js]
+					z[2*ldz+1] = -b[js*ldb+js+1]
+					z[2*ldz+2] = -e[js*lde+js]
+					z[2*ldz+3] = -e[js*lde+js+1]
 
-					z[3*ldz] = b[(js+1)*ldb+js]
-					z[3*ldz+1] = b[(js+1)*ldb+js+1]
+					z[3*ldz] = -b[(js+1)*ldb+js]
+					z[3*ldz+1] = -b[(js+1)*ldb+js+1]
 					z[3*ldz+2] = 0
-					z[3*ldz+3] = e[(js+1)*lde+js+1]
+					z[3*ldz+3] = -e[(js+1)*lde+js+1]
 
 					rhs[0] = c[is*ldc+js]
 					rhs[1] = c[is*ldc+js+1]
-					rhs[2] = -f[is*ldf+js]
-					rhs[3] = -f[is*ldf+js+1]
+					rhs[2] = f[is*ldf+js]
+					rhs[3] = f[is*ldf+js+1]
 
 					k := impl.Dgetc2(4, z[:], ldz, ipiv[:4], jpiv[:4])
 					if k >= 0 {
@@ -530,22 +532,22 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[ldz+2] = d[is*ldd+is+1]
 					z[ldz+3] = d[(is+1)*ldd+is+1]
 
-					// Row 2: R[is]*Bᵀ[js,js] + L[is]*Eᵀ[js,js] = -F[is] -> same as B[js,js] and E[js,js]
-					z[2*ldz] = b[js*ldb+js]
+					// Row 2: -(R[is]*B[js,js] + L[is]*E[js,js]) = F[is]
+					z[2*ldz] = -b[js*ldb+js]
 					z[2*ldz+1] = 0
-					z[2*ldz+2] = e[js*lde+js]
+					z[2*ldz+2] = -e[js*lde+js]
 					z[2*ldz+3] = 0
 
-					// Row 3: R[is+1]*Bᵀ[js,js] + L[is+1]*Eᵀ[js,js] = -F[is+1]
+					// Row 3: -(R[is+1]*B[js,js] + L[is+1]*E[js,js]) = F[is+1]
 					z[3*ldz] = 0
-					z[3*ldz+1] = b[js*ldb+js]
+					z[3*ldz+1] = -b[js*ldb+js]
 					z[3*ldz+2] = 0
-					z[3*ldz+3] = e[js*lde+js]
+					z[3*ldz+3] = -e[js*lde+js]
 
 					rhs[0] = c[is*ldc+js]
 					rhs[1] = c[(is+1)*ldc+js]
-					rhs[2] = -f[is*ldf+js]
-					rhs[3] = -f[(is+1)*ldf+js]
+					rhs[2] = f[is*ldf+js]
+					rhs[3] = f[(is+1)*ldf+js]
 
 					k := impl.Dgetc2(4, z[:], ldz, ipiv[:4], jpiv[:4])
 					if k >= 0 {
@@ -596,38 +598,38 @@ func (impl Implementation) dtgsy2(trans blas.Transpose, ijob, m, n int, a []floa
 					z[3*ldz+6] = d[is*ldd+is+1]
 					z[3*ldz+7] = d[(is+1)*ldd+is+1]
 
-					// Row 4: -F[is,js] from R*Bᵀ + L*Eᵀ
-					z[4*ldz] = b[js*ldb+js]
-					z[4*ldz+2] = b[js*ldb+js+1]
-					z[4*ldz+4] = e[js*lde+js]
-					z[4*ldz+6] = e[js*lde+js+1]
+					// Row 4: F[is,js] from -(R*Bᵀ + L*Eᵀ)
+					z[4*ldz] = -b[js*ldb+js]
+					z[4*ldz+2] = -b[js*ldb+js+1]
+					z[4*ldz+4] = -e[js*lde+js]
+					z[4*ldz+6] = -e[js*lde+js+1]
 
-					// Row 5: -F[is+1,js]
-					z[5*ldz+1] = b[js*ldb+js]
-					z[5*ldz+3] = b[js*ldb+js+1]
-					z[5*ldz+5] = e[js*lde+js]
-					z[5*ldz+7] = e[js*lde+js+1]
+					// Row 5: F[is+1,js]
+					z[5*ldz+1] = -b[js*ldb+js]
+					z[5*ldz+3] = -b[js*ldb+js+1]
+					z[5*ldz+5] = -e[js*lde+js]
+					z[5*ldz+7] = -e[js*lde+js+1]
 
-					// Row 6: -F[is,js+1]
-					z[6*ldz] = b[(js+1)*ldb+js]
-					z[6*ldz+2] = b[(js+1)*ldb+js+1]
+					// Row 6: F[is,js+1]
+					z[6*ldz] = -b[(js+1)*ldb+js]
+					z[6*ldz+2] = -b[(js+1)*ldb+js+1]
 					z[6*ldz+4] = 0
-					z[6*ldz+6] = e[(js+1)*lde+js+1]
+					z[6*ldz+6] = -e[(js+1)*lde+js+1]
 
-					// Row 7: -F[is+1,js+1]
-					z[7*ldz+1] = b[(js+1)*ldb+js]
-					z[7*ldz+3] = b[(js+1)*ldb+js+1]
+					// Row 7: F[is+1,js+1]
+					z[7*ldz+1] = -b[(js+1)*ldb+js]
+					z[7*ldz+3] = -b[(js+1)*ldb+js+1]
 					z[7*ldz+5] = 0
-					z[7*ldz+7] = e[(js+1)*lde+js+1]
+					z[7*ldz+7] = -e[(js+1)*lde+js+1]
 
 					rhs[0] = c[is*ldc+js]
 					rhs[1] = c[(is+1)*ldc+js]
 					rhs[2] = c[is*ldc+js+1]
 					rhs[3] = c[(is+1)*ldc+js+1]
-					rhs[4] = -f[is*ldf+js]
-					rhs[5] = -f[(is+1)*ldf+js]
-					rhs[6] = -f[is*ldf+js+1]
-					rhs[7] = -f[(is+1)*ldf+js+1]
+					rhs[4] = f[is*ldf+js]
+					rhs[5] = f[(is+1)*ldf+js]
+					rhs[6] = f[is*ldf+js+1]
+					rhs[7] = f[(is+1)*ldf+js+1]
 
 					k := impl.Dgetc2(8, z[:], ldz, ipiv[:8], jpiv[:8])
 					if k >= 0 {
