@@ -738,6 +738,66 @@ func BenchmarkBoundedSimplexDispatch(b *testing.B) {
 	}
 }
 
+// TestBoundedSimplexWarmStall replays a pooling relaxation whose warm start
+// from its parent node's basis does not settle: the primal method stalls
+// after phase 1 and the zero-cost dual reach a feasible point. The warm
+// attempt must give up early enough to leave the slack basis most of the
+// budget; without that share it took 211,424 pivots.
+func TestBoundedSimplexWarmStall(t *testing.T) {
+	if testing.Short() {
+		t.Skip("about 50,000 pivots")
+	}
+	t.Parallel()
+	f, err := os.Open("testdata/pool_warm_stall.json.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	z, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lp struct {
+		Rows         int
+		Start, Index []int
+		Value, C, B  []float64
+		Lower, Upper []any
+		Head, Status []int
+	}
+	if err := json.NewDecoder(z).Decode(&lp); err != nil {
+		t.Fatal(err)
+	}
+	bound := func(v []any) []float64 {
+		out := make([]float64, len(v))
+		for i, x := range v {
+			switch x {
+			case "inf":
+				out[i] = math.Inf(1)
+			case "-inf":
+				out[i] = math.Inf(-1)
+			default:
+				out[i] = x.(float64)
+			}
+		}
+		return out
+	}
+	lower, upper := bound(lp.Lower), bound(lp.Upper)
+	a := &cscMatrix{m: lp.Rows, n: len(lp.Start) - 1, start: lp.Start, index: lp.Index, value: lp.Value}
+	res, err := BoundedSimplexFrom(&Basis{head: lp.Head, status: lp.Status}, lp.C, a, lp.B, lower, upper, 1e-9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := -275.64033179; !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+		t.Errorf("F = %v, want %v", res.F, want)
+	}
+	if e := checkKKT(lp.C, a, lp.B, lower, upper, res, 1e-7); e != nil {
+		t.Error(e)
+	}
+	if limit := 2 * dualFactor * (a.n + a.m + 1); res.Iterations > limit {
+		t.Errorf("%d pivots, want at most %d", res.Iterations, limit)
+	}
+}
+
 // TestBoundedSimplexWarmChain replays the master LPs of a Dantzig–Wolfe
 // unit commitment dispatch, each warm-started from the previous basis as
 // columns are appended. Degenerate convexity rows made this cycle.
