@@ -60,10 +60,13 @@ type Basis struct {
 // dual method gives up, the primal method solves from the artificial basis
 // in two phases (Chvátal, Linear Programming, ch. 8), with devex pricing
 // (Forrest and Goldfarb, "Steepest-edge simplex algorithms for linear
-// programming", 1992), Harris's two-pass ratio test and, after a run of
-// degenerate pivots, Bland's rule among pivots that are not small. That
-// limits cycling but does not rule it out; a problem that still cycles ends
-// in ErrIterationLimit.
+// programming", 1992) and Harris's two-pass ratio test. Its first phase
+// ends once the artificial variables are zero. In the second, a run of
+// degenerate pivots widens the bounds of the basic variables by small
+// random amounts, and the dual simplex method removes what the widening
+// leaves; once every basic variable is widened, Bland's rule takes over
+// among pivots that are not small. That limits cycling but does not rule it
+// out; a problem that still cycles ends in ErrIterationLimit.
 //
 // Each pivot reuses an LU factorization of an earlier basis through
 // product-form eta updates, and updates the reduced costs from its row of
@@ -202,6 +205,9 @@ const (
 	// costShift scales the cost perturbation that separates tied dual
 	// ratios.
 	costShift = 1e-6
+	// boundShift scales the widening of bounds that separates tied primal
+	// ratios.
+	boundShift = 1e-7
 	// shiftLimit is how many times its tolerance a reduced cost of the wrong
 	// sign may be for dualStart to shift its cost rather than refuse.
 	shiftLimit = 1e3
@@ -256,10 +262,12 @@ type bounded struct {
 	fresh      bool   // no update since the last factorization
 	barred     []bool // per row: its pivot was unstable in this basis
 	bars       []int
-	shifted    []bool    // per variable: its cost is perturbed
-	ray        []float64 // a direction of falling cost found by phase 1
-	weak       error     // the verdict of a proof that holds only to tolerance
-	dualFirst  bool      // seek a dual feasible basis before any primal pivot
+	shifted    []bool       // per variable: its cost is perturbed
+	expanded   []bool       // per structural variable: its bounds are widened
+	bounds     [2][]float64 // the lower and upper bounds before expand
+	ray        []float64    // a direction of falling cost found by phase 1
+	weak       error        // the verdict of a proof that holds only to tolerance
+	dualFirst  bool         // seek a dual feasible basis before any primal pivot
 	seed       uint64
 	rows       []int // ratio test candidates
 	y          []float64
@@ -772,8 +780,16 @@ func (s *bounded) basis() *Basis {
 // first two recomputed after each factorization; the reduced cost of the
 // variable chosen is always recomputed from the multipliers, and run
 // returns only when a pricing of every column from fresh multipliers finds
-// none.
-func (s *bounded) run() error {
+// none, or, with the costs of the first phase, once every artificial
+// variable is within the tolerance of zero on a fresh factorization: a
+// feasible basis is all that phase is for, and pivots past it are
+// degenerate.
+func (s *bounded) run() (err error) {
+	defer func() { s.unexpand(err == nil) }()
+	first := false
+	for i := range s.m {
+		first = first || s.cost[s.n+i] != 0
+	}
 	s.objScale = 0
 	for j := range s.total {
 		s.objScale += math.Abs(s.cost[j] * s.x[j])
@@ -790,6 +806,15 @@ func (s *bounded) run() error {
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
+		}
+		if first && s.artificialsClear() {
+			if s.fresh {
+				return nil
+			}
+			if err := s.refactor(); err != nil {
+				return err
+			}
+			continue
 		}
 		if !s.priced {
 			s.reprice()
@@ -843,7 +868,11 @@ func (s *bounded) run() error {
 		// so near-duplicate columns cannot alternate forever.
 		if theta*gain <= s.tol*math.Max(1, s.objScale) {
 			if s.stall++; s.stall >= blandAfter {
-				s.bland = true
+				if !first && s.expand() {
+					s.stall = 0
+				} else {
+					s.bland = true
+				}
 			}
 		} else {
 			s.stall, s.bland = 0, false
@@ -886,6 +915,77 @@ func (s *bounded) run() error {
 			return err
 		}
 	}
+}
+
+// expand widens the finite bounds of each basic structural variable not yet
+// widened by a small random amount, and reports whether there was one. Basic
+// variables at a bound then have room to move, which turns degenerate primal
+// pivots into short steps (Harris and Forrest's bound perturbation, as in
+// Huangfu and Hall, "Parallelizing the dual revised simplex method", 2018).
+func (s *bounded) expand() bool {
+	if s.expanded == nil {
+		s.expanded = make([]bool, s.n)
+		s.bounds = [2][]float64{append([]float64(nil), s.lower[:s.n]...), append([]float64(nil), s.upper[:s.n]...)}
+		if s.seed == 0 {
+			s.seed = 0x9e3779b97f4a7c15
+		}
+	}
+	any := false
+	for _, j := range s.head {
+		if j >= s.n || s.expanded[j] || s.lower[j] == s.upper[j] {
+			continue
+		}
+		s.seed ^= s.seed << 13
+		s.seed ^= s.seed >> 7
+		s.seed ^= s.seed << 17
+		e := boundShift * (0.5 + 0.5*float64(s.seed>>11)/(1<<53))
+		if !math.IsInf(s.lower[j], -1) {
+			s.lower[j] -= e * (1 + math.Abs(s.lower[j]))
+		}
+		if !math.IsInf(s.upper[j], 1) {
+			s.upper[j] += e * (1 + math.Abs(s.upper[j]))
+		}
+		s.expanded[j], any = true, true
+	}
+	return any
+}
+
+// unexpand restores the bounds that expand widened and moves nonbasic
+// variables back onto them. With place, it recomputes the basic values,
+// which may then lie outside their bounds by as much as the widening; the
+// dual simplex method removes that.
+func (s *bounded) unexpand(place bool) {
+	if s.expanded == nil {
+		return
+	}
+	for j, e := range s.expanded {
+		if !e {
+			continue
+		}
+		s.lower[j], s.upper[j] = s.bounds[0][j], s.bounds[1][j]
+		switch s.status[j] {
+		case atLower:
+			s.x[j] = s.lower[j]
+		case atUpper:
+			s.x[j] = s.upper[j]
+		}
+	}
+	s.expanded = nil
+	s.priced = false
+	if place {
+		s.place()
+	}
+}
+
+// artificialsClear reports whether every basic artificial variable is
+// within the tolerance of zero.
+func (s *bounded) artificialsClear() bool {
+	for _, j := range s.head {
+		if j >= s.n && s.x[j] > s.tol {
+			return false
+		}
+	}
+	return true
 }
 
 // enter returns the entering variable and its direction (+1 increase, -1

@@ -747,7 +747,109 @@ func BenchmarkBoundedSimplexDispatch(b *testing.B) {
 // warm basis.
 func TestBoundedSimplexWarmStall(t *testing.T) {
 	t.Parallel()
-	f, err := os.Open("testdata/pool_warm_stall.json.gz")
+	lp := loadPoolLP(t, "testdata/pool_warm_stall.json.gz")
+	res, err := BoundedSimplexFrom(lp.start, lp.c, lp.a, lp.b, lp.lower, lp.upper, 1e-9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := -275.64033179; !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+		t.Errorf("F = %v, want %v", res.F, want)
+	}
+	if e := checkKKT(lp.c, lp.a, lp.b, lp.lower, lp.upper, res, 1e-7); e != nil {
+		t.Error(e)
+	}
+	if limit := lp.a.n + lp.a.m + 1; res.Iterations > limit {
+		t.Errorf("%d pivots, want at most %d", res.Iterations, limit)
+	}
+}
+
+// TestBoundedSimplexPoolDegenerate solves a pooling node relaxation, warm and
+// cold, on which the primal method meets long runs of degenerate pivots:
+// after the dual method on the warm start, in the cleanup of its cost
+// perturbation, and in both phases from the artificial basis. Under Bland's
+// rule alone each attempt ran to its limit, 229,150 pivots without a
+// verdict. HiGHS 1.15 finds -422.36912701.
+func TestBoundedSimplexPoolDegenerate(t *testing.T) {
+	t.Parallel()
+	lp := loadPoolLP(t, "testdata/pool_node_degenerate.json.gz")
+	for _, start := range []*Basis{lp.start, nil} {
+		res, err := BoundedSimplexFrom(start, lp.c, lp.a, lp.b, lp.lower, lp.upper, 1e-9)
+		if err != nil {
+			t.Fatalf("warm=%t: %v", start != nil, err)
+		}
+		if want := -422.36912701; !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
+			t.Errorf("warm=%t: F = %v, want %v", start != nil, res.F, want)
+		}
+		if e := checkKKT(lp.c, lp.a, lp.b, lp.lower, lp.upper, res, 1e-7); e != nil {
+			t.Errorf("warm=%t: %v", start != nil, e)
+		}
+		if limit := 4 * (lp.a.n + lp.a.m + 1); res.Iterations > limit {
+			t.Errorf("warm=%t: %d pivots, want at most %d", start != nil, res.Iterations, limit)
+		}
+	}
+}
+
+// TestExpand checks that expand widens the finite bounds of basic structural
+// variables only, and that unexpand restores every bound exactly and puts
+// nonbasic variables back on them.
+func TestExpand(t *testing.T) {
+	t.Parallel()
+	lp := loadPoolLP(t, "testdata/pool_node_degenerate.json.gz")
+	s := newBounded(newFactor, lp.c, lp.a, lp.b, lp.lower, lp.upper, 1e-9)
+	if !s.warm(lp.start) {
+		t.Fatal("warm basis singular")
+	}
+	lower := append([]float64(nil), s.lower...)
+	upper := append([]float64(nil), s.upper...)
+	if !s.expand() {
+		t.Fatal("nothing expanded")
+	}
+	if s.expand() {
+		t.Error("second expand of the same basis widened bounds")
+	}
+	for j := range s.total {
+		widened := s.lower[j] != lower[j] || s.upper[j] != upper[j]
+		want := j < s.n && s.status[j] == basic && lower[j] != upper[j]
+		if widened != want {
+			t.Fatalf("variable %d (status %d): widened %t, want %t", j, s.status[j], widened, want)
+		}
+		if widened && (s.lower[j] > lower[j] || s.upper[j] < upper[j]) {
+			t.Fatalf("variable %d narrowed: [%v, %v] from [%v, %v]", j, s.lower[j], s.upper[j], lower[j], upper[j])
+		}
+	}
+	// Move one expanded basic variable to a nonbasic bound, as a pivot would.
+	moved := -1
+	for i, j := range s.head {
+		if j < s.n && s.expanded[j] && !math.IsInf(s.lower[j], -1) {
+			s.head[i] = s.n + i
+			s.status[s.n+i] = basic
+			s.x[j], s.status[j] = s.lower[j], atLower
+			moved = j
+			break
+		}
+	}
+	if moved < 0 {
+		t.Fatal("no basic variable with a finite lower bound")
+	}
+	s.unexpand(false)
+	if !slices.Equal(s.lower, lower) || !slices.Equal(s.upper, upper) {
+		t.Error("bounds not restored")
+	}
+	if s.x[moved] != lower[moved] {
+		t.Errorf("nonbasic x = %v, want its bound %v", s.x[moved], lower[moved])
+	}
+}
+
+// poolLP is a pooling relaxation dumped with the basis it was started from.
+type poolLP struct {
+	c, b, lower, upper []float64
+	a                  *cscMatrix
+	start              *Basis
+}
+
+func loadPoolLP(t *testing.T, path string) poolLP {
+	t.Helper()
+	f, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -780,20 +882,10 @@ func TestBoundedSimplexWarmStall(t *testing.T) {
 		}
 		return out
 	}
-	lower, upper := bound(lp.Lower), bound(lp.Upper)
-	a := &cscMatrix{m: lp.Rows, n: len(lp.Start) - 1, start: lp.Start, index: lp.Index, value: lp.Value}
-	res, err := BoundedSimplexFrom(&Basis{head: lp.Head, status: lp.Status}, lp.C, a, lp.B, lower, upper, 1e-9)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := -275.64033179; !scalar.EqualWithinAbsOrRel(res.F, want, 1e-8, 1e-8) {
-		t.Errorf("F = %v, want %v", res.F, want)
-	}
-	if e := checkKKT(lp.C, a, lp.B, lower, upper, res, 1e-7); e != nil {
-		t.Error(e)
-	}
-	if limit := a.n + a.m + 1; res.Iterations > limit {
-		t.Errorf("%d pivots, want at most %d", res.Iterations, limit)
+	return poolLP{
+		c: lp.C, b: lp.B, lower: bound(lp.Lower), upper: bound(lp.Upper),
+		a:     &cscMatrix{m: lp.Rows, n: len(lp.Start) - 1, start: lp.Start, index: lp.Index, value: lp.Value},
+		start: &Basis{head: lp.Head, status: lp.Status},
 	}
 }
 
