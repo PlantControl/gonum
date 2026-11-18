@@ -31,7 +31,8 @@ var factorKinds = []factorKind{
 }
 
 func (fk factorKind) solve(start *Basis, c []float64, a mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
-	return boundedSimplex(fk.new, start, c, a, b, lower, upper, tol)
+	m, n := a.Dims()
+	return boundedSimplex(fk.new, start, c, a, b, lower, upper, tol, iterationFactor*(n+m+1))
 }
 
 // checkKKT verifies primal feasibility and the reduced-cost signs that
@@ -536,6 +537,59 @@ func TestBoundedSimplexWarm(t *testing.T) {
 			}
 			if warmed*2 < total {
 				t.Fatalf("warm start saved pivots in only %d of %d solves", warmed, total)
+			}
+		})
+	}
+}
+
+// TestBoundedSimplexBudget checks that one call stays within its pivot
+// budget over the whole cascade of a warm start, the dual simplex method
+// from the slack basis and the primal method from scratch, and that a
+// budget that runs out ends in ErrIterationLimit rather than another
+// verdict.
+func TestBoundedSimplexBudget(t *testing.T) {
+	t.Parallel()
+	for _, fk := range factorKinds {
+		t.Run(fk.name, func(t *testing.T) {
+			rnd := rand.New(rand.NewPCG(7, 7))
+			limited, solved := 0, 0
+			for range 150 {
+				n := rnd.IntN(25) + 5
+				m := rnd.IntN(n) + 1
+				c, a, b, lower, upper := boundedProblem(rnd, m, n)
+				first, err := fk.solve(nil, c, a, b, lower, upper, 0)
+				if err != nil {
+					continue
+				}
+				// The old basis is neither primal nor dual feasible for
+				// reversed costs and narrowed boxes.
+				for j := range c {
+					c[j] = -c[j] + 0.5*rnd.NormFloat64()
+					if w := upper[j] - lower[j]; w > 0 && !math.IsInf(w, 1) {
+						upper[j] = lower[j] + 0.4*w
+					}
+				}
+				want, errWant := fk.solve(first.Basis, c, a, b, lower, upper, 0)
+				for _, budget := range []int{0, 1, 2, 3, 5, 8, 13, 21, 34, 55} {
+					got, err := boundedSimplex(fk.new, first.Basis, c, a, b, lower, upper, 0, budget)
+					if got.Iterations > budget {
+						t.Fatalf("budget %d: %d pivots", budget, got.Iterations)
+					}
+					switch {
+					case errors.Is(err, ErrIterationLimit):
+						limited++
+					case (err == nil) != (errWant == nil) || err != nil && !errors.Is(err, errWant):
+						t.Fatalf("budget %d: %v, want %v", budget, err, errWant)
+					case err == nil:
+						solved++
+						if !scalar.EqualWithinAbsOrRel(got.F, want.F, 1e-8, 1e-8) {
+							t.Fatalf("budget %d: F = %v, want %v", budget, got.F, want.F)
+						}
+					}
+				}
+			}
+			if limited == 0 || solved == 0 {
+				t.Fatalf("%d limited, %d solved: the budgets do not bind", limited, solved)
 			}
 		})
 	}

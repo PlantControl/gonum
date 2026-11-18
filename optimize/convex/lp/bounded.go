@@ -104,15 +104,22 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 // from it. Otherwise, if it is dual feasible, as after tightening bounds or
 // appending rows to an optimal basis, the dual simplex method restores
 // primal feasibility. If neither holds, the dual phase 1 starts from it. If
-// the basis is singular, or no verdict is reached from it,
-// BoundedSimplexFrom solves from scratch, so the result never depends on
-// whether the warm start was usable. A nil start is the same as
+// the basis is singular, or no verdict is reached from it within
+// 10·(n+m+1) pivots, BoundedSimplexFrom solves from scratch, so the verdict
+// does not depend on whether the warm start was usable unless the pivots it
+// spent leave too few for the rest. A nil start is the same as
 // BoundedSimplex.
+//
+// One call of BoundedSimplex or BoundedSimplexFrom makes at most
+// 50·(n+m+1) pivots over all the methods it tries, and returns
+// ErrIterationLimit when they run out.
 func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
-	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol)
+	m, n := A.Dims()
+	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol, iterationFactor*(n+m+1))
 }
 
-func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+// boundedSimplex is BoundedSimplexFrom with at most budget pivots in all.
+func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64, budget int) (BoundedResult, error) {
 	m, n := A.Dims()
 	if len(c) != n || len(b) != m || len(lower) != n || len(upper) != n {
 		panic(badShape)
@@ -129,15 +136,18 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 		panic(badShape)
 	}
 	s := newBounded(factor, c, A, b, lower, upper, tol)
+	// share caps an attempt that another follows, so that the last has
+	// pivots left.
+	share := func() int { return min(budget, s.iterations+dualFactor*(n+m+1)) }
 	restart := func() {
 		spent, weak := s.iterations, s.weak
 		*s = *newBounded(factor, c, A, b, lower, upper, tol)
 		s.iterations, s.weak = spent, weak
-		s.limit += spent
 	}
 	err := errUnsettled
 	if start != nil {
 		if s.warm(start) {
+			s.limit = share()
 			err = s.settle()
 		}
 		if unsettled(err) {
@@ -149,12 +159,13 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 		// artificial variables to move.
 		if s.warm(s.slackBasis()) {
 			s.dualFirst = true
-			s.limit = s.iterations + dualFactor*(n+m+1)
+			s.limit = share()
 			err = s.settle()
 		}
 	}
 	if unsettled(err) {
 		restart()
+		s.limit = budget
 		err = s.solve()
 	}
 	if unsettled(err) && s.weak != nil {
@@ -178,8 +189,9 @@ const (
 	blandAfter      = 50
 	pivotTol        = 1e-9
 	iterationFactor = 50
-	// dualFactor bounds the dual simplex attempt from the slack basis, so
-	// that a failure leaves most of the pivots to the primal method.
+	// dualFactor bounds the attempts from a warm start and from the slack
+	// basis, so that a failure leaves most of the pivots to the primal
+	// method.
 	dualFactor   = 10
 	settleRounds = 20
 	// stablePivot is the smallest dual simplex pivot accepted, as a
