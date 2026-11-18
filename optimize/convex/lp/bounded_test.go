@@ -738,15 +738,14 @@ func BenchmarkBoundedSimplexDispatch(b *testing.B) {
 	}
 }
 
-// TestBoundedSimplexWarmStall replays a pooling relaxation whose warm start
-// from its parent node's basis does not settle: the primal method stalls
-// after phase 1 and the zero-cost dual reach a feasible point. The warm
-// attempt must give up early enough to leave the slack basis most of the
-// budget; without that share it took 211,424 pivots.
+// TestBoundedSimplexWarmStall replays a pooling relaxation warm started
+// from its parent node's basis. Dual phase 1 leaves one reduced cost of the
+// wrong sign at 1.3 times its tolerance; refusing it sent the solve through
+// the zero-cost dual to a feasible point and a primal method that stalled on
+// degenerate pivots, 211,424 pivots without a budget across the cascade and
+// 47,424 with one. Shifting that cost lets the dual method finish from the
+// warm basis.
 func TestBoundedSimplexWarmStall(t *testing.T) {
-	if testing.Short() {
-		t.Skip("about 50,000 pivots")
-	}
 	t.Parallel()
 	f, err := os.Open("testdata/pool_warm_stall.json.gz")
 	if err != nil {
@@ -793,8 +792,66 @@ func TestBoundedSimplexWarmStall(t *testing.T) {
 	if e := checkKKT(lp.C, a, lp.B, lower, upper, res, 1e-7); e != nil {
 		t.Error(e)
 	}
-	if limit := 2 * dualFactor * (a.n + a.m + 1); res.Iterations > limit {
+	if limit := a.n + a.m + 1; res.Iterations > limit {
 		t.Errorf("%d pivots, want at most %d", res.Iterations, limit)
+	}
+}
+
+// TestDualStartShift checks that dualStart shifts the cost of a variable
+// with one finite bound whose reduced cost has the wrong sign at the level of
+// the tolerance, that dual takes the shift back out, that a larger error is
+// refused without a shift, and that a warm solve through the shift is
+// optimal for the true costs.
+func TestDualStartShift(t *testing.T) {
+	t.Parallel()
+	// x0 - x1 = -1 with x0 in [0, 10] basic at -1 and x1 >= 0 at zero: the
+	// basis is primal infeasible, and x1's reduced cost is -eps.
+	a := mat.NewDense(1, 2, []float64{1, -1})
+	b := []float64{-1}
+	lower := []float64{0, 0}
+	upper := []float64{10, math.Inf(1)}
+	start := &Basis{head: []int{0}, status: []int{basic, atLower}}
+	for _, test := range []struct {
+		eps     float64
+		shifted bool
+	}{
+		{5e-9, true},
+		{1e-3, false},
+	} {
+		c := []float64{1, -1 - test.eps}
+		s := newBounded(newFactor, c, a, b, lower, upper, 1e-9)
+		if !s.warm(start) {
+			t.Fatalf("eps=%g: warm basis singular", test.eps)
+		}
+		if got := s.dualStart(); got != test.shifted {
+			t.Fatalf("eps=%g: dualStart = %v, want %v", test.eps, got, test.shifted)
+		}
+		if !test.shifted {
+			if s.shifted != nil || !slices.Equal(s.cost, s.c) {
+				t.Errorf("eps=%g: refused start shifted costs %v", test.eps, s.cost)
+			}
+		} else {
+			if s.shifted == nil || !s.shifted[1] || s.cost[1] == s.c[1] || s.d[1] != 0 {
+				t.Errorf("eps=%g: x1 not shifted: cost %v, d %v", test.eps, s.cost, s.d[1])
+			}
+			if err := s.dual(); err != nil {
+				t.Fatalf("eps=%g: dual: %v", test.eps, err)
+			}
+			if s.shifted != nil || !slices.Equal(s.cost, s.c) {
+				t.Errorf("eps=%g: dual left costs %v, want %v", test.eps, s.cost, s.c)
+			}
+		}
+		res, err := BoundedSimplexFrom(start, c, a, b, lower, upper, 1e-9)
+		if err != nil {
+			t.Fatalf("eps=%g: %v", test.eps, err)
+		}
+		// x0 at its upper bound 10 and x1 = 11.
+		if want := 10 + 11*c[1]; !scalar.EqualWithinAbsOrRel(res.F, want, 1e-12, 1e-12) {
+			t.Errorf("eps=%g: F = %v, want %v", test.eps, res.F, want)
+		}
+		if e := checkKKT(c, a, b, lower, upper, res, 1e-9); e != nil {
+			t.Errorf("eps=%g: %v", test.eps, e)
+		}
 	}
 }
 

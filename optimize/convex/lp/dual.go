@@ -31,18 +31,35 @@ func (s *bounded) reducedCost(j int) (d, tol float64) {
 
 // dualStart prepares an installed phase 2 basis for the dual simplex
 // method. Each nonbasic variable with two finite bounds moves to the bound
-// its reduced cost favours; it reports false if a variable with at most one
-// finite bound has a reduced cost of the wrong sign.
+// its reduced cost favours. A variable with at most one finite bound whose
+// reduced cost has the wrong sign by no more than shiftLimit times its
+// tolerance has its cost shifted to make it zero, as dual phase 1 and
+// rounding leave such reduced costs; dual removes the shifts when it
+// returns. dualStart reports false, shifting nothing, if any such reduced
+// cost is wrong by more.
 func (s *bounded) dualStart() bool {
 	if !s.priced {
 		s.reprice()
+	}
+	shifts := 0
+	for j := range s.total {
+		st := s.status[j]
+		if st == basic || s.lower[j] == s.upper[j] || (!math.IsInf(s.lower[j], -1) && !math.IsInf(s.upper[j], 1)) {
+			continue
+		}
+		if wrong := s.wrongSign(j); wrong > 0 {
+			if j >= s.n || wrong > shiftLimit*s.dtol[j] {
+				return false
+			}
+			shifts++
+		}
 	}
 	for j := range s.total {
 		st := s.status[j]
 		if st == basic || s.lower[j] == s.upper[j] {
 			continue
 		}
-		d, tol := s.d[j], s.dtol[j]
+		d := s.d[j]
 		lo, up := !math.IsInf(s.lower[j], -1), !math.IsInf(s.upper[j], 1)
 		switch {
 		case lo && up:
@@ -51,15 +68,40 @@ func (s *bounded) dualStart() bool {
 			} else {
 				s.x[j], s.status[j] = s.upper[j], atUpper
 			}
-		case st == atLower && d < -tol, st == atUpper && d > tol, st == atZero && math.Abs(d) > tol:
-			return false
+		case shifts > 0 && s.wrongSign(j) > 0:
+			if s.shifted == nil {
+				s.shifted = make([]bool, s.n)
+				s.seed = 0x9e3779b97f4a7c15
+			}
+			s.cost[j] -= d
+			s.d[j] = 0
+			s.shifted[j] = true
 		}
 	}
 	if s.fresh {
 		s.place()
 		return true
 	}
-	return s.refactor() == nil
+	if s.refactor() != nil {
+		s.unshift()
+		return false
+	}
+	return true
+}
+
+// wrongSign returns by how much the reduced cost of nonbasic j has the
+// wrong sign beyond its tolerance for the dual simplex method, or 0.
+func (s *bounded) wrongSign(j int) float64 {
+	d, tol := s.d[j], s.dtol[j]
+	switch st := s.status[j]; {
+	case st == atLower && d < -tol:
+		return -d
+	case st == atUpper && d > tol:
+		return d
+	case st == atZero && math.Abs(d) > tol:
+		return math.Abs(d)
+	}
+	return 0
 }
 
 // candidate is an entering variable for the dual ratio test.

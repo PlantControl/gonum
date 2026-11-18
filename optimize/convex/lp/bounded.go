@@ -53,8 +53,10 @@ type Basis struct {
 // right-hand side and each variable boxed around zero on the sides where
 // it has no finite bound (Koberstein and Suhl, "Progress in the dual
 // simplex method for large scale LP problems: practical dual phase 1
-// algorithms", 2007). A run of degenerate dual pivots perturbs the costs;
-// the primal simplex method removes what the perturbation leaves. If the
+// algorithms", 2007). Reduced costs of the wrong sign at the level of the
+// tolerance, as phase 1 can leave, are removed by shifting their costs, and
+// a run of degenerate dual pivots perturbs the costs; the primal simplex
+// method removes what the shifts and the perturbation leave. If the
 // dual method gives up, the primal method solves from the artificial basis
 // in two phases (Chvátal, Linear Programming, ch. 8), with devex pricing
 // (Forrest and Goldfarb, "Steepest-edge simplex algorithms for linear
@@ -200,6 +202,9 @@ const (
 	// costShift scales the cost perturbation that separates tied dual
 	// ratios.
 	costShift = 1e-6
+	// shiftLimit is how many times its tolerance a reduced cost of the wrong
+	// sign may be for dualStart to shift its cost rather than refuse.
+	shiftLimit = 1e3
 	// rowDensity is the fraction of nonzeros in a row of the basis inverse
 	// below which the pivot row is formed from the rows of A.
 	rowDensity = 0.5
