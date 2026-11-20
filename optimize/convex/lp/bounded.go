@@ -53,18 +53,28 @@ type Basis struct {
 // right-hand side and each variable boxed around zero on the sides where
 // it has no finite bound (Koberstein and Suhl, "Progress in the dual
 // simplex method for large scale LP problems: practical dual phase 1
-// algorithms", 2007). A run of degenerate dual pivots perturbs the costs;
-// the primal simplex method removes what the perturbation leaves. If the dual method gives up, the
-// primal method solves from the artificial basis in two phases (Chvátal,
-// Linear Programming, ch. 8), with Dantzig pricing, Harris's two-pass ratio
-// test and, after a run of degenerate pivots, Bland's rule among pivots
-// that are not small. That limits cycling but does not rule it out; a
-// problem that still cycles ends in ErrIterationLimit.
+// algorithms", 2007). Reduced costs of the wrong sign at the level of the
+// tolerance, as phase 1 can leave, are removed by shifting their costs, and
+// a run of degenerate dual pivots perturbs the costs; the primal simplex
+// method removes what the shifts and the perturbation leave. If the
+// dual method gives up, the primal method solves from the artificial basis
+// in two phases (Chvátal, Linear Programming, ch. 8), with devex pricing
+// (Forrest and Goldfarb, "Steepest-edge simplex algorithms for linear
+// programming", 1992) and Harris's two-pass ratio test. Its first phase
+// ends once the artificial variables are zero. In the second, a run of
+// degenerate pivots widens the bounds of the basic variables by small
+// random amounts, and the dual simplex method removes what the widening
+// leaves; once every basic variable is widened, Bland's rule takes over
+// among pivots that are not small. That limits cycling but does not rule it
+// out; a problem that still cycles ends in ErrIterationLimit.
 //
 // Each pivot reuses an LU factorization of an earlier basis through
-// product-form eta updates, refactorizing periodically. The factorization
-// is sparse, with Markowitz pivot selection, unless A is dense, so the cost
-// of a pivot follows the nonzeros of the factors rather than m².
+// product-form eta updates, and updates the reduced costs from its row of
+// the tableau. The basis is factorized again after 64 updates, or sooner
+// when the updates have come to cost more than a factorization saves. The
+// factorization is sparse, with Markowitz pivot selection, unless A is
+// dense, so the cost of a pivot follows the nonzeros of the factors rather
+// than m².
 //
 // A result is returned only for a basis that is optimal on a fresh
 // factorization and satisfies A x = b. ErrInfeasible comes with row
@@ -99,15 +109,22 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 // from it. Otherwise, if it is dual feasible, as after tightening bounds or
 // appending rows to an optimal basis, the dual simplex method restores
 // primal feasibility. If neither holds, the dual phase 1 starts from it. If
-// the basis is singular, or no verdict is reached from it,
-// BoundedSimplexFrom solves from scratch, so the result never depends on
-// whether the warm start was usable. A nil start is the same as
+// the basis is singular, or no verdict is reached from it within
+// 10·(n+m+1) pivots, BoundedSimplexFrom solves from scratch, so the verdict
+// does not depend on whether the warm start was usable unless the pivots it
+// spent leave too few for the rest. A nil start is the same as
 // BoundedSimplex.
+//
+// One call of BoundedSimplex or BoundedSimplexFrom makes at most
+// 50·(n+m+1) pivots over all the methods it tries, and returns
+// ErrIterationLimit when they run out.
 func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
-	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol)
+	m, n := A.Dims()
+	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol, iterationFactor*(n+m+1))
 }
 
-func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+// boundedSimplex is BoundedSimplexFrom with at most budget pivots in all.
+func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64, budget int) (BoundedResult, error) {
 	m, n := A.Dims()
 	if len(c) != n || len(b) != m || len(lower) != n || len(upper) != n {
 		panic(badShape)
@@ -124,15 +141,18 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 		panic(badShape)
 	}
 	s := newBounded(factor, c, A, b, lower, upper, tol)
+	// share caps an attempt that another follows, so that the last has
+	// pivots left.
+	share := func() int { return min(budget, s.iterations+dualFactor*(n+m+1)) }
 	restart := func() {
 		spent, weak := s.iterations, s.weak
 		*s = *newBounded(factor, c, A, b, lower, upper, tol)
 		s.iterations, s.weak = spent, weak
-		s.limit += spent
 	}
 	err := errUnsettled
 	if start != nil {
 		if s.warm(start) {
+			s.limit = share()
 			err = s.settle()
 		}
 		if unsettled(err) {
@@ -144,12 +164,13 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 		// artificial variables to move.
 		if s.warm(s.slackBasis()) {
 			s.dualFirst = true
-			s.limit = s.iterations + dualFactor*(n+m+1)
+			s.limit = share()
 			err = s.settle()
 		}
 	}
 	if unsettled(err) {
 		restart()
+		s.limit = budget
 		err = s.solve()
 	}
 	if unsettled(err) && s.weak != nil {
@@ -173,8 +194,9 @@ const (
 	blandAfter      = 50
 	pivotTol        = 1e-9
 	iterationFactor = 50
-	// dualFactor bounds the dual simplex attempt from the slack basis, so
-	// that a failure leaves most of the pivots to the primal method.
+	// dualFactor bounds the attempts from a warm start and from the slack
+	// basis, so that a failure leaves most of the pivots to the primal
+	// method.
 	dualFactor   = 10
 	settleRounds = 20
 	// stablePivot is the smallest dual simplex pivot accepted, as a
@@ -183,6 +205,18 @@ const (
 	// costShift scales the cost perturbation that separates tied dual
 	// ratios.
 	costShift = 1e-6
+	// boundShift scales the widening of bounds that separates tied primal
+	// ratios.
+	boundShift = 1e-7
+	// shiftLimit is how many times its tolerance a reduced cost of the wrong
+	// sign may be for dualStart to shift its cost rather than refuse.
+	shiftLimit = 1e3
+	// rowDensity is the fraction of nonzeros in a row of the basis inverse
+	// below which the pivot row is formed from the rows of A.
+	rowDensity = 0.5
+	// devexReset is the reference weight above which primal pricing starts
+	// a new reference framework.
+	devexReset = 1e7
 	// roundTol is the size, against the terms of a sum, below which the
 	// sum counts as rounding error when a verdict is checked.
 	roundTol = 1e-12
@@ -228,15 +262,24 @@ type bounded struct {
 	fresh      bool   // no update since the last factorization
 	barred     []bool // per row: its pivot was unstable in this basis
 	bars       []int
-	shifted    []bool    // per variable: its cost is perturbed
-	ray        []float64 // a direction of falling cost found by phase 1
-	weak       error     // the verdict of a proof that holds only to tolerance
-	dualFirst  bool      // seek a dual feasible basis before any primal pivot
+	shifted    []bool       // per variable: its cost is perturbed
+	expanded   []bool       // per structural variable: its bounds are widened
+	bounds     [2][]float64 // the lower and upper bounds before expand
+	ray        []float64    // a direction of falling cost found by phase 1
+	weak       error        // the verdict of a proof that holds only to tolerance
+	dualFirst  bool         // seek a dual feasible basis before any primal pivot
 	seed       uint64
 	rows       []int // ratio test candidates
 	y          []float64
 	alpha      []float64
 	work       []float64
+	rho        []float64 // a row of the basis inverse
+	arow       []float64 // per variable: its entry of the pivot row
+	d          []float64 // per nonbasic variable: its reduced cost, updated at each pivot
+	dtol       []float64 // the tolerance for the sign of d
+	priced     bool      // y, d and dtol belong to the basis and the phase costs
+	devex      []float64 // per nonbasic variable: its reference weight in primal pricing
+	byRow      *columns  // the columns of A by rows, built when first used
 	bland      bool
 	objScale   float64 // magnitude of the phase objective, for progress tests
 	stall      int
@@ -316,6 +359,10 @@ func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matri
 	s.alpha = make([]float64, m)
 	s.lu = factor(m, n, s.start[n])
 	s.work = make([]float64, m)
+	buf := make([]float64, 3*(n+m)+m)
+	s.arow, buf = buf[:n+m:n+m], buf[n+m:]
+	s.d, buf = buf[:n+m:n+m], buf[n+m:]
+	s.dtol, s.rho = buf[:n+m:n+m], buf[n+m:]
 	s.barred = make([]bool, m)
 	s.limit = iterationFactor * (n + m + 1)
 	return s
@@ -357,6 +404,7 @@ func (s *bounded) solve() error {
 		}
 	}
 	copy(s.cost, s.c)
+	s.priced = false
 	s.bland, s.stall = false, 0
 	if err := s.run(); err != nil {
 		return err
@@ -446,12 +494,14 @@ func (s *bounded) reach() error {
 	c := s.c
 	s.c = make([]float64, s.total)
 	clear(s.cost)
+	s.priced = false
 	err := errUnsettled
 	if s.dualStart() {
 		err = s.dual()
 	}
 	s.c = c
 	copy(s.cost, c)
+	s.priced = false
 	return err
 }
 
@@ -459,9 +509,15 @@ func (s *bounded) reach() error {
 // multipliers of the true costs in y.
 func (s *bounded) optimal() bool {
 	s.bland = false
-	s.btran()
-	q, _, _ := s.price()
-	return q < 0
+	if !s.priced {
+		s.reprice()
+	}
+	for j := range s.total {
+		if s.way(j) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // residual checks A x = b, which holds after a factorization unless the
@@ -587,6 +643,7 @@ func (s *bounded) phase1() error {
 	upper := append([]float64(nil), s.upper...)
 	b := append([]float64(nil), s.b...)
 	clear(s.b)
+	s.priced = false
 	for j := range s.n {
 		lo, up := !math.IsInf(lower[j], -1), !math.IsInf(upper[j], 1)
 		switch {
@@ -615,6 +672,7 @@ func (s *bounded) phase1() error {
 	copy(s.lower, lower)
 	copy(s.upper, upper)
 	copy(s.b, b)
+	s.priced = false
 	for j := range s.n {
 		if s.status[j] == basic {
 			continue
@@ -714,21 +772,70 @@ func (s *bounded) basis() *Basis {
 	return b
 }
 
-// run iterates the simplex method on the current phase cost.
-func (s *bounded) run() error {
+// run iterates the primal simplex method on the current phase cost. The
+// entering variable has the largest reduced cost against its devex
+// reference weight (Forrest and Goldfarb, "Steepest-edge simplex algorithms
+// for linear programming", Math. Programming 57, 1992, section 5). Reduced
+// costs, multipliers and weights are updated from the pivot row, and the
+// first two recomputed after each factorization; the reduced cost of the
+// variable chosen is always recomputed from the multipliers, and run
+// returns only when a pricing of every column from fresh multipliers finds
+// none, or, with the costs of the first phase, once every artificial
+// variable is within the tolerance of zero on a fresh factorization: a
+// feasible basis is all that phase is for, and pivots past it are
+// degenerate.
+func (s *bounded) run() (err error) {
+	defer func() { s.unexpand(err == nil) }()
+	first := false
+	for i := range s.m {
+		first = first || s.cost[s.n+i] != 0
+	}
 	s.objScale = 0
 	for j := range s.total {
 		s.objScale += math.Abs(s.cost[j] * s.x[j])
 	}
+	if s.devex == nil {
+		s.devex = make([]float64, s.total)
+	}
+	for j := range s.devex {
+		s.devex[j] = 1
+	}
+	// exact: the reduced costs were computed from the multipliers of this
+	// basis, with no update since.
+	exact := s.priced
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
 		}
-		s.btran()
-		q, dir, gain := s.price()
-		if q < 0 {
-			return nil
+		if first && s.artificialsClear() {
+			if s.fresh {
+				return nil
+			}
+			if err := s.refactor(); err != nil {
+				return err
+			}
+			continue
 		}
+		if !s.priced {
+			s.reprice()
+			exact = true
+		}
+		q, dir := s.enter()
+		if q < 0 {
+			if exact {
+				return nil
+			}
+			s.priced = false
+			continue
+		}
+		if !exact {
+			// Updated values chose q; the multipliers decide.
+			s.d[q], s.dtol[q] = s.reducedCost(q)
+			if d := float64(dir) * s.d[q]; d >= -s.dtol[q] {
+				continue
+			}
+		}
+		gain := math.Abs(s.d[q])
 		s.ftran(q)
 		theta, row, flip := s.ratio(q, dir)
 		if math.IsInf(theta, 1) {
@@ -747,6 +854,10 @@ func (s *bounded) run() error {
 				continue
 			}
 			// The ratio test passed over a row that stops the step.
+			if !s.priced {
+				s.reprice()
+				exact = true
+			}
 			s.ftran(q)
 			if theta, row = s.blocker(dir); row < 0 {
 				return errUnsettled
@@ -757,7 +868,11 @@ func (s *bounded) run() error {
 		// so near-duplicate columns cannot alternate forever.
 		if theta*gain <= s.tol*math.Max(1, s.objScale) {
 			if s.stall++; s.stall >= blandAfter {
-				s.bland = true
+				if !first && s.expand() {
+					s.stall = 0
+				} else {
+					s.bland = true
+				}
 			}
 		} else {
 			s.stall, s.bland = 0, false
@@ -781,19 +896,176 @@ func (s *bounded) run() error {
 		} else {
 			s.x[leave], s.status[leave] = s.upper[leave], atUpper
 		}
-		s.head[row] = q
-		s.status[q] = basic
 		if !s.stable(row) {
 			// An update on a pivot this small against its column would
 			// multiply the error in every later solve; factorize instead.
+			s.head[row] = q
+			s.status[q] = basic
 			s.unbar()
 			if err := s.refactor(); err != nil {
 				return err
 			}
 			continue
 		}
+		s.reduce(q, leave, row)
+		exact = false
+		s.head[row] = q
+		s.status[q] = basic
 		if err := s.pivoted(row); err != nil {
 			return err
+		}
+	}
+}
+
+// expand widens the finite bounds of each basic structural variable not yet
+// widened by a small random amount, and reports whether there was one. Basic
+// variables at a bound then have room to move, which turns degenerate primal
+// pivots into short steps (Harris and Forrest's bound perturbation, as in
+// Huangfu and Hall, "Parallelizing the dual revised simplex method", 2018).
+func (s *bounded) expand() bool {
+	if s.expanded == nil {
+		s.expanded = make([]bool, s.n)
+		s.bounds = [2][]float64{append([]float64(nil), s.lower[:s.n]...), append([]float64(nil), s.upper[:s.n]...)}
+		if s.seed == 0 {
+			s.seed = 0x9e3779b97f4a7c15
+		}
+	}
+	any := false
+	for _, j := range s.head {
+		if j >= s.n || s.expanded[j] || s.lower[j] == s.upper[j] {
+			continue
+		}
+		s.seed ^= s.seed << 13
+		s.seed ^= s.seed >> 7
+		s.seed ^= s.seed << 17
+		e := boundShift * (0.5 + 0.5*float64(s.seed>>11)/(1<<53))
+		if !math.IsInf(s.lower[j], -1) {
+			s.lower[j] -= e * (1 + math.Abs(s.lower[j]))
+		}
+		if !math.IsInf(s.upper[j], 1) {
+			s.upper[j] += e * (1 + math.Abs(s.upper[j]))
+		}
+		s.expanded[j], any = true, true
+	}
+	return any
+}
+
+// unexpand restores the bounds that expand widened and moves nonbasic
+// variables back onto them. With place, it recomputes the basic values,
+// which may then lie outside their bounds by as much as the widening; the
+// dual simplex method removes that.
+func (s *bounded) unexpand(place bool) {
+	if s.expanded == nil {
+		return
+	}
+	for j, e := range s.expanded {
+		if !e {
+			continue
+		}
+		s.lower[j], s.upper[j] = s.bounds[0][j], s.bounds[1][j]
+		switch s.status[j] {
+		case atLower:
+			s.x[j] = s.lower[j]
+		case atUpper:
+			s.x[j] = s.upper[j]
+		}
+	}
+	s.expanded = nil
+	s.priced = false
+	if place {
+		s.place()
+	}
+}
+
+// artificialsClear reports whether every basic artificial variable is
+// within the tolerance of zero.
+func (s *bounded) artificialsClear() bool {
+	for _, j := range s.head {
+		if j >= s.n && s.x[j] > s.tol {
+			return false
+		}
+	}
+	return true
+}
+
+// enter returns the entering variable and its direction (+1 increase, -1
+// decrease) by the reduced costs in d, or -1 if none prices out: the first
+// under Bland's rule, and otherwise the one with the largest reduced cost
+// against its reference weight.
+func (s *bounded) enter() (q, dir int) {
+	best := 0.0
+	q = -1
+	for j := range s.total {
+		way := s.way(j)
+		if way == 0 {
+			continue
+		}
+		if s.bland {
+			return j, way
+		}
+		if d := s.d[j]; d*d > best*s.devex[j] {
+			best, q, dir = d*d/s.devex[j], j, way
+		}
+	}
+	return q, dir
+}
+
+// way returns the direction in which nonbasic j prices out by its reduced
+// cost in d, or 0 if it does not.
+func (s *bounded) way(j int) int {
+	st := s.status[j]
+	if st == basic || s.lower[j] == s.upper[j] {
+		return 0
+	}
+	switch d, tol := s.d[j], s.dtol[j]; {
+	case d < -tol && (st == atLower || st == atZero):
+		return 1
+	case d > tol && (st == atUpper || st == atZero):
+		return -1
+	}
+	return 0
+}
+
+// exchange updates the reduced costs for the pivot in which nonbasic q
+// replaces leave, the basic variable of the row whose pivot row is in arow,
+// and returns the step of the multipliers along rho.
+func (s *bounded) exchange(q, leave int) float64 {
+	step := s.d[q] / s.arow[q]
+	for j := range s.total {
+		if s.status[j] == basic || s.lower[j] == s.upper[j] {
+			continue
+		}
+		if a := s.arow[j]; a != 0 {
+			s.d[j] -= step * a
+		}
+	}
+	s.d[q], s.d[leave] = 0, -step
+	return step
+}
+
+// reduce updates the reduced costs, the multipliers and the reference
+// weights for the primal pivot in which q replaces leave, the basic
+// variable of row.
+func (s *bounded) reduce(q, leave, row int) {
+	s.pivotRow(row)
+	step := s.exchange(q, leave)
+	for i, v := range s.rho {
+		s.y[i] += step * v
+	}
+	s.d[leave], s.dtol[leave] = s.reducedCost(leave)
+	pivot, wq := s.arow[q], s.devex[q]
+	for j := range s.total {
+		if s.status[j] == basic || s.lower[j] == s.upper[j] {
+			continue
+		}
+		if w := s.arow[j] / pivot; w*w*wq > s.devex[j] {
+			s.devex[j] = w * w * wq
+		}
+	}
+	s.devex[leave] = math.Max(wq/(pivot*pivot), 1)
+	if s.devex[leave] > devexReset {
+		for j := range s.devex {
+			s.devex[j] = 1
 		}
 	}
 }
@@ -860,6 +1132,7 @@ func (s *bounded) recedes(d []float64) bool {
 		big = math.Max(big, math.Abs(v))
 	}
 	r, terms, scale := s.work, s.y, s.alpha
+	s.priced = false
 	clear(r)
 	clear(terms)
 	clear(scale)
@@ -914,6 +1187,7 @@ func (s *bounded) pivoted(row int) error {
 // refactor factorizes the current basis and recomputes basic values from
 // the nonbasic ones to remove accumulated drift.
 func (s *bounded) refactor() error {
+	s.priced = false
 	if err := s.lu.factorize(&s.columns, s.head); err != nil {
 		return err
 	}
@@ -960,42 +1234,93 @@ func (s *bounded) ftran(q int) {
 	s.lu.ftran(z)
 }
 
-// price returns an entering variable and its direction (+1 increase, -1
-// decrease), or -1 at optimality.
-func (s *bounded) price() (int, int, float64) {
-	best, q, dir := 0.0, -1, 0
+// reprice sets y to the multipliers of the phase costs, and d and dtol to
+// the reduced cost of each nonbasic variable that is not fixed and the
+// tolerance for its sign. They stay valid, through the updates of each
+// pivot, until the costs, the bounds that fix a variable or the
+// factorization change, or y is used as work space.
+func (s *bounded) reprice() {
+	s.btran()
 	for j := range s.total {
-		st := s.status[j]
-		if st == basic || s.lower[j] == s.upper[j] {
+		if s.status[j] == basic || s.lower[j] == s.upper[j] {
 			continue
 		}
-		// The tolerance scales with the terms of d, whose rounding error
-		// grows with them.
-		d, size := s.cost[j], math.Abs(s.cost[j])
-		for k := s.start[j]; k < s.start[j+1]; k++ {
-			t := s.y[s.index[k]] * s.value[k]
-			d -= t
-			size += math.Abs(t)
-		}
-		tol := s.tol * math.Max(1, size)
-		var gain float64
-		var way int
-		switch {
-		case d < -tol && (st == atLower || st == atZero):
-			gain, way = -d, 1
-		case d > tol && (st == atUpper || st == atZero):
-			gain, way = d, -1
-		default:
-			continue
-		}
-		if s.bland {
-			return j, way, gain
-		}
-		if gain > best {
-			best, q, dir = gain, j, way
+		s.d[j], s.dtol[j] = s.reducedCost(j)
+	}
+	s.priced = true
+}
+
+// pivotRow sets arow to row r of B⁻¹[A | artificials] and rho to row r of
+// B⁻¹. The entries of basic and of fixed variables are not meaningful.
+//
+// A sparse rho is multiplied by the rows of A, which costs their nonzeros
+// rather than all of A's. Both orders add the terms of an entry by
+// increasing row when the columns are stored that way, so they agree to the
+// last bit.
+func (s *bounded) pivotRow(r int) {
+	rho := s.rho
+	clear(rho)
+	rho[r] = 1
+	s.lu.btran(rho)
+	nz := 0
+	for _, v := range rho {
+		if v != 0 {
+			nz++
 		}
 	}
-	return q, dir, best
+	if float64(nz) > rowDensity*float64(s.m) {
+		for j := range s.total {
+			if s.status[j] == basic || s.lower[j] == s.upper[j] {
+				continue
+			}
+			index := s.index[s.start[j]:s.start[j+1]]
+			value := s.value[s.start[j]:s.start[j+1]]
+			a := 0.0
+			for k, i := range index {
+				a += rho[i] * value[k]
+			}
+			s.arow[j] = a
+		}
+		return
+	}
+	if s.byRow == nil {
+		s.byRow = s.transpose()
+	}
+	rows := s.byRow
+	clear(s.arow[:s.n])
+	for i, v := range rho {
+		if v == 0 {
+			s.arow[s.n+i] = 0
+			continue
+		}
+		index := rows.index[rows.start[i]:rows.start[i+1]]
+		value := rows.value[rows.start[i]:rows.start[i+1]]
+		for k, j := range index {
+			s.arow[j] += v * value[k]
+		}
+		s.arow[s.n+i] = v * s.value[s.start[s.n+i]]
+	}
+}
+
+// transpose returns the n columns of A stored by rows.
+func (s *bounded) transpose() *columns {
+	nnz := s.start[s.n]
+	t := &columns{start: make([]int, s.m+1), index: make([]int, nnz), value: make([]float64, nnz)}
+	for _, i := range s.index[:nnz] {
+		t.start[i+1]++
+	}
+	for i := range s.m {
+		t.start[i+1] += t.start[i]
+	}
+	next := append([]int(nil), t.start[:s.m]...)
+	for j := range s.n {
+		for k := s.start[j]; k < s.start[j+1]; k++ {
+			at := next[s.index[k]]
+			next[s.index[k]]++
+			t.index[at], t.value[at] = j, s.value[k]
+		}
+	}
+	return t
 }
 
 // ratio returns the step length, the leaving row, and whether the entering

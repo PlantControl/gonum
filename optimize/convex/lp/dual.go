@@ -18,7 +18,7 @@ const (
 )
 
 // reducedCost returns d_j = c_j - yᵀa_j and the tolerance for its sign,
-// which scales with the terms of the sum as in price.
+// which scales with the terms of the sum, as their rounding error does.
 func (s *bounded) reducedCost(j int) (d, tol float64) {
 	d, size := s.cost[j], math.Abs(s.cost[j])
 	for k := s.start[j]; k < s.start[j+1]; k++ {
@@ -31,16 +31,35 @@ func (s *bounded) reducedCost(j int) (d, tol float64) {
 
 // dualStart prepares an installed phase 2 basis for the dual simplex
 // method. Each nonbasic variable with two finite bounds moves to the bound
-// its reduced cost favours; it reports false if a variable with at most one
-// finite bound has a reduced cost of the wrong sign.
+// its reduced cost favours. A variable with at most one finite bound whose
+// reduced cost has the wrong sign by no more than shiftLimit times its
+// tolerance has its cost shifted to make it zero, as dual phase 1 and
+// rounding leave such reduced costs; dual removes the shifts when it
+// returns. dualStart reports false, shifting nothing, if any such reduced
+// cost is wrong by more.
 func (s *bounded) dualStart() bool {
-	s.btran()
+	if !s.priced {
+		s.reprice()
+	}
+	shifts := 0
+	for j := range s.total {
+		st := s.status[j]
+		if st == basic || s.lower[j] == s.upper[j] || (!math.IsInf(s.lower[j], -1) && !math.IsInf(s.upper[j], 1)) {
+			continue
+		}
+		if wrong := s.wrongSign(j); wrong > 0 {
+			if j >= s.n || wrong > shiftLimit*s.dtol[j] {
+				return false
+			}
+			shifts++
+		}
+	}
 	for j := range s.total {
 		st := s.status[j]
 		if st == basic || s.lower[j] == s.upper[j] {
 			continue
 		}
-		d, tol := s.reducedCost(j)
+		d := s.d[j]
 		lo, up := !math.IsInf(s.lower[j], -1), !math.IsInf(s.upper[j], 1)
 		switch {
 		case lo && up:
@@ -49,15 +68,40 @@ func (s *bounded) dualStart() bool {
 			} else {
 				s.x[j], s.status[j] = s.upper[j], atUpper
 			}
-		case st == atLower && d < -tol, st == atUpper && d > tol, st == atZero && math.Abs(d) > tol:
-			return false
+		case shifts > 0 && s.wrongSign(j) > 0:
+			if s.shifted == nil {
+				s.shifted = make([]bool, s.n)
+				s.seed = 0x9e3779b97f4a7c15
+			}
+			s.cost[j] -= d
+			s.d[j] = 0
+			s.shifted[j] = true
 		}
 	}
 	if s.fresh {
 		s.place()
 		return true
 	}
-	return s.refactor() == nil
+	if s.refactor() != nil {
+		s.unshift()
+		return false
+	}
+	return true
+}
+
+// wrongSign returns by how much the reduced cost of nonbasic j has the
+// wrong sign beyond its tolerance for the dual simplex method, or 0.
+func (s *bounded) wrongSign(j int) float64 {
+	d, tol := s.d[j], s.dtol[j]
+	switch st := s.status[j]; {
+	case st == atLower && d < -tol:
+		return -d
+	case st == atUpper && d > tol:
+		return d
+	case st == atZero && math.Abs(d) > tol:
+		return math.Abs(d)
+	}
+	return 0
 }
 
 // candidate is an entering variable for the dual ratio test.
@@ -73,10 +117,12 @@ type candidate struct {
 // thesis, Paderborn, 2005). The leaving row is chosen by dual steepest edge
 // with unit initial weights; the ratio test passes breakpoints of boxed
 // variables, flipping them to their other bound, while the primal
-// infeasibility of the leaving row still decreases. A run of degenerate
-// pivots perturbs the costs of the nonbasic variables, which the caller
-// finds restored and must clean up after; once every cost is perturbed it
-// uses Bland's rule without flips until the dual objective moves. It
+// infeasibility of the leaving row still decreases. Each pivot updates the
+// reduced costs from its row of the tableau, and each factorization
+// computes them again. A run of degenerate pivots perturbs the costs of
+// the nonbasic variables, which the caller finds restored and must clean up
+// after; once every cost is perturbed it uses Bland's rule without flips
+// until the dual objective moves. It
 // returns ErrInfeasible if a row cannot be made feasible and its row of
 // the basis inverse certifies that, and errUnsettled if the certificate
 // fails or only rows with unstable pivots are left.
@@ -86,17 +132,24 @@ func (s *bounded) dual() error {
 	for i := range weight {
 		weight[i] = 1
 	}
-	rho := make([]float64, m)
+	rho := s.rho
 	tau := make([]float64, m)
 	flip := make([]float64, m)
 	var cand []candidate
 	s.bland, s.stall = false, 0
 	s.unbar()
 	shake := false
-	defer s.unshift()
+	defer func() {
+		s.unshift()
+		// The multipliers were not updated with the reduced costs.
+		s.priced = false
+	}()
 	for {
 		if s.iterations >= s.limit {
 			return ErrIterationLimit
+		}
+		if !s.priced {
+			s.reprice()
 		}
 		if shake {
 			shake = false
@@ -142,28 +195,21 @@ func (s *bounded) dual() error {
 		if s.x[leave] > s.upper[leave] {
 			sign = -1
 		}
-		clear(rho)
-		rho[r] = 1
-		s.lu.btran(rho)
-		s.btran()
+		s.pivotRow(r)
 		cand = cand[:0]
 		for j := range s.total {
 			st := s.status[j]
 			if st == basic || s.lower[j] == s.upper[j] {
 				continue
 			}
-			a := 0.0
-			for k := s.start[j]; k < s.start[j+1]; k++ {
-				a += rho[s.index[k]] * s.value[k]
-			}
-			a *= sign
+			a := sign * s.arow[j]
 			if math.Abs(a) <= pivotTol {
 				continue
 			}
 			if (st == atLower && a > 0) || (st == atUpper && a < 0) {
 				continue
 			}
-			d, _ := s.reducedCost(j)
+			d := s.d[j]
 			if st == atLower {
 				d = math.Max(d, 0)
 			} else {
@@ -228,6 +274,7 @@ func (s *bounded) dual() error {
 				s.x[s.head[i]] -= a
 			}
 		}
+		s.exchange(q, leave)
 		target := s.lower[leave]
 		if sign < 0 {
 			target = s.upper[leave]
@@ -283,7 +330,9 @@ func (s *bounded) dual() error {
 func (s *bounded) stable(row int) bool {
 	big := 0.0
 	for _, a := range s.alpha {
-		big = math.Max(big, math.Abs(a))
+		if a := math.Abs(a); a > big {
+			big = a
+		}
 	}
 	return math.Abs(s.alpha[row]) >= stablePivot*big
 }
@@ -310,6 +359,7 @@ func (s *bounded) shift() bool {
 			e = -e
 		}
 		s.cost[j] += e
+		s.d[j] += e
 		s.shifted[j], any = true, true
 	}
 	return any
@@ -321,6 +371,7 @@ func (s *bounded) unshift() {
 	if s.shifted != nil {
 		copy(s.cost, s.c)
 		s.shifted = nil
+		s.priced = false
 	}
 }
 
