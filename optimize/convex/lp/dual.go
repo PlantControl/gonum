@@ -145,7 +145,7 @@ func (s *bounded) dual() error {
 		s.priced = false
 	}()
 	for {
-		if s.iterations >= s.limit {
+		if s.halt() {
 			return ErrIterationLimit
 		}
 		if !s.priced {

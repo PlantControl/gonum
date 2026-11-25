@@ -1050,3 +1050,54 @@ func BenchmarkBoundedSimplexRandom(b *testing.B) {
 		}
 	}
 }
+
+// TestBoundedSimplexLimited checks that a pivot cap and a stop hook end a
+// call with ErrIterationLimit within the cap, that a stop ends the cascade
+// of methods, and that no limits leave BoundedSimplexFrom unchanged.
+func TestBoundedSimplexLimited(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewPCG(11, 3))
+	stopped := 0
+	for range 150 {
+		n := rnd.IntN(25) + 5
+		m := rnd.IntN(n) + 1
+		c, a, b, lower, upper := boundedProblem(rnd, m, n)
+		want, errWant := BoundedSimplexFrom(nil, c, a, b, lower, upper, 0)
+		got, err := BoundedSimplexLimited(nil, c, a, b, lower, upper, 0, Limits{})
+		if !errors.Is(err, errWant) || got.Iterations != want.Iterations || got.F != want.F {
+			t.Fatalf("no limits: %v %d %v, want %v %d %v", err, got.Iterations, got.F, errWant, want.Iterations, want.F)
+		}
+		for _, cap := range []int{1, 2, 5, 13} {
+			got, err := BoundedSimplexLimited(nil, c, a, b, lower, upper, 0, Limits{Pivots: cap})
+			if got.Iterations > cap || err == nil && want.Iterations > cap {
+				t.Fatalf("cap %d: %d pivots, %v", cap, got.Iterations, err)
+			}
+			if err != nil && !errors.Is(err, ErrIterationLimit) && !errors.Is(err, errWant) {
+				t.Fatalf("cap %d: %v, want %v or ErrIterationLimit", cap, err, errWant)
+			}
+		}
+		for _, after := range []int{0, 1, 3} {
+			calls, late := 0, false
+			stop := func() bool {
+				if calls > after {
+					late = true
+				}
+				calls++
+				return calls > after
+			}
+			got, err := BoundedSimplexLimited(nil, c, a, b, lower, upper, 0, Limits{Stop: stop})
+			if late {
+				t.Fatalf("stop after %d: called again after it reported true", after)
+			}
+			if got.Iterations > after {
+				t.Fatalf("stop after %d: %d pivots", after, got.Iterations)
+			}
+			if errors.Is(err, ErrIterationLimit) {
+				stopped++
+			}
+		}
+	}
+	if stopped == 0 {
+		t.Fatal("no call was stopped")
+	}
+}
