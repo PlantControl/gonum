@@ -119,12 +119,36 @@ func BoundedSimplex(c []float64, A mat.Matrix, b, lower, upper []float64, tol fl
 // 50·(n+m+1) pivots over all the methods it tries, and returns
 // ErrIterationLimit when they run out.
 func BoundedSimplexFrom(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) (BoundedResult, error) {
+	return BoundedSimplexLimited(start, c, A, b, lower, upper, tol, Limits{})
+}
+
+// Limits bounds one call of BoundedSimplexLimited.
+type Limits struct {
+	// Pivots caps the pivots over all the methods tried. Zero, or more
+	// than 50·(n+m+1), selects 50·(n+m+1).
+	Pivots int
+	// Stop, if not nil, is called before each pivot. Once it reports
+	// true, the call tries no other method and returns ErrIterationLimit.
+	Stop func() bool
+}
+
+// BoundedSimplexLimited is BoundedSimplexFrom within lim.
+func BoundedSimplexLimited(start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64, lim Limits) (BoundedResult, error) {
 	m, n := A.Dims()
-	return boundedSimplex(newFactor, start, c, A, b, lower, upper, tol, iterationFactor*(n+m+1))
+	budget := iterationFactor * (n + m + 1)
+	if lim.Pivots > 0 {
+		budget = min(budget, lim.Pivots)
+	}
+	return boundedSimplexStop(newFactor, start, c, A, b, lower, upper, tol, budget, lim.Stop)
 }
 
 // boundedSimplex is BoundedSimplexFrom with at most budget pivots in all.
 func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64, budget int) (BoundedResult, error) {
+	return boundedSimplexStop(factor, start, c, A, b, lower, upper, tol, budget, nil)
+}
+
+// boundedSimplexStop is boundedSimplex ended early once stop reports true.
+func boundedSimplexStop(factor func(m, n, nnz int) basisFactor, start *Basis, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64, budget int, stop func() bool) (BoundedResult, error) {
 	m, n := A.Dims()
 	if len(c) != n || len(b) != m || len(lower) != n || len(upper) != n {
 		panic(badShape)
@@ -141,25 +165,27 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 		panic(badShape)
 	}
 	s := newBounded(factor, c, A, b, lower, upper, tol)
+	s.stop = stop
 	// share caps an attempt that another follows, so that the last has
 	// pivots left.
 	share := func() int { return min(budget, s.iterations+dualFactor*(n+m+1)) }
 	restart := func() {
 		spent, weak := s.iterations, s.weak
 		*s = *newBounded(factor, c, A, b, lower, upper, tol)
-		s.iterations, s.weak = spent, weak
+		s.iterations, s.weak, s.stop = spent, weak, stop
 	}
+	more := func(err error) bool { return unsettled(err) && !s.stopped }
 	err := errUnsettled
 	if start != nil {
 		if s.warm(start) {
 			s.limit = share()
 			err = s.settle()
 		}
-		if unsettled(err) {
+		if more(err) {
 			restart()
 		}
 	}
-	if unsettled(err) {
+	if more(err) {
 		// From the basis of slack columns the dual simplex method needs no
 		// artificial variables to move.
 		if s.warm(s.slackBasis()) {
@@ -168,7 +194,7 @@ func boundedSimplex(factor func(m, n, nnz int) basisFactor, start *Basis, c []fl
 			err = s.settle()
 		}
 	}
-	if unsettled(err) {
+	if more(err) {
 		restart()
 		s.limit = budget
 		err = s.solve()
@@ -227,6 +253,18 @@ const (
 var errUnsettled = errors.New("lp: no verdict")
 
 // unsettled reports whether err leaves the problem undecided.
+// halt reports whether the pivots have run out or the caller has stopped
+// the call.
+func (s *bounded) halt() bool {
+	if s.iterations >= s.limit {
+		return true
+	}
+	if s.stop != nil && !s.stopped {
+		s.stopped = s.stop()
+	}
+	return s.stopped
+}
+
 func unsettled(err error) bool {
 	return err != nil && !errors.Is(err, ErrInfeasible) && !errors.Is(err, ErrUnbounded)
 }
@@ -285,6 +323,8 @@ type bounded struct {
 	stall      int
 	limit      int
 	iterations int
+	stop       func() bool
+	stopped    bool
 }
 
 func newBounded(factor func(m, n, nnz int) basisFactor, c []float64, A mat.Matrix, b, lower, upper []float64, tol float64) *bounded {
@@ -804,7 +844,7 @@ func (s *bounded) run() (err error) {
 	// basis, with no update since.
 	exact := s.priced
 	for {
-		if s.iterations >= s.limit {
+		if s.halt() {
 			return ErrIterationLimit
 		}
 		if first && s.artificialsClear() {
